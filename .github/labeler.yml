@@ -1,0 +1,27 @@
+enable:
+  issues: true
+  prs: true
+
+# 레이블
+labels:
+  'bug':
+    include:
+      - '\bfix\b'
+  'test':
+    include:
+      - '\btest\b'
+  'feature':
+    include:
+      - '\bfeat\b'
+  'documentation':
+    include:
+      - '\bdocs\b'
+  'refactor':
+    include:
+      - '\brefactor\b'
+  'chore':
+    include:
+      - '\bchore\b'
+  'rename':
+    include:
+      - '\brename\b'
