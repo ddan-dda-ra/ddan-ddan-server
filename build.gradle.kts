@@ -30,6 +30,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation("com.mysql:mysql-connector-j")
+    implementation("com.github.f4b6a3:tsid-creator:5.2.6")
 }
 
 kotlin {
