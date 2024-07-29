@@ -26,11 +26,20 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("com.mysql:mysql-connector-j")
+    implementation("com.github.f4b6a3:tsid-creator:5.2.6")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.security:spring-security-web")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    implementation("com.mysql:mysql-connector-j")
-    implementation("com.github.f4b6a3:tsid-creator:5.2.6")
+
+    val jjwtVersion = "0.12.6"
+    implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
 }
 
 kotlin {
