@@ -8,6 +8,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredAccessTok
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredRefreshTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.infrastructure.util.logger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
@@ -22,6 +23,12 @@ class JWTTokenProvider(
     @Value("\${app.jwt.expiration.access-token}") private val accessTokenExpiration: Long,
     @Value("\${app.jwt.expiration.refresh-token}") private val refreshTokenExpiration: Long,
 ) {
+    companion object {
+        private const val TOKEN_TYPE = "token_type"
+        private const val ACCESS = "access"
+        private const val REFRESH = "refresh"
+    }
+
     private final val secretKey: SecretKey = SecretKeySpec(secret.toByteArray(), "AES")
 
     private val jwtParser =
@@ -34,7 +41,7 @@ class JWTTokenProvider(
         Jwts
             .builder()
             .header()
-            .add("token_type", "access")
+            .add(TOKEN_TYPE, ACCESS)
             .and()
             .claims()
             .add("user_id", user.id)
@@ -47,7 +54,7 @@ class JWTTokenProvider(
         Jwts
             .builder()
             .header()
-            .add("token_type", "refresh")
+            .add(TOKEN_TYPE, REFRESH)
             .and()
             .claims()
             .add("user_id", user.id)
@@ -57,17 +64,17 @@ class JWTTokenProvider(
             .compact()
 
     fun validateRefreshToken(refreshToken: String) {
-        val claims = getClaims(refreshToken, "refresh")
+        val claims = getClaims(refreshToken, REFRESH)
 
-        if (getTokenType(claims) != "refresh") {
+        if (getTokenType(claims) != REFRESH) {
             throw AuthenticationInvalidTokenException()
         }
     }
 
     fun getUserIdFromRefreshToken(refreshToken: String): String {
-        val claims = getClaims(refreshToken, "refresh")
+        val claims = getClaims(refreshToken, REFRESH)
 
-        if (getTokenType(claims) != "access") {
+        if (getTokenType(claims) != ACCESS) {
             throw AuthenticationInvalidTokenException()
         }
 
@@ -75,9 +82,9 @@ class JWTTokenProvider(
     }
 
     fun parseToken(accessToken: String): Authentication {
-        val claims = getClaims(accessToken, "access")
+        val claims = getClaims(accessToken, ACCESS)
 
-        if (getTokenType(claims) != "access") {
+        if (getTokenType(claims) != ACCESS) {
             throw AuthenticationInvalidTokenException()
         }
 
@@ -92,8 +99,8 @@ class JWTTokenProvider(
             when (it) {
                 is ExpiredJwtException ->
                     when (tokenType) {
-                        "access" -> throw AuthenticationExpiredAccessTokenException()
-                        "refresh" -> throw AuthenticationExpiredRefreshTokenException()
+                        ACCESS -> throw AuthenticationExpiredAccessTokenException()
+                        REFRESH -> throw AuthenticationExpiredRefreshTokenException()
                         else -> throw AuthenticationInvalidTokenException()
                     }
 
@@ -102,7 +109,7 @@ class JWTTokenProvider(
         }
 
     private fun getTokenType(claims: Jwe<Claims>): String =
-        runCatching { claims.header["token_type"] as? String? ?: throw AuthenticationInvalidTokenException() }
+        runCatching { claims.header[TOKEN_TYPE] as? String? ?: throw AuthenticationInvalidTokenException() }
             .getOrElse { throw AuthenticationInvalidTokenException() }
 
     private fun getUserId(claims: Jwe<Claims>): String =
