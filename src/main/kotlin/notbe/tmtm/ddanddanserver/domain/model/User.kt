@@ -7,13 +7,15 @@ class User(
     var name: String?,
     var purposeCalorie: Int = 100,
 ) {
+    fun update(
+        name: String,
+        purposeCalorie: Int,
+    ) {
+        this.name = name
+        this.purposeCalorie = purposeCalorie
+    }
+
     companion object {
         fun register(name: String? = null): User = User(id = generateTsid(), name = name)
-
-        fun create(
-            name: String?,
-            purposeCalorie: Int,
-            feed: Int,
-        ): User = User(id = generateTsid(), name = name, purposeCalorie = purposeCalorie, feed = feed)
     }
 }
