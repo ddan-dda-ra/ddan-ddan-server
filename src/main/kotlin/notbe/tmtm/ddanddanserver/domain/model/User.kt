@@ -6,7 +6,6 @@ class User(
     val id: String,
     var name: String?,
     var purposeCalorie: Int = 100,
-    var feed: Int = 0,
 ) {
     companion object {
         fun register(name: String? = null): User = User(id = generateTsid(), name = name)
