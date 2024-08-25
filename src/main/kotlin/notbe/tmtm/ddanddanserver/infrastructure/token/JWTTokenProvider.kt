@@ -81,7 +81,7 @@ class JWTTokenProvider(
             throw AuthenticationInvalidTokenException()
         }
 
-        return UsernamePasswordAuthenticationToken(getUserId(claims), null)
+        return UsernamePasswordAuthenticationToken(getUserId(claims), null, emptyList())
     }
 
     private fun getClaims(
