@@ -10,20 +10,20 @@ data class LoginResponse(
     @Schema(description = "리프레시 토큰", example = "REFRESH_TOKEN")
     val refreshToken: String,
     val user: UserResponse,
-    @Schema(description = "회원 등록 여부")
-    val isRegistered: Boolean,
+    @Schema(description = "회원 온보딩 완료 여부")
+    val isOnboardingComplete: Boolean,
 ) {
     companion object {
         fun fromDomain(
             accessToken: String,
             refreshToken: String,
             user: User,
-            isRegistered: Boolean,
+            isOnboardingComplete: Boolean,
         ) = LoginResponse(
             accessToken = accessToken,
             refreshToken = refreshToken,
             user = UserResponse.fromDomain(user),
-            isRegistered = isRegistered,
+            isOnboardingComplete = isOnboardingComplete,
         )
     }
 }

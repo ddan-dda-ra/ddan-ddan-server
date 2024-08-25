@@ -28,7 +28,7 @@ class LoginOAuth(
         val accessToken: String,
         val refreshToken: String,
         val user: User,
-        val isRegistered: Boolean,
+        val isOnboardingComplete: Boolean,
     )
 
     override fun execute(input: LoginUserInput): LoginUserOutput {
@@ -48,7 +48,7 @@ class LoginOAuth(
                 accessToken = tokenGateway.createAccessToken(newUser),
                 refreshToken = tokenGateway.createRefreshToken(newUser),
                 user = newUser,
-                isRegistered = false,
+                isOnboardingComplete = false,
             )
         }
         // 가입된 유저의 경우 토큰 발급
@@ -58,7 +58,7 @@ class LoginOAuth(
             accessToken = tokenGateway.createAccessToken(user),
             refreshToken = tokenGateway.createRefreshToken(user),
             user = user,
-            isRegistered = true,
+            isOnboardingComplete = true,
         )
     }
 

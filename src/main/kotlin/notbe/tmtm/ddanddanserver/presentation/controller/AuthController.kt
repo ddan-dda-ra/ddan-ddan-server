@@ -34,7 +34,7 @@ class AuthController(
             accessToken = result.accessToken,
             refreshToken = result.refreshToken,
             user = result.user,
-            isRegistered = result.isRegistered,
+            isOnboardingComplete = result.isOnboardingComplete,
         )
     }
 
@@ -53,7 +53,7 @@ class AuthController(
             accessToken = result.accessToken,
             refreshToken = result.refreshToken,
             user = result.user,
-            isRegistered = true,
+            isOnboardingComplete = true,
         )
     }
 }
