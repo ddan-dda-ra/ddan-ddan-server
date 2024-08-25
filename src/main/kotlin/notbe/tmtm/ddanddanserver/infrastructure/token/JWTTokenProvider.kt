@@ -8,12 +8,11 @@ import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredAccessTok
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredRefreshTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.model.User
-import notbe.tmtm.ddanddanserver.infrastructure.util.logger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Component
-import java.util.*
+import java.util.Date
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
