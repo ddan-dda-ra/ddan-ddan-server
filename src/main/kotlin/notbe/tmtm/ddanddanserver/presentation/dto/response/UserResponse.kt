@@ -11,8 +11,6 @@ data class UserResponse(
     val name: String?,
     @Schema(description = "User 목표 칼로리", example = "100", minimum = "100", maximum = "1000")
     var purposeCalorie: Int,
-    @Schema(description = "User 소유 먹이 개수", example = "10")
-    var feed: Int,
 ) {
     companion object {
         fun fromDomain(user: User) =
@@ -21,7 +19,6 @@ data class UserResponse(
                     id = id,
                     name = name,
                     purposeCalorie = purposeCalorie,
-                    feed = feed,
                 )
             }
     }

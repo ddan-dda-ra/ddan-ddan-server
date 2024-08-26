@@ -6,4 +6,6 @@ interface UserGateway {
     fun save(user: User): User
 
     fun getById(userId: String): User
+
+    fun update(user: User): User
 }

@@ -14,15 +14,12 @@ data class UserEntity(
     val name: String?,
     @Column(name = "purpose_calorie", nullable = false)
     val purposeCalorie: Int,
-    @Column(name = "feed", nullable = false)
-    val feed: Int,
 ) {
     fun toDomain() =
         User(
             id = id,
             name = name,
             purposeCalorie = purposeCalorie,
-            feed = feed,
         )
 
     companion object {
@@ -32,7 +29,6 @@ data class UserEntity(
                     id = id,
                     name = name,
                     purposeCalorie = purposeCalorie,
-                    feed = feed,
                 )
             }
     }
