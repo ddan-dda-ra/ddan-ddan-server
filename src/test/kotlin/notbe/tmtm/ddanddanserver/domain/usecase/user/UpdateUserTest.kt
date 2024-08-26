@@ -6,7 +6,7 @@ import jakarta.persistence.EntityNotFoundException
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.User
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.Assertions.assertThrows
 import kotlin.test.Test
 
 class UpdateUserTest {
@@ -55,7 +55,7 @@ class UpdateUserTest {
         every { userGateway.getById(user.id) } throws EntityNotFoundException()
 
         // when & then
-        assertThrows<EntityNotFoundException> {
+        assertThrows(EntityNotFoundException::class.java) {
             updateUser.execute(
                 UpdateUser.UpdateUserInput(
                     userId = "ABCDEF1234567",
