@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.presentation.controller
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser
 import notbe.tmtm.ddanddanserver.presentation.dto.request.UserRequest
@@ -16,7 +17,8 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
     val updateUser: UpdateUser,
 ) {
-    @PutMapping
+    @PutMapping("/me")
+    @Operation(summary = "내 정보 수정", description = "내 정보를 수정합니다.")
     fun update(
         authentication: Authentication,
         @RequestBody request: UserRequest,
