@@ -6,6 +6,8 @@ class User(
     val id: String,
     var name: String?,
     var purposeCalorie: Int = 100,
+    var foodQuantity: Int = 0,
+    var toyQuantity: Int = 0,
 ) {
     fun update(
         name: String,

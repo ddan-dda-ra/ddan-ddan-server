@@ -10,7 +10,11 @@ data class UserResponse(
     @Schema(description = "User 표기 이름", example = "UserName")
     val name: String?,
     @Schema(description = "User 목표 칼로리", example = "100", minimum = "100", maximum = "1000")
-    var purposeCalorie: Int,
+    val purposeCalorie: Int,
+    @Schema(description = "User 음식 수량", example = "5")
+    val foodQuantity: Int,
+    @Schema(description = "User 장난감 수량", example = "2")
+    val toyQuantity: Int,
 ) {
     companion object {
         fun fromDomain(user: User) =
@@ -19,6 +23,8 @@ data class UserResponse(
                     id = id,
                     name = name,
                     purposeCalorie = purposeCalorie,
+                    foodQuantity = foodQuantity,
+                    toyQuantity = toyQuantity,
                 )
             }
     }
