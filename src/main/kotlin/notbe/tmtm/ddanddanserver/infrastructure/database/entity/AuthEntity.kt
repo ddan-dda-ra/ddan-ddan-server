@@ -16,7 +16,7 @@ data class AuthEntity(
     val type: OAuthType,
     @Column(name = "user_id", nullable = false)
     val userId: String,
-) {
+) : BaseEntity() {
     fun toDomain(): Auth =
         Auth(
             id = id,
