@@ -24,6 +24,8 @@ data class UserEntity(
             id = id,
             name = name,
             purposeCalorie = purposeCalorie,
+            foodQuantity = foodQuantity,
+            toyQuantity = toyQuantity,
         )
 
     companion object {
