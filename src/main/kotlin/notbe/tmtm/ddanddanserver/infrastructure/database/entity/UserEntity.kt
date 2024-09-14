@@ -14,7 +14,7 @@ data class UserEntity(
     val name: String?,
     @Column(name = "purpose_calorie", nullable = false)
     val purposeCalorie: Int,
-) {
+) : BaseEntity() {
     fun toDomain() =
         User(
             id = id,
