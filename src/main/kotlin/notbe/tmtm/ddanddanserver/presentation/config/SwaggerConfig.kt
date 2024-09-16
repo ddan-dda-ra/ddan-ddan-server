@@ -15,6 +15,10 @@ import org.springframework.context.annotation.Configuration
             url = "https://ddan-ddan.com/",
             description = "Production API server URL",
         ),
+        Server(
+            url = "http://localhost:8080/",
+            description = "Local API server URL",
+        ),
     ],
 )
 @Configuration
