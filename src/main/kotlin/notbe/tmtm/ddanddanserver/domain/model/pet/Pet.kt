@@ -8,6 +8,14 @@ class Pet(
     val ownerUserId: String,
     var exp: Int,
 ) {
+    fun eat(quantity: Int = 1) {
+        exp += quantity * 100
+    }
+
+    fun isOwner(userId: String): Boolean = ownerUserId == userId
+
+    fun isMaxLevel(): Boolean = exp >= Level.MAX_EXP
+
     fun getLevel(): Level = Level.entries.first { exp in it.expRange }
 
     fun getExpPercent(): Double {
@@ -26,6 +34,11 @@ class Pet(
         THREE(3, 900..1599, 700),
         FOUR(4, 1600..3499, 1900),
         FIVE(5, 3500..7000, 3500),
+        ;
+
+        companion object {
+            val MAX_EXP = entries.last().expRange.last
+        }
     }
 
     companion object {

@@ -36,4 +36,19 @@ enum class ErrorCode(
      */
     KAKAO_RESPONSE_PARSE_ERROR("KO001", "카카오 응답을 파싱하는데 실패하였습니다."),
     KAKAO_REST_CLIENT_ERROR("KO002", "카카오 API 요청 중 오류가 발생하였습니다."),
+
+    /**
+     * 유저 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.UserException
+     */
+    USER_NOT_FOUND("UE001", "유저를 찾을 수 없습니다."),
+    USER_FOOD_QUANTITY_LACK("UE002", "먹이가 부족합니다."),
+
+    /**
+     * 펫 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.PetException
+     */
+    PET_NOT_FOUND("PE001", "펫을 찾을 수 없습니다."),
+    PET_OWNER_MISMATCH("PE002", "펫의 소유자가 일치하지 않습니다."),
+    PET_MAX_LEVEL("PE003", "펫이 최대 레벨입니다."),
 }
