@@ -32,7 +32,7 @@ class PetController(
     private val getPet: GetPet,
 ) {
     @PostMapping("/me")
-    @Operation(summary = "펫 추가", description = "펫을 추가합니다.", )
+    @Operation(summary = "펫 추가", description = "펫을 추가합니다.")
     fun addMyPet(
         authentication: Authentication,
         @RequestBody request: AddPetRequest,
