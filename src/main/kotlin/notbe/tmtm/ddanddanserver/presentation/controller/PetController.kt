@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.AddPet
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.AddRandomPet
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.FeedPet
+import notbe.tmtm.ddanddanserver.domain.usecase.pet.GetPet
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.GetPets
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.PlayPet
 import notbe.tmtm.ddanddanserver.presentation.dto.request.AddPetRequest
@@ -28,6 +29,7 @@ class PetController(
     private val feedPet: FeedPet,
     private val playPet: PlayPet,
     private val getPets: GetPets,
+    private val getPet: GetPet,
 ) {
     @PostMapping("/me")
     @Operation(summary = "펫 추가", description = "펫을 추가합니다.")
@@ -102,5 +104,21 @@ class PetController(
             ownerUserId = authentication.name,
             pets = result.pets,
         )
+    }
+
+    @GetMapping("/{petId}")
+    @Operation(summary = "펫 조회", description = "특정 펫을 조회합니다.")
+    fun getPet(
+        authentication: Authentication,
+        @PathVariable petId: String,
+    ): PetResponse {
+        val result =
+            getPet.execute(
+                GetPet.Input(
+                    userId = authentication.name,
+                    petId = petId,
+                ),
+            )
+        return PetResponse.fromDomain(result.pet)
     }
 }
