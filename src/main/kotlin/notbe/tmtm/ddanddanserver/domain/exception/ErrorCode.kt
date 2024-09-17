@@ -43,6 +43,7 @@ enum class ErrorCode(
      */
     USER_NOT_FOUND("UE001", "유저를 찾을 수 없습니다."),
     USER_FOOD_QUANTITY_LACK("UE002", "먹이가 부족합니다."),
+    USER_TOY_QUANTITY_LACK("UE003", "장난감이 부족합니다."),
 
     /**
      * 펫 오류
