@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.usecase.pet.AddPet
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.AddRandomPet
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.FeedPet
 import notbe.tmtm.ddanddanserver.domain.usecase.pet.GetPets
+import notbe.tmtm.ddanddanserver.domain.usecase.pet.PlayPet
 import notbe.tmtm.ddanddanserver.presentation.dto.request.AddPetRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.PetResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.PetsResponse
@@ -25,6 +26,7 @@ class PetController(
     private val addPet: AddPet,
     private val addRandomPet: AddRandomPet,
     private val feedPet: FeedPet,
+    private val playPet: PlayPet,
     private val getPets: GetPets,
 ) {
     @PostMapping("/me")
@@ -64,6 +66,22 @@ class PetController(
         val result =
             feedPet.execute(
                 FeedPet.Input(
+                    ownerUserId = authentication.name,
+                    petId = petId,
+                ),
+            )
+        return UserPetResponse.fromDomain(result.user, result.pet)
+    }
+
+    @PostMapping("/{petId}/play")
+    @Operation(summary = "펫 놀아주기", description = "장난감을 사용해 펫과 놀아주어 성장시킵니다.")
+    fun playPet(
+        authentication: Authentication,
+        @PathVariable petId: String,
+    ): UserPetResponse {
+        val result =
+            playPet.execute(
+                PlayPet.Input(
                     ownerUserId = authentication.name,
                     petId = petId,
                 ),

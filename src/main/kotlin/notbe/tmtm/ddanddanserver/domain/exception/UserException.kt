@@ -12,3 +12,7 @@ class UserNotFoundException(
 class UserFoodQuantityLackException(
     data: Any? = null,
 ) : UserException(ErrorCode.USER_FOOD_QUANTITY_LACK, data)
+
+class UserToyQuantityLackException(
+    data: Any? = null,
+) : UserException(ErrorCode.USER_TOY_QUANTITY_LACK, data)

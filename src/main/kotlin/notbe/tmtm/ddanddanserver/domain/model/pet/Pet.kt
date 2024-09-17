@@ -12,6 +12,10 @@ class Pet(
         exp += quantity * 100
     }
 
+    fun play(quantity: Int = 1) {
+        exp += quantity * 500
+    }
+
     fun isOwner(userId: String): Boolean = ownerUserId == userId
 
     fun isMaxLevel(): Boolean = exp >= Level.MAX_EXP

@@ -2,6 +2,7 @@ package notbe.tmtm.ddanddanserver.domain.model
 
 import notbe.tmtm.ddanddanserver.common.util.generateTsid
 import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
+import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
 
 class User(
     val id: String,
@@ -15,6 +16,13 @@ class User(
             throw UserFoodQuantityLackException("먹이가 부족합니다")
         }
         this.foodQuantity -= quantity
+    }
+
+    fun play(quantity: Int = 1) {
+        if (this.toyQuantity < quantity) {
+            throw UserToyQuantityLackException("장난감이 부족합니다")
+        }
+        this.toyQuantity -= quantity
     }
 
     fun update(
