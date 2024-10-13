@@ -12,6 +12,8 @@ data class UserEntity(
     val id: String,
     @Column(name = "name", nullable = true)
     val name: String?,
+    @Column(name = "main_pet_id", nullable = true)
+    val mainPetId: String?,
     @Column(name = "purpose_calorie", nullable = false)
     val purposeCalorie: Int,
     @Column(name = "food_quantity", nullable = false)
@@ -23,6 +25,7 @@ data class UserEntity(
         User(
             id = id,
             name = name,
+            mainPetId = mainPetId,
             purposeCalorie = purposeCalorie,
             foodQuantity = foodQuantity,
             toyQuantity = toyQuantity,
@@ -34,6 +37,7 @@ data class UserEntity(
                 UserEntity(
                     id = id,
                     name = name,
+                    mainPetId = mainPetId,
                     purposeCalorie = purposeCalorie,
                     foodQuantity = foodQuantity,
                     toyQuantity = toyQuantity,

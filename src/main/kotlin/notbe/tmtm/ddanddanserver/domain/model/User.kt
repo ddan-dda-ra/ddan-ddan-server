@@ -7,20 +7,21 @@ import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
 class User(
     val id: String,
     var name: String?,
+    var mainPetId: String? = null,
     var purposeCalorie: Int = 100,
     var foodQuantity: Int = 0,
     var toyQuantity: Int = 0,
 ) {
     fun feed(quantity: Int = 1) {
         if (this.foodQuantity < quantity) {
-            throw UserFoodQuantityLackException("먹이가 부족합니다")
+            throw UserFoodQuantityLackException()
         }
         this.foodQuantity -= quantity
     }
 
     fun play(quantity: Int = 1) {
         if (this.toyQuantity < quantity) {
-            throw UserToyQuantityLackException("장난감이 부족합니다")
+            throw UserToyQuantityLackException()
         }
         this.toyQuantity -= quantity
     }
@@ -31,6 +32,10 @@ class User(
     ) {
         this.name = name
         this.purposeCalorie = purposeCalorie
+    }
+
+    fun setMainPet(petId: String) {
+        this.mainPetId = petId
     }
 
     companion object {
