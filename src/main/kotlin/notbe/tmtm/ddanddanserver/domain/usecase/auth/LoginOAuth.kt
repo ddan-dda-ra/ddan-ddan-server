@@ -48,7 +48,7 @@ class LoginOAuth(
                 accessToken = tokenGateway.createAccessToken(newUser),
                 refreshToken = tokenGateway.createRefreshToken(newUser),
                 user = newUser,
-                isOnboardingComplete = false,
+                isOnboardingComplete = newUser.hasMainPet(),
             )
         }
         // 가입된 유저의 경우 토큰 발급
@@ -58,7 +58,7 @@ class LoginOAuth(
             accessToken = tokenGateway.createAccessToken(user),
             refreshToken = tokenGateway.createRefreshToken(user),
             user = user,
-            isOnboardingComplete = true,
+            isOnboardingComplete = user.hasMainPet(),
         )
     }
 
