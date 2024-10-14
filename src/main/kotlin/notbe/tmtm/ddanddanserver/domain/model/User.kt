@@ -38,6 +38,8 @@ class User(
         this.mainPetId = petId
     }
 
+    fun hasMainPet(): Boolean = this.mainPetId != null
+
     companion object {
         fun register(name: String? = null): User = User(id = generateTsid(), name = name)
     }
