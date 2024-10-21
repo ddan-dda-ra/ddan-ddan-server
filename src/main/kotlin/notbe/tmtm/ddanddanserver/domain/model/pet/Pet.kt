@@ -1,6 +1,8 @@
 package notbe.tmtm.ddanddanserver.domain.model.pet
 
 import notbe.tmtm.ddanddanserver.common.util.generateTsid
+import notbe.tmtm.ddanddanserver.domain.model.pet.Pet.Level.Companion.MAX_EXP
+import kotlin.math.min
 
 class Pet(
     val id: String,
@@ -14,6 +16,7 @@ class Pet(
 
     fun play(quantity: Int = 1) {
         exp += quantity * 500
+        exp = min(exp, MAX_EXP)
     }
 
     fun isOwner(userId: String): Boolean = ownerUserId == userId
