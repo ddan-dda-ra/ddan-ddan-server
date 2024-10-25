@@ -21,4 +21,14 @@ class DailyInfoGatewayImpl(
             .findByUserIdAndDate(userId, date)
             ?.toDomain()
             ?: DailyInfo.register(userId, date, calorie = 0)
+
+    override fun getByDateBeforeNDays(
+        userId: String,
+        date: LocalDate,
+        n: Int,
+    ): List<DailyInfo> {
+        val endDate = date.minusDays(1)
+        val startDate = date.minusDays(n.toLong())
+        return dailyInfoRepository.findByUserIdAndDateBetween(userId, startDate, endDate).map { it.toDomain() }
+    }
 }

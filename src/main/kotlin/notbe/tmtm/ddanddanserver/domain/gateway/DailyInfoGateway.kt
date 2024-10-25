@@ -10,4 +10,10 @@ interface DailyInfoGateway {
         userId: String,
         date: LocalDate,
     ): DailyInfo
+
+    fun getByDateBeforeNDays(
+        userId: String,
+        date: LocalDate,
+        n: Int,
+    ): List<DailyInfo>
 }

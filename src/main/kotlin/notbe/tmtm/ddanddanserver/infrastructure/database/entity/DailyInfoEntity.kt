@@ -17,6 +17,10 @@ data class DailyInfoEntity(
     val date: LocalDate,
     @Column(name = "calorie", nullable = false)
     val calorie: Int,
+    @Column(name = "purpose_achieved", nullable = false)
+    val purposeAchieved: Boolean = false,
+    @Column(name = "toy_given", nullable = false)
+    val toyGiven: Boolean = false,
 ) : BaseEntity() {
     fun toDomain() =
         DailyInfo(
@@ -24,6 +28,8 @@ data class DailyInfoEntity(
             userId = userId,
             date = date,
             calorie = calorie,
+            purposeAchieved = purposeAchieved,
+            toyGiven = toyGiven,
         )
 
     companion object {
@@ -34,6 +40,8 @@ data class DailyInfoEntity(
                     userId = userId,
                     date = date,
                     calorie = calorie,
+                    purposeAchieved = purposeAchieved,
+                    toyGiven = toyGiven,
                 )
             }
     }

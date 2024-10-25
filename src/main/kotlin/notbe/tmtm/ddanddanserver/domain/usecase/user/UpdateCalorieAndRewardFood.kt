@@ -32,10 +32,34 @@ class UpdateCalorieAndRewardFood(
         val user =
             userGateway.getById(input.userId).apply { foodQuantity += getRewardFood(calorieDailyInfo.calorie, input.calorie) }
 
+        if (isDailyPurposeAchieve(calorieDailyInfo, user, input.calorie)) {
+            calorieDailyInfo.purposeAchieved = true
+            val dailyInfosBefore2Days = dailyInfoGateway.getByDateBeforeNDays(input.userId, input.today, 2)
+            if (validateToyGiven(dailyInfosBefore2Days)) {
+                user.toyQuantity++
+                calorieDailyInfo.toyGiven = true
+            }
+        }
+
         calorieDailyInfo.update(input.calorie)
 
         return Output(userGateway.save(user), dailyInfoGateway.save(calorieDailyInfo))
     }
+
+    private fun validateToyGiven(dailyInfos: List<DailyInfo>): Boolean {
+        if (dailyInfos.size != 2) return false
+        dailyInfos.forEach {
+            if (it.purposeAchieved.not()) return false
+            if (it.toyGiven) return false
+        }
+        return true
+    }
+
+    private fun isDailyPurposeAchieve(
+        calorieDailyInfo: DailyInfo,
+        user: User,
+        currentCalorie: Int,
+    ) = calorieDailyInfo.calorie < user.purposeCalorie && currentCalorie >= user.purposeCalorie
 
     private fun getRewardFood(
         previousCalorie: Int,

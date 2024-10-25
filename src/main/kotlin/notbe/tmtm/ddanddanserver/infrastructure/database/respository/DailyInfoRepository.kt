@@ -9,4 +9,10 @@ interface DailyInfoRepository : JpaRepository<DailyInfoEntity, String> {
         userId: String,
         date: LocalDate,
     ): DailyInfoEntity?
+
+    fun findByUserIdAndDateBetween(
+        userId: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): List<DailyInfoEntity>
 }
