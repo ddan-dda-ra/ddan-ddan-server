@@ -9,6 +9,8 @@ class DailyInfo(
     val userId: String,
     val date: LocalDate,
     var calorie: Int,
+    var purposeAchieved: Boolean = false,
+    var toyGiven: Boolean = false,
 ) {
     fun update(calorie: Int) {
         this.calorie = max(this.calorie, calorie)
