@@ -74,7 +74,13 @@ class LoginOAuth(
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
-            // TODO: apple login 정보 추가 필요
+            OAuthType.APPLE -> {
+                return try {
+                    oAuthGateway.getOAuthUserInfoFromApple(accessToken)
+                } catch (e: Exception) {
+                    throw OAuthenticationInvalidTokenException(oAuthType)
+                }
+            }
             else -> throw Exception("Not Supported Token Type")
         }
     }
