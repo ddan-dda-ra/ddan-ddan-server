@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class GetMainPet(
@@ -19,6 +20,7 @@ class GetMainPet(
         val mainPet: Pet?,
     )
 
+    @Transactional(readOnly = true)
     override fun execute(input: Input): Output {
         val user = userGateway.getById(input.userId)
         return Output(mainPet = user.mainPetId?.let { petGateway.getById(it) })

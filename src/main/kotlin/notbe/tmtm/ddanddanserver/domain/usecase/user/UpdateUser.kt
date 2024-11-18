@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser.UpdateUserInput
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser.UpdateUserOutput
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class UpdateUser(
@@ -21,6 +22,7 @@ class UpdateUser(
         val user: User,
     )
 
+    @Transactional
     override fun execute(input: UpdateUserInput): UpdateUserOutput {
         val user = userGateway.getById(input.userId)
 

@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class ReissueToken(
@@ -21,6 +22,7 @@ class ReissueToken(
         val user: User,
     )
 
+    @Transactional
     override fun execute(input: ReissueTokenInput): ReissueTokenOutput {
         tokenGateway.validateRefreshToken(refreshToken = input.refreshToken)
 

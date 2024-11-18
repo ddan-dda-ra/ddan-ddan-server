@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import kotlin.math.max
 
@@ -27,6 +28,7 @@ class UpdateCalorieAndRewardFood(
         val dailyInfo: DailyInfo,
     )
 
+    @Transactional
     override fun execute(input: Input): Output {
         val calorieDailyInfo = dailyInfoGateway.getOrCreate(input.userId, input.today)
         val user =

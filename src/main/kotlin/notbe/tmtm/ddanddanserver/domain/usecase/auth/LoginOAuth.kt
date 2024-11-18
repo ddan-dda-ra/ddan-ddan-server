@@ -11,6 +11,7 @@ import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthInfo
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class LoginOAuth(
@@ -31,6 +32,7 @@ class LoginOAuth(
         val isOnboardingComplete: Boolean,
     )
 
+    @Transactional
     override fun execute(input: LoginUserInput): LoginUserOutput {
         // 로그인 방식에 따라 오어스 정보를 가져온다.
         val oAuthInfo = getOAuthInfo(input.accessToken, input.tokenType)

@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class GetPet(
@@ -19,6 +20,7 @@ class GetPet(
         val pet: Pet,
     )
 
+    @Transactional(readOnly = true)
     override fun execute(input: Input): Output {
         val pet = petGateway.getById(input.petId)
         validate(input.userId, pet.ownerUserId)
