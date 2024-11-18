@@ -7,13 +7,16 @@ import notbe.tmtm.ddanddanserver.domain.usecase.user.GetUser
 import notbe.tmtm.ddanddanserver.domain.usecase.user.SetMainPet
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateCalorieAndRewardFood
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser
+import notbe.tmtm.ddanddanserver.domain.usecase.user.WithdrawUser
 import notbe.tmtm.ddanddanserver.presentation.dto.request.CalorieRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.SetMainPetRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.UserRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserDailyInfoResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserMainPetResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserResponse
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -30,6 +33,7 @@ class UserController(
     val getUser: GetUser,
     val updateUser: UpdateUser,
     val updateCalorieAndRewardFood: UpdateCalorieAndRewardFood,
+    val withdrawUser: WithdrawUser,
     val setMainPet: SetMainPet,
     val getMainPet: GetMainPet,
 ) {
@@ -60,6 +64,13 @@ class UserController(
                 ),
             )
         return UserResponse.fromDomain(result.user)
+    }
+
+    @DeleteMapping("/me")
+    @Operation(summary = "회원 탈퇴", description = "회원 탈퇴합니다.")
+    fun deleteMyInfo(authentication: Authentication) {
+        withdrawUser.execute(WithdrawUser.Input(authentication.name))
+        ResponseEntity.noContent()
     }
 
     @PatchMapping("/me/daily-calorie")

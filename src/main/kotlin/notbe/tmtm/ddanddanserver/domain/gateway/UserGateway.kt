@@ -8,4 +8,6 @@ interface UserGateway {
     fun getById(userId: String): User
 
     fun update(user: User): User
+
+    fun delete(userId: String)
 }

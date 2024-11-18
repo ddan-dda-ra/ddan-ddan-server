@@ -20,4 +20,6 @@ class AuthGatewayImpl(
         oAuthId: String,
         type: OAuthType,
     ): Auth? = authRepository.findByOAuthIdAndType(oAuthId, type)?.toDomain()
+
+    override fun deleteByUserId(userId: String) = authRepository.deleteByUserId(userId)
 }

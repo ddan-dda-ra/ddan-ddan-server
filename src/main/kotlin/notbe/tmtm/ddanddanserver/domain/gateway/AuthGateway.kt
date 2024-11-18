@@ -10,4 +10,6 @@ interface AuthGateway {
         oAuthId: String,
         type: OAuthType,
     ): Auth?
+
+    fun deleteByUserId(userId: String)
 }

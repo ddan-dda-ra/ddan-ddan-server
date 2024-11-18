@@ -16,4 +16,6 @@ interface DailyInfoGateway {
         date: LocalDate,
         n: Int,
     ): List<DailyInfo>
+
+    fun deleteByUserId(userId: String)
 }
