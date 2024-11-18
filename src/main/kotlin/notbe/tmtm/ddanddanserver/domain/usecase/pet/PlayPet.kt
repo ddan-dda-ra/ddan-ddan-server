@@ -8,6 +8,7 @@ import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class PlayPet(
@@ -24,6 +25,7 @@ class PlayPet(
         val pet: Pet,
     )
 
+    @Transactional
     override fun execute(input: Input): Output {
         val user = userGateway.getById(input.ownerUserId)
         val pet = petGateway.getById(input.petId)

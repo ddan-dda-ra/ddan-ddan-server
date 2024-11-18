@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.user
 
+import jakarta.transaction.Transactional
 import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
@@ -19,10 +20,11 @@ class WithdrawUser(
         val userId: String,
     )
 
+    @Transactional
     override fun execute(input: Input) {
-        userGateway.delete(input.userId)
         authGateway.deleteByUserId(input.userId)
         petGateway.deleteByUserId(input.userId)
         dailyInfoGateway.deleteByUserId(input.userId)
+        userGateway.delete(input.userId)
     }
 }

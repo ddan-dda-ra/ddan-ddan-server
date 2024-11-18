@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class AddPet(
@@ -19,6 +20,7 @@ class AddPet(
         val pet: Pet,
     )
 
+    @Transactional
     override fun execute(input: Input): Output =
         Output(
             petGateway.save(
