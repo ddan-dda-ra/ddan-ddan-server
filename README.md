@@ -1,3 +1,3 @@
 # ddan-ddan-server
 
-version: test-1
+version: test-0
