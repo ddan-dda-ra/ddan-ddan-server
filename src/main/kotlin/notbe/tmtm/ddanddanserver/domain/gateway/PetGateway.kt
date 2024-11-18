@@ -8,4 +8,6 @@ interface PetGateway {
     fun getById(petId: String): Pet
 
     fun getPetsByOwnerUserId(ownerUserId: String): List<Pet>
+
+    fun deleteByUserId(userId: String)
 }

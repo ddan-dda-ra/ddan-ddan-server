@@ -15,4 +15,6 @@ class UserGatewayImpl(
     override fun getById(userId: String) = userRepository.getReferenceById(userId).toDomain()
 
     override fun update(user: User) = userRepository.save(UserEntity.fromDomain(user)).toDomain()
+
+    override fun delete(userId: String) = userRepository.deleteById(userId)
 }

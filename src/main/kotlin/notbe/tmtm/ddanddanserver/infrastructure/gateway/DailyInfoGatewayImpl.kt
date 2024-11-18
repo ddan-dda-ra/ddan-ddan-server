@@ -31,4 +31,6 @@ class DailyInfoGatewayImpl(
         val startDate = date.minusDays(n.toLong())
         return dailyInfoRepository.findByUserIdAndDateBetween(userId, startDate, endDate).map { it.toDomain() }
     }
+
+    override fun deleteByUserId(userId: String) = dailyInfoRepository.deleteByUserId(userId)
 }

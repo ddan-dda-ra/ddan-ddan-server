@@ -9,4 +9,6 @@ interface AuthRepository : JpaRepository<AuthEntity, String> {
         oAuthId: String,
         type: OAuthType,
     ): AuthEntity?
+
+    fun deleteByUserId(userId: String)
 }

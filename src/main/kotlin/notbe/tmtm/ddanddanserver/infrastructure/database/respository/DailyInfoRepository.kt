@@ -15,4 +15,6 @@ interface DailyInfoRepository : JpaRepository<DailyInfoEntity, String> {
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<DailyInfoEntity>
+
+    fun deleteByUserId(userId: String)
 }

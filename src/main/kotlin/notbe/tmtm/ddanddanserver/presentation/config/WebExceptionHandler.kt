@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.presentation.config
 
+import jakarta.persistence.EntityNotFoundException
 import jakarta.servlet.http.HttpServletRequest
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthorizationException
@@ -47,6 +48,7 @@ class WebExceptionHandler {
             MethodArgumentTypeMismatchException::class,
             HttpMessageNotReadableException::class,
             ConstraintViolationException::class,
+            EntityNotFoundException::class,
         ],
     )
     fun handleInvalidInput(exception: Exception): ResponseEntity<ErrorResponse> {
