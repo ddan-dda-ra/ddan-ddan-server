@@ -19,7 +19,6 @@ class WithdrawUser(
         val userId: String,
     )
 
-    @Async
     override fun execute(input: Input) {
         userGateway.delete(input.userId)
         authGateway.deleteByUserId(input.userId)
