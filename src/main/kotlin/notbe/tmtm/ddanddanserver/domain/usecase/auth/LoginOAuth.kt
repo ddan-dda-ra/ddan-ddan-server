@@ -76,6 +76,7 @@ class LoginOAuth(
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
+
             OAuthType.APPLE -> {
                 return try {
                     oAuthGateway.getOAuthUserInfoFromApple(accessToken)
@@ -83,6 +84,7 @@ class LoginOAuth(
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
+
             else -> throw Exception("Not Supported Token Type")
         }
     }
