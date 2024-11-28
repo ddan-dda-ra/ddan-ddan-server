@@ -24,11 +24,19 @@ class AppleClient(
     private val objectMapper: ObjectMapper,
 ) {
     fun getOAuthInfo(token: String): AppleOAuthInfoResponse {
+        println("[getOAuthInfo] token: $token")
         val headers = parseHeaders(token)
+        println("[getOAuthInfo] headers: $headers")
+
         val appleKeys = getAppleKeys()
+        println("[getOAuthInfo] appleKeys: $appleKeys")
+
         val publicKey = generatePublicKey(headers, appleKeys)
+        println("[getOAuthInfo] publicKey: $publicKey")
 
         val claims = parseClaims(token, publicKey)
+        println("[getOAuthInfo] claims: $claims")
+
         return AppleOAuthInfoResponse(
             id = claims["sub"].toString(),
             properties =

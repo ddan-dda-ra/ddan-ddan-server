@@ -81,6 +81,7 @@ class LoginOAuth(
                 return try {
                     oAuthGateway.getOAuthUserInfoFromApple(accessToken)
                 } catch (e: Exception) {
+                    e.printStackTrace()
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
