@@ -5,7 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 
 data class KakaoOAuthInfoResponse(
     val id: String,
-    val properties: Properties,
+    val properties: Properties?,
 ) {
     data class Properties(
         val nickname: String?,
@@ -15,6 +15,6 @@ data class KakaoOAuthInfoResponse(
         OAuthInfo(
             id = id,
             type = OAuthType.KAKAO,
-            nickName = properties.nickname,
+            nickName = properties?.nickname,
         )
 }
