@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.auth
 
-import com.sun.org.slf4j.internal.LoggerFactory
 import notbe.tmtm.ddanddanserver.domain.exception.OAuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.OAuthGateway
@@ -21,7 +20,6 @@ class LoginOAuth(
     private val userGateway: UserGateway,
     private val tokenGateway: TokenGateway,
 ) : UseCase<LoginOAuth.LoginUserInput, LoginOAuth.LoginUserOutput> {
-    private val logger = LoggerFactory.getLogger(LoginOAuth::class.java)
 
     data class LoginUserInput(
         val accessToken: String,
@@ -37,7 +35,7 @@ class LoginOAuth(
 
     @Transactional
     override fun execute(input: LoginUserInput): LoginUserOutput {
-        logger.warn("loginRequest: $input")
+        println("loginRequest: $input")
 
         // 로그인 방식에 따라 오어스 정보를 가져온다.
         val oAuthInfo = getOAuthInfo(input.accessToken, input.tokenType)
