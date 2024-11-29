@@ -76,6 +76,7 @@ class LoginOAuth(
                 return try {
                     oAuthGateway.getOAuthUserInfo(accessToken)
                 } catch (e: Exception) {
+                    println("loginError accessToken: $accessToken, error: ${e.message}")
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
