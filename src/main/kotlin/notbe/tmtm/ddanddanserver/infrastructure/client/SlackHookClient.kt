@@ -7,9 +7,10 @@ import org.springframework.web.service.annotation.PostExchange
 
 @HttpExchange(accept = [MediaType.APPLICATION_JSON_VALUE])
 interface SlackHookClient {
-
     @PostExchange
-    fun sendMessage(@RequestBody request: Request)
+    fun sendMessage(
+        @RequestBody request: Request,
+    )
 
     data class Request(
         val channel: String = SERVER_ALERT_CHANNEL,
@@ -22,5 +23,3 @@ interface SlackHookClient {
         const val WITHDRAW_ALERT_CHANNEL = "#withdrawer-channel"
     }
 }
-
-

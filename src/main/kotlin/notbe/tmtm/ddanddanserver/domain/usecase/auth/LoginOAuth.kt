@@ -20,7 +20,6 @@ class LoginOAuth(
     private val userGateway: UserGateway,
     private val tokenGateway: TokenGateway,
 ) : UseCase<LoginOAuth.LoginUserInput, LoginOAuth.LoginUserOutput> {
-
     data class LoginUserInput(
         val accessToken: String,
         val tokenType: OAuthType,

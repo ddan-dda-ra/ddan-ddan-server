@@ -34,7 +34,7 @@ class WithdrawUser(
                 SlackHookClient.Request(
                     channel = SlackHookClient.WITHDRAW_ALERT_CHANNEL,
                     text = "탈퇴 처리 완료: ${input.userId} \n 사유: ${input.cause}",
-                )
+                ),
             )
         }.onFailure { e ->
             println("slackHookClient.sendMessage error: ${e.message}")
