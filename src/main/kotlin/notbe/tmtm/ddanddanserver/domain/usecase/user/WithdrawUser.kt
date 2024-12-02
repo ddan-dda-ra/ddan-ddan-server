@@ -6,7 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
-import org.springframework.scheduling.annotation.Async
+import notbe.tmtm.ddanddanserver.infrastructure.client.SlackHookClient
 import org.springframework.stereotype.Component
 
 @Component
@@ -15,9 +15,11 @@ class WithdrawUser(
     private val authGateway: AuthGateway,
     private val petGateway: PetGateway,
     private val dailyInfoGateway: DailyInfoGateway,
+    private val slackHookClient: SlackHookClient,
 ) : UseCase<WithdrawUser.Input, Unit> {
     data class Input(
         val userId: String,
+        val cause: String,
     )
 
     @Transactional
@@ -26,5 +28,16 @@ class WithdrawUser(
         petGateway.deleteByUserId(input.userId)
         dailyInfoGateway.deleteByUserId(input.userId)
         userGateway.delete(input.userId)
+
+        runCatching {
+            slackHookClient.sendMessage(
+                SlackHookClient.Request(
+                    channel = SlackHookClient.WITHDRAW_ALERT_CHANNEL,
+                    text = "탈퇴 처리 완료: ${input.userId} \n 사유: ${input.cause}",
+                ),
+            )
+        }.onFailure { e ->
+            println("slackHookClient.sendMessage error: ${e.message}")
+        }
     }
 }

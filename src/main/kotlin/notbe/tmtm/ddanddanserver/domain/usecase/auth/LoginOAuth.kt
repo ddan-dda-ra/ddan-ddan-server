@@ -34,6 +34,8 @@ class LoginOAuth(
 
     @Transactional
     override fun execute(input: LoginUserInput): LoginUserOutput {
+        println("loginRequest: $input")
+
         // 로그인 방식에 따라 오어스 정보를 가져온다.
         val oAuthInfo = getOAuthInfo(input.accessToken, input.tokenType)
 
@@ -73,16 +75,20 @@ class LoginOAuth(
                 return try {
                     oAuthGateway.getOAuthUserInfo(accessToken)
                 } catch (e: Exception) {
+                    println("loginError accessToken: $accessToken, error: ${e.message}")
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
+
             OAuthType.APPLE -> {
                 return try {
                     oAuthGateway.getOAuthUserInfoFromApple(accessToken)
                 } catch (e: Exception) {
+                    e.printStackTrace()
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
+
             else -> throw Exception("Not Supported Token Type")
         }
     }

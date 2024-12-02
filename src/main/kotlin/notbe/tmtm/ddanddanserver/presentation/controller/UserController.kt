@@ -11,6 +11,7 @@ import notbe.tmtm.ddanddanserver.domain.usecase.user.WithdrawUser
 import notbe.tmtm.ddanddanserver.presentation.dto.request.CalorieRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.SetMainPetRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.UserRequest
+import notbe.tmtm.ddanddanserver.presentation.dto.request.WithDrawRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserDailyInfoResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserMainPetResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserResponse
@@ -68,8 +69,11 @@ class UserController(
 
     @DeleteMapping("/me")
     @Operation(summary = "회원 탈퇴", description = "회원 탈퇴합니다.")
-    fun deleteMyInfo(authentication: Authentication) {
-        withdrawUser.execute(WithdrawUser.Input(authentication.name))
+    fun deleteMyInfo(
+        authentication: Authentication,
+        @RequestBody request: WithDrawRequest,
+    ) {
+        withdrawUser.execute(WithdrawUser.Input(authentication.name, request.cause))
         ResponseEntity.noContent()
     }
 
