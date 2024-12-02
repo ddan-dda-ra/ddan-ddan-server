@@ -12,7 +12,7 @@ import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.RSAPublicKeySpec
-import java.util.Base64
+import java.util.*
 
 @Component
 class AppleClient(
@@ -40,9 +40,9 @@ class AppleClient(
         return AppleOAuthInfoResponse(
             id = claims["sub"].toString(),
             properties =
-                AppleOAuthInfoResponse.Properties(
-                    nickname = claims["email"].toString(),
-                ),
+            AppleOAuthInfoResponse.Properties(
+                nickname = claims["email"].toString(),
+            ),
         )
     }
 
@@ -100,11 +100,10 @@ class AppleClient(
         idToken: String?,
         publicKey: PublicKey?,
     ): Claims =
-        Jwts
-            .parser()
+        Jwts.parser()
             .verifyWith(publicKey)
             .build()
-            .parseEncryptedClaims(idToken)
+            .parseSignedClaims(idToken)
             .payload
 
     data class AppleKeys(
