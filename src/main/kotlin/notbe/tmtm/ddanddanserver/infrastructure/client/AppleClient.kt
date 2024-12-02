@@ -85,8 +85,8 @@ class AppleClient(
     }
 
     private fun generatePublicKeyWithApplePublicKey(applePublicKey: Key): PublicKey {
-        val n = Base64.getDecoder().decode(applePublicKey.n)
-        val e = Base64.getDecoder().decode(applePublicKey.e)
+        val n = Base64.getUrlDecoder().decode(applePublicKey.n)
+        val e = Base64.getUrlDecoder().decode(applePublicKey.e)
 
         val publicKeySpec =
             RSAPublicKeySpec(BigInteger(1, n), BigInteger(1, e))
