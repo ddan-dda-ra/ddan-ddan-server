@@ -28,9 +28,9 @@ import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 
 @RestController
-@RequestMapping("/v1/users")
+@RequestMapping("/v1/user")
 @Tag(name = "유저")
-class UserController(
+class UserLegacyController(
     val getUser: GetUser,
     val updateUser: UpdateUser,
     val updateCalorieAndRewardFood: UpdateCalorieAndRewardFood,
