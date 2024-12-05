@@ -49,6 +49,7 @@ class WebExceptionHandler {
             HttpMessageNotReadableException::class,
             ConstraintViolationException::class,
             EntityNotFoundException::class,
+            IllegalArgumentException::class,
         ],
     )
     fun handleInvalidInput(exception: Exception): ResponseEntity<ErrorResponse> {

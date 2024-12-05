@@ -16,7 +16,12 @@ class UpdateUser(
         val userId: String,
         val name: String,
         val purposeCalorie: Int,
-    )
+    ) {
+        init {
+            require(name.isNotBlank()) { "name should not be blank" }
+            require(purposeCalorie in 100..1000) { "purposeCalorie should be between 100 and 1000" }
+        }
+    }
 
     data class UpdateUserOutput(
         val user: User,
