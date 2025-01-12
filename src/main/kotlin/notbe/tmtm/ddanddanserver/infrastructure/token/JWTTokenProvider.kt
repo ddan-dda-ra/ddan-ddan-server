@@ -73,7 +73,7 @@ class JWTTokenProvider(
     fun getUserIdFromRefreshToken(refreshToken: String): String {
         val claims = getClaims(refreshToken, REFRESH)
 
-        if (getTokenType(claims) != ACCESS) {
+        if (getTokenType(claims) != REFRESH) {
             throw AuthenticationInvalidTokenException()
         }
 
