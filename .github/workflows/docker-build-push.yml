@@ -1,0 +1,66 @@
+name: Docker Build
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      # 1. Git 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Docker 로그인
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 3. 커밋 해시 추출
+      - name: Extract Git Info
+        id: git_info
+        run: |
+          echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      # 4. Docker 이미지 빌드 및 태그
+      - name: Build and tag Docker image
+        run: |
+          IMAGE_NAME=myapp
+          TAG=${{ env.short_commit }}
+          docker build -t $IMAGE_NAME:$TAG .
+
+      # 5. Docker Hub로 푸시
+      - name: Push Docker image
+        run: |
+          IMAGE_NAME=myapp
+          TAG=${{ env.short_commit }}
+          docker tag $IMAGE_NAME:$TAG docker.io/${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$TAG
+          docker push docker.io/${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$TAG
+
+      # 6. 빌드 상태 저장 (성공/실패 구분)
+      - name: Set build status
+        if: success()
+        run: echo "BUILD_STATUS=SUCCESS" >> $GITHUB_ENV
+
+      - name: Set build status
+        if: failure()
+        run: echo "BUILD_STATUS=FAILURE" >> $GITHUB_ENV
+
+      # 6. 빌드 상태 설정 및 성공/실패 메시지 워크플로우 호출
+      - name: Set build status and trigger notification workflow
+        run: |
+          BUILD_STATUS="SUCCESS"
+          if [ $? -ne 0 ]; then
+            BUILD_STATUS="FAILURE"
+          fi
+          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_ENV
+
+          # 메시지 전송 워크플로우 호출
+          curl -X POST -H "Authorization: Bearer ${{ github.token }}" \
+            -d '{"build_status": "'"$BUILD_STATUS"'", "short_commit": "'"${{ env.short_commit }}"'", "repository": "'"${{ github.repository }}"'"}' \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/discord-notify.yml/dispatches
