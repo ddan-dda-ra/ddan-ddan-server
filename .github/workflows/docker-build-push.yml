@@ -36,15 +36,7 @@ jobs:
         run: |
           IMAGE_NAME=myapp
           TAG=${{ env.short_commit }}
-          docker buildx build --platform linux/amd64,linux/arm64 -t $IMAGE_NAME:$TAG .
-
-      # Docker Hub로 푸시
-      - name: Push Docker image
-        run: |
-          IMAGE_NAME=myapp
-          TAG=${{ env.short_commit }}
-          docker tag $IMAGE_NAME:$TAG docker.io/${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$TAG
-          docker push docker.io/${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$TAG
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$TAG .
 
       # 빌드 상태 저장 (성공/실패 구분)
       - name: Set build status
