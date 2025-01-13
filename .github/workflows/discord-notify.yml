@@ -1,0 +1,69 @@
+name: Discord Notify
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_status:
+        description: "Build status (SUCCESS or FAILURE)"
+        required: true
+      short_commit:
+        description: "Short commit hash"
+        required: true
+      repository:
+        description: "Repository name"
+        required: true
+
+jobs:
+  notify:
+    runs-on: macos-latest
+
+    steps:
+      # 1. Discord 메시지 전송
+      - name: Send notification to Discord
+        run: |
+          BUILD_STATUS=${{ github.event.inputs.build_status }}
+          SHORT_COMMIT=${{ github.event.inputs.short_commit }}
+          REPOSITORY=${{ github.event.inputs.repository }}
+          BUILD_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          if [ "$BUILD_STATUS" = "SUCCESS" ]; then
+            STATUS_MESSAGE="🎉 Docker Build Success!"
+            COLOR=3066993
+          else
+            STATUS_MESSAGE="❌ Docker Build Failed!"
+            COLOR=15158332
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -d '{
+                     "username": "GitHub Actions",
+                     "embeds": [
+                       {
+                         "title": "'"$STATUS_MESSAGE"'",
+                         "description": "Build result from the GitHub Actions pipeline.",
+                         "color": '$COLOR',
+                         "fields": [
+                           {
+                             "name": "🔖 Commit",
+                             "value": "'"$SHORT_COMMIT"'",
+                             "inline": true
+                           },
+                           {
+                             "name": "📂 Repository",
+                             "value": "'"$REPOSITORY"'",
+                             "inline": true
+                           },
+                           {
+                             "name": "⏰ Build Time",
+                             "value": "'"$BUILD_TIME"'",
+                             "inline": false
+                           }
+                         ],
+                         "footer": {
+                           "text": "GitHub Actions",
+                           "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                         }
+                       }
+                     ]
+                   }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
