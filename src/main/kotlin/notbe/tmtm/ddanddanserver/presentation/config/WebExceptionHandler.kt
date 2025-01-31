@@ -1,15 +1,14 @@
 package notbe.tmtm.ddanddanserver.presentation.config
 
-import jakarta.persistence.EntityNotFoundException
 import jakarta.servlet.http.HttpServletRequest
+import jakarta.validation.ConstraintViolationException
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthorizationException
 import notbe.tmtm.ddanddanserver.domain.exception.CustomException
 import notbe.tmtm.ddanddanserver.domain.exception.ErrorCode
 import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
-import notbe.tmtm.ddanddanserver.infrastructure.util.logger
 import notbe.tmtm.ddanddanserver.presentation.dto.response.ErrorResponse
-import org.hibernate.exception.ConstraintViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -48,7 +47,6 @@ class WebExceptionHandler {
             MethodArgumentTypeMismatchException::class,
             HttpMessageNotReadableException::class,
             ConstraintViolationException::class,
-            EntityNotFoundException::class,
             IllegalArgumentException::class,
         ],
     )
@@ -92,7 +90,7 @@ class WebExceptionHandler {
             )
     }
 
-    @ExceptionHandler(value = [Throwable::class])
+    @ExceptionHandler(value = [Exception::class])
     fun handleUnhandledException(
         exception: Throwable,
         request: HttpServletRequest,
@@ -103,6 +101,8 @@ class WebExceptionHandler {
                 .internalServerError()
                 .build()
         }
+
+        logger.error("Unhandled exception occurred", exception)
 
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)

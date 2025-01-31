@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.infrastructure.util
+package notbe.tmtm.ddanddanserver.common.util
 
 import org.slf4j.LoggerFactory
 

@@ -1,6 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.model.pet
 
-import notbe.tmtm.ddanddanserver.common.util.generateTsid
+import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet.Level.Companion.MAX_EXP
 import kotlin.math.min
 
@@ -54,7 +54,7 @@ class Pet(
             ownerUserId: String,
         ): Pet =
             Pet(
-                id = generateTsid(),
+                id = generateObjectId(),
                 type = type,
                 ownerUserId = ownerUserId,
                 exp = 0,

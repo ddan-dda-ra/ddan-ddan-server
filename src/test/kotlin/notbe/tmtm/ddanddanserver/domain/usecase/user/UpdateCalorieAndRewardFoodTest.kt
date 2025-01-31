@@ -34,10 +34,11 @@ class UpdateCalorieAndRewardFoodTest {
     ) {
         // given
         val user = User.register(name = "userName")
-        val dailyInfo = DailyInfo.register(userId = user.id, calorie = previousCalorie)
+        val dailyInfo = DailyInfo.create(userId = user.id, calorie = previousCalorie)
         every { userGateway.getById(user.id) } returns user
         every { userGateway.save(user) } returns user
         every { dailyInfoGateway.getOrCreate(user.id, dailyInfo.date) } returns dailyInfo
+        every { dailyInfoGateway.getByDateBeforeNDays(user.id, any(), any()) } returns listOf(dailyInfo)
         every { dailyInfoGateway.save(dailyInfo) } returns dailyInfo
 
         // when

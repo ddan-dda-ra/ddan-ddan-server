@@ -1,6 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.model
 
-import notbe.tmtm.ddanddanserver.common.util.generateTsid
+import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import java.time.LocalDate
 import kotlin.math.max
 
@@ -17,10 +17,10 @@ class DailyInfo(
     }
 
     companion object {
-        fun register(
+        fun create(
             userId: String,
             date: LocalDate = LocalDate.now(),
             calorie: Int = 0,
-        ): DailyInfo = DailyInfo(id = generateTsid(), userId = userId, date = date, calorie = calorie)
+        ): DailyInfo = DailyInfo(id = generateObjectId(), userId = userId, date = date, calorie = calorie)
     }
 }

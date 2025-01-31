@@ -1,27 +1,20 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
 import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate
 
-@Entity(name = "calorie_daily_infos")
+@Document("daily_calories")
 data class DailyInfoEntity(
     @Id
-    @Column(name = "id", length = 13, columnDefinition = "CHAR(13)", nullable = false)
     val id: String,
-    @Column(name = "user_id", length = 13, columnDefinition = "CHAR(13)", nullable = false)
     val userId: String,
-    @Column(name = "date", nullable = false)
-    val date: LocalDate,
-    @Column(name = "calorie", nullable = false)
     val calorie: Int,
-    @Column(name = "purpose_achieved", nullable = false)
     val purposeAchieved: Boolean = false,
-    @Column(name = "toy_given", nullable = false)
     val toyGiven: Boolean = false,
-) : BaseEntity() {
+    val date: LocalDate = LocalDate.now(),
+) {
     fun toDomain() =
         DailyInfo(
             id = id,
@@ -38,7 +31,6 @@ data class DailyInfoEntity(
                 DailyInfoEntity(
                     id = id,
                     userId = userId,
-                    date = date,
                     calorie = calorie,
                     purposeAchieved = purposeAchieved,
                     toyGiven = toyGiven,
