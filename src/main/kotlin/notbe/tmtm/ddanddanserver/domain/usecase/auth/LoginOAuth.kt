@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.auth
 
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.OAuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.OAuthGateway
@@ -20,6 +21,8 @@ class LoginOAuth(
     private val userGateway: UserGateway,
     private val tokenGateway: TokenGateway,
 ) : UseCase<LoginOAuth.LoginUserInput, LoginOAuth.LoginUserOutput> {
+    val logger = logger()
+
     data class LoginUserInput(
         val accessToken: String,
         val tokenType: OAuthType,
@@ -34,8 +37,6 @@ class LoginOAuth(
 
     @Transactional
     override fun execute(input: LoginUserInput): LoginUserOutput {
-        println("loginRequest: $input")
-
         // 로그인 방식에 따라 오어스 정보를 가져온다.
         val oAuthInfo = getOAuthInfo(input.accessToken, input.tokenType)
 
@@ -75,7 +76,7 @@ class LoginOAuth(
                 return try {
                     oAuthGateway.getOAuthUserInfo(accessToken)
                 } catch (e: Exception) {
-                    println("loginError accessToken: $accessToken, error: ${e.message}")
+                    logger.error("loginError accessToken: $accessToken, error: ${e.message}")
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }
@@ -84,7 +85,7 @@ class LoginOAuth(
                 return try {
                     oAuthGateway.getOAuthUserInfoFromApple(accessToken)
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    logger.error("loginError accessToken: $accessToken, error: ${e.message}")
                     throw OAuthenticationInvalidTokenException(oAuthType)
                 }
             }

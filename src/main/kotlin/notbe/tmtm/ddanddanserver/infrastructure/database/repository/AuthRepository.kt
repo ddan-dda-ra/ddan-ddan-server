@@ -1,10 +1,10 @@
-package notbe.tmtm.ddanddanserver.infrastructure.database.respository
+package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.AuthEntity
-import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.mongodb.repository.MongoRepository
 
-interface AuthRepository : JpaRepository<AuthEntity, String> {
+interface AuthRepository : MongoRepository<AuthEntity, String> {
     fun findByOAuthIdAndType(
         oAuthId: String,
         type: OAuthType,

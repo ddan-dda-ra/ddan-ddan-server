@@ -1,6 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.model.auth
 
-import notbe.tmtm.ddanddanserver.common.util.generateTsid
+import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 
 class Auth(
     val id: String,
@@ -15,7 +15,7 @@ class Auth(
             userId: String,
         ): Auth =
             Auth(
-                id = generateTsid(),
+                id = generateObjectId(),
                 oAuthId = oAuthId,
                 type = type,
                 userId = userId,

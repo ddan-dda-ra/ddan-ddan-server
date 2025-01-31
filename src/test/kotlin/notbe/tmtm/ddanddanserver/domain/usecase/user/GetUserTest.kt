@@ -2,7 +2,6 @@ package notbe.tmtm.ddanddanserver.domain.usecase.user
 
 import io.mockk.every
 import io.mockk.mockk
-import jakarta.persistence.EntityNotFoundException
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.User
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -39,14 +38,14 @@ class GetUserTest {
     }
 
     @Test
-    fun `userId가 존재하지 않는 경우 EntityNotFoundException가 던져진다`() {
+    fun `userId가 존재하지 않는 경우 NoSuchElementException 던져진다`() {
         // given
         val notExistUserId = "ABCDEF1234567"
 
-        every { userGateway.getById(notExistUserId) } throws EntityNotFoundException()
+        every { userGateway.getById(notExistUserId) } throws NoSuchElementException()
 
         // when & then
-        assertThrows(EntityNotFoundException::class.java) {
+        assertThrows(NoSuchElementException::class.java) {
             getUser.execute(
                 GetUser.GetUserInput(
                     userId = notExistUserId,

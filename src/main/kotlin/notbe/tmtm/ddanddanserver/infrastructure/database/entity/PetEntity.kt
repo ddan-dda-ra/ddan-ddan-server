@@ -1,26 +1,18 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
 
-@Entity(name = "pets")
+@Document("pets")
 data class PetEntity(
     @Id
-    @Column(name = "id", length = 13, columnDefinition = "CHAR(13)", nullable = false)
     val id: String,
-    @Enumerated(value = EnumType.STRING)
-    @Column(name = "type", nullable = false)
     val type: PetType,
-    @Column(name = "owner_user_id", length = 13, columnDefinition = "CHAR(13)", nullable = false)
     val ownerUserId: String,
-    @Column(name = "exp", nullable = false)
     val exp: Int,
-) : BaseEntity() {
+) {
     fun toDomain() =
         Pet(
             id = id,

@@ -1,10 +1,10 @@
-package notbe.tmtm.ddanddanserver.infrastructure.database.respository
+package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.DailyInfoEntity
-import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.mongodb.repository.MongoRepository
 import java.time.LocalDate
 
-interface DailyInfoRepository : JpaRepository<DailyInfoEntity, String> {
+interface DailyInfoRepository : MongoRepository<DailyInfoEntity, String> {
     fun findByUserIdAndDate(
         userId: String,
         date: LocalDate,

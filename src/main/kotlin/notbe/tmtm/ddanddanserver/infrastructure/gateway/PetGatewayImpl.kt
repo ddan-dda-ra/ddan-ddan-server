@@ -3,7 +3,7 @@ package notbe.tmtm.ddanddanserver.infrastructure.gateway
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetEntity
-import notbe.tmtm.ddanddanserver.infrastructure.database.respository.PetRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import org.springframework.stereotype.Component
 
 @Component

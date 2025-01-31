@@ -1,6 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.user
 
-import jakarta.transaction.Transactional
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
@@ -8,6 +8,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.infrastructure.client.SlackHookClient
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class WithdrawUser(
@@ -17,6 +18,8 @@ class WithdrawUser(
     private val dailyInfoGateway: DailyInfoGateway,
     private val slackHookClient: SlackHookClient,
 ) : UseCase<WithdrawUser.Input, Unit> {
+    val logger = logger()
+
     data class Input(
         val userId: String,
         val cause: String,
@@ -37,7 +40,7 @@ class WithdrawUser(
                 ),
             )
         }.onFailure { e ->
-            println("slackHookClient.sendMessage error: ${e.message}")
+            logger.error("slackHookClient.sendMessage error: ${e.message}")
         }
     }
 }

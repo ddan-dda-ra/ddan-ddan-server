@@ -3,7 +3,7 @@ package notbe.tmtm.ddanddanserver.infrastructure.gateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserEntity
-import notbe.tmtm.ddanddanserver.infrastructure.database.respository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import org.springframework.stereotype.Component
 
 @Component
@@ -12,7 +12,7 @@ class UserGatewayImpl(
 ) : UserGateway {
     override fun save(user: User) = userRepository.save(UserEntity.fromDomain(user)).toDomain()
 
-    override fun getById(userId: String) = userRepository.getReferenceById(userId).toDomain()
+    override fun getById(userId: String) = userRepository.findById(userId).orElseThrow().toDomain()
 
     override fun update(user: User) = userRepository.save(UserEntity.fromDomain(user)).toDomain()
 

@@ -4,7 +4,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
 import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.AuthEntity
-import notbe.tmtm.ddanddanserver.infrastructure.database.respository.AuthRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
 import org.springframework.stereotype.Component
 
 @Component

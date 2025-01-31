@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import notbe.tmtm.ddanddanserver.infrastructure.client.dto.response.AppleOAuthInfoResponse
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.math.BigInteger
@@ -16,33 +15,21 @@ import java.util.*
 
 @Component
 class AppleClient(
-    @Value("\${app.apple.client-id}") clientSecret: String,
-//    @Value("\${APPLE_BUNDLE_ID}") bundleId: String,
-    @Value("\${app.apple.team-id}") serviceId: String,
-    @Value("\${app.apple.key-id}") keyId: String,
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
 ) {
     fun getOAuthInfo(token: String): AppleOAuthInfoResponse {
-        println("[getOAuthInfo] token: $token")
         val headers = parseHeaders(token)
-        println("[getOAuthInfo] headers: $headers")
-
         val appleKeys = getAppleKeys()
-        println("[getOAuthInfo] appleKeys: $appleKeys")
-
         val publicKey = generatePublicKey(headers, appleKeys)
-        println("[getOAuthInfo] publicKey: $publicKey")
-
         val claims = parseClaims(token, publicKey)
-        println("[getOAuthInfo] claims: $claims")
 
         return AppleOAuthInfoResponse(
             id = claims["sub"].toString(),
             properties =
-            AppleOAuthInfoResponse.Properties(
-                nickname = claims["email"].toString(),
-            ),
+                AppleOAuthInfoResponse.Properties(
+                    nickname = claims["email"].toString(),
+                ),
         )
     }
 
@@ -100,7 +87,8 @@ class AppleClient(
         idToken: String?,
         publicKey: PublicKey?,
     ): Claims =
-        Jwts.parser()
+        Jwts
+            .parser()
             .verifyWith(publicKey)
             .build()
             .parseSignedClaims(idToken)

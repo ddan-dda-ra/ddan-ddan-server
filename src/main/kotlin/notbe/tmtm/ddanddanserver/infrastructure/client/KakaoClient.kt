@@ -1,9 +1,9 @@
 package notbe.tmtm.ddanddanserver.infrastructure.client
 
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoParseError
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoRestClientError
 import notbe.tmtm.ddanddanserver.infrastructure.client.dto.response.KakaoOAuthInfoResponse
-import notbe.tmtm.ddanddanserver.infrastructure.util.logger
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.MediaType

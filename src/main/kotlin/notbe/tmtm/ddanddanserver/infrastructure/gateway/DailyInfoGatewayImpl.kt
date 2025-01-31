@@ -3,7 +3,7 @@ package notbe.tmtm.ddanddanserver.infrastructure.gateway
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.DailyInfoEntity
-import notbe.tmtm.ddanddanserver.infrastructure.database.respository.DailyInfoRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 
@@ -20,16 +20,15 @@ class DailyInfoGatewayImpl(
         dailyInfoRepository
             .findByUserIdAndDate(userId, date)
             ?.toDomain()
-            ?: DailyInfo.register(userId, date, calorie = 0)
+            ?: DailyInfo.create(userId, calorie = 0)
 
     override fun getByDateBeforeNDays(
         userId: String,
         date: LocalDate,
         n: Int,
     ): List<DailyInfo> {
-        val endDate = date.minusDays(1)
         val startDate = date.minusDays(n.toLong())
-        return dailyInfoRepository.findByUserIdAndDateBetween(userId, startDate, endDate).map { it.toDomain() }
+        return dailyInfoRepository.findByUserIdAndDateBetween(userId, startDate, date).map { it.toDomain() }
     }
 
     override fun deleteByUserId(userId: String) = dailyInfoRepository.deleteByUserId(userId)

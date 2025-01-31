@@ -1,6 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.model
 
-import notbe.tmtm.ddanddanserver.common.util.generateTsid
+import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
 
@@ -41,6 +41,6 @@ class User(
     fun hasMainPet(): Boolean = this.mainPetId != null
 
     companion object {
-        fun register(name: String? = null): User = User(id = generateTsid(), name = name)
+        fun register(name: String? = null): User = User(id = generateObjectId(), name = name)
     }
 }
