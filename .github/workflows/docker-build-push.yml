@@ -1,6 +1,7 @@
 name: Docker Build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - develop
@@ -14,9 +15,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 멀티 플랫폼 빌드 세팅
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Set up java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: '17'
 
       # Docker 로그인
       - name: Log in to Docker Hub
@@ -32,11 +35,24 @@ jobs:
           echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       # Docker 멀티 플랫폼 이미지 빌드 및 태그
-      - name: Build and tag Docker image
+      - name: Build & Push and tag Docker image
+        env:
+          GITHUB_SHA: ${{ env.short_commit }}
+          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
         run: |
-          IMAGE_NAME=myapp
-          TAG=${{ env.short_commit }}
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$TAG .
+          ./gradlew jib
+
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          password: ${{ secrets.EC2_PASSWORD }}
+          script: |
+            cd ${{ secrets.EC2_PATH }}
+            docker-compose pull
+            docker-compose down
+            docker-compose up -d
 
       # 빌드 상태 저장 (성공/실패 구분)
       - name: Set build status

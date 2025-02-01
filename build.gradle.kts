@@ -53,7 +53,13 @@ jib {
     val dockerUser: String = System.getenv("DOCKER_USER") ?: "ddingmin00"
 
     from {
-        image = "openjdk:17-alpine"
+        image = "amazoncorretto:17-alpine-jdk"
+        platforms {
+            platform {
+                architecture = "arm64"
+                os = "linux"
+            }
+        }
     }
     to {
         image = "$dockerUser/$imageName"
