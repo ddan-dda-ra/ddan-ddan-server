@@ -34,8 +34,14 @@ jobs:
         run: |
           echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      # Docker 멀티 플랫폼 이미지 빌드 및 태그
-      - name: Build & Push and tag Docker image
+      # YAML 설정
+      - name: application.yaml 파일 설정
+        run: |
+          touch ./src/main/resources/application.yaml
+          echo "${{ secrets.YAML }}" > ./src/main/resources/application.yaml
+
+      # Jib 빌드 및 푸시
+      - name: Jib Build & Push
         env:
           GITHUB_SHA: ${{ env.short_commit }}
           DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
@@ -57,22 +63,22 @@ jobs:
       # 빌드 상태 저장 (성공/실패 구분)
       - name: Set build status
         if: success()
-        run: echo "BUILD_STATUS=SUCCESS" >> $GITHUB_ENV
+        run: echo "DEPLOY_STATUS=SUCCESS" >> $GITHUB_ENV
 
       - name: Set build status
         if: failure()
-        run: echo "BUILD_STATUS=FAILURE" >> $GITHUB_ENV
+        run: echo "DEPLOY_STATUS=FAILURE" >> $GITHUB_ENV
 
       # 빌드 상태 설정 및 성공/실패 메시지 워크플로우 호출
       - name: Set build status and trigger notification workflow
         run: |
-          BUILD_STATUS="SUCCESS"
+          DEPLOY_STATUS="SUCCESS"
           if [ $? -ne 0 ]; then
-            BUILD_STATUS="FAILURE"
+            DEPLOY_STATUS="FAILURE"
           fi
-          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_ENV
+          echo "DEPLOY_STATUS=$DEPLOY_STATUS" >> $GITHUB_ENV
 
           # 메시지 전송 워크플로우 호출
           curl -X POST -H "Authorization: Bearer ${{ github.token }}" \
-            -d '{"build_status": "'"$BUILD_STATUS"'", "short_commit": "'"${{ env.short_commit }}"'", "repository": "'"${{ github.repository }}"'"}' \
+            -d '{"build_status": "'"$DEPLOY_STATUS"'", "short_commit": "'"${{ env.short_commit }}"'", "repository": "'"${{ github.repository }}"'"}' \
             https://api.github.com/repos/${{ github.repository }}/actions/workflows/discord-notify.yml/dispatches
