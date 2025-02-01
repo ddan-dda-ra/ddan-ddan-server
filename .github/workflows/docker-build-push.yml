@@ -1,6 +1,7 @@
 name: Docker Build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - develop
@@ -9,14 +10,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       # Git 체크아웃
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 멀티 플랫폼 빌드 세팅
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Set up java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: '17'
 
       # Docker 로그인
       - name: Log in to Docker Hub
@@ -31,32 +38,50 @@ jobs:
         run: |
           echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      # Docker 멀티 플랫폼 이미지 빌드 및 태그
-      - name: Build and tag Docker image
+      # YAML 설정
+      - name: application.yaml 파일 설정
         run: |
-          IMAGE_NAME=myapp
-          TAG=${{ env.short_commit }}
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$TAG .
+          touch ./src/main/resources/application.yaml
+          echo "${{ secrets.YAML }}" > ./src/main/resources/application.yaml
+
+      # Jib 빌드 및 푸시
+      - name: Jib Build & Push
+        env:
+          GITHUB_SHA: ${{ env.short_commit }}
+          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew jib
+
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key : ${{ secrets.EC2_PASSWORD }}
+          script: |
+            cd ${{ secrets.EC2_PATH }}
+            chmod +x ./deploy.sh && ./deploy.sh
 
       # 빌드 상태 저장 (성공/실패 구분)
       - name: Set build status
         if: success()
-        run: echo "BUILD_STATUS=SUCCESS" >> $GITHUB_ENV
+        run: echo "DEPLOY_STATUS=SUCCESS" >> $GITHUB_ENV
 
       - name: Set build status
         if: failure()
-        run: echo "BUILD_STATUS=FAILURE" >> $GITHUB_ENV
+        run: echo "DEPLOY_STATUS=FAILURE" >> $GITHUB_ENV
 
       # 빌드 상태 설정 및 성공/실패 메시지 워크플로우 호출
       - name: Set build status and trigger notification workflow
         run: |
-          BUILD_STATUS="SUCCESS"
+          DEPLOY_STATUS="SUCCESS"
           if [ $? -ne 0 ]; then
-            BUILD_STATUS="FAILURE"
+            DEPLOY_STATUS="FAILURE"
           fi
-          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_ENV
+          echo "DEPLOY_STATUS=$DEPLOY_STATUS" >> $GITHUB_ENV
 
           # 메시지 전송 워크플로우 호출
           curl -X POST -H "Authorization: Bearer ${{ github.token }}" \
-            -d '{"build_status": "'"$BUILD_STATUS"'", "short_commit": "'"${{ env.short_commit }}"'", "repository": "'"${{ github.repository }}"'"}' \
+            -d '{"build_status": "'"$DEPLOY_STATUS"'", "short_commit": "'"${{ env.short_commit }}"'", "repository": "'"${{ github.repository }}"'"}' \
             https://api.github.com/repos/${{ github.repository }}/actions/workflows/discord-notify.yml/dispatches

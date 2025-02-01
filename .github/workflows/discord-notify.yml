@@ -3,8 +3,8 @@ name: Discord Notify
 on:
   workflow_dispatch:
     inputs:
-      build_status:
-        description: "Build status (SUCCESS or FAILURE)"
+      deploy_status:
+        description: "Deploy status (SUCCESS or FAILURE)"
         required: true
       short_commit:
         description: "Short commit hash"
@@ -15,22 +15,22 @@ on:
 
 jobs:
   notify:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       # 1. Discord 메시지 전송
       - name: Send notification to Discord
         run: |
-          BUILD_STATUS=${{ github.event.inputs.build_status }}
+          DEPLOY_STATUS=${{ github.event.inputs.deploy_status }}
           SHORT_COMMIT=${{ github.event.inputs.short_commit }}
           REPOSITORY=${{ github.event.inputs.repository }}
-          BUILD_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          DEPLOY_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
           
-          if [ "$BUILD_STATUS" = "SUCCESS" ]; then
-            STATUS_MESSAGE="🎉 Docker Build Success!"
+          if [ "$DEPLOY_STATUS" = "SUCCESS" ]; then
+            STATUS_MESSAGE="🎉 Docker Deploy Success!"
             COLOR=3066993
           else
-            STATUS_MESSAGE="❌ Docker Build Failed!"
+            STATUS_MESSAGE="❌ Docker Deploy Failed!"
             COLOR=15158332
           fi
 
@@ -40,7 +40,7 @@ jobs:
                      "embeds": [
                        {
                          "title": "'"$STATUS_MESSAGE"'",
-                         "description": "Build result from the GitHub Actions pipeline.",
+                         "description": "Deploy result from the GitHub Actions pipeline.",
                          "color": '$COLOR',
                          "fields": [
                            {
@@ -54,8 +54,8 @@ jobs:
                              "inline": true
                            },
                            {
-                             "name": "⏰ Build Time",
-                             "value": "'"$BUILD_TIME"'",
+                             "name": "⏰ Deploy Time",
+                             "value": "'"$DEPLOY_TIME"'",
                              "inline": false
                            }
                          ],
