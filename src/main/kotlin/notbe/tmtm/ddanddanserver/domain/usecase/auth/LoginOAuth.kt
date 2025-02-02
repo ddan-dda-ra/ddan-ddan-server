@@ -26,6 +26,7 @@ class LoginOAuth(
     data class LoginUserInput(
         val accessToken: String,
         val tokenType: OAuthType,
+        val deviceToken: String,
     )
 
     data class LoginUserOutput(
@@ -45,7 +46,7 @@ class LoginOAuth(
 
         // 가입되지 않은 유저의 경우 등록 후 토큰 발급
         if (auth == null) {
-            val newUser = userGateway.save(User.register(name = oAuthInfo.nickName))
+            val newUser = userGateway.save(User.register(name = oAuthInfo.nickName, deviceToken = input.deviceToken))
             authGateway.save(
                 Auth.create(oAuthId = oAuthInfo.id, type = input.tokenType, userId = newUser.id),
             )
@@ -56,8 +57,10 @@ class LoginOAuth(
                 isOnboardingComplete = newUser.hasMainPet(),
             )
         }
-        // 가입된 유저의 경우 토큰 발급
+        // 가입된 유저의 경우 토큰 발급 & 디바이스 토큰 갱신
         val user = userGateway.getById(auth.userId)
+        user.deviceToken = input.deviceToken
+        userGateway.update(user)
 
         return LoginUserOutput(
             accessToken = tokenGateway.createAccessToken(user),
