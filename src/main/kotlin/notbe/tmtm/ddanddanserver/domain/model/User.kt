@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
 
 class User(
     val id: String,
+    var deviceToken: String,
     var name: String?,
     var mainPetId: String? = null,
     var purposeCalorie: Int = 100,
@@ -41,6 +42,9 @@ class User(
     fun hasMainPet(): Boolean = this.mainPetId != null
 
     companion object {
-        fun register(name: String? = null): User = User(id = generateObjectId(), name = name)
+        fun register(
+            deviceToken: String,
+            name: String? = null,
+        ): User = User(id = generateObjectId(), deviceToken = deviceToken, name = name)
     }
 }

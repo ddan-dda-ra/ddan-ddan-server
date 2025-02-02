@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 data class UserEntity(
     @Id
     val id: String,
+    val deviceToken: String,
     val name: String?,
     val mainPetId: String?,
     val purposeCalorie: Int,
@@ -17,6 +18,7 @@ data class UserEntity(
     fun toDomain() =
         User(
             id = id,
+            deviceToken = deviceToken,
             name = name,
             mainPetId = mainPetId,
             purposeCalorie = purposeCalorie,
@@ -29,6 +31,7 @@ data class UserEntity(
             with(user) {
                 UserEntity(
                     id = id,
+                    deviceToken = deviceToken,
                     name = name,
                     mainPetId = mainPetId,
                     purposeCalorie = purposeCalorie,

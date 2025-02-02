@@ -27,6 +27,7 @@ class AuthController(
                 LoginOAuth.LoginUserInput(
                     accessToken = request.token,
                     tokenType = request.tokenType,
+                    deviceToken = request.deviceToken,
                 ),
             )
 
