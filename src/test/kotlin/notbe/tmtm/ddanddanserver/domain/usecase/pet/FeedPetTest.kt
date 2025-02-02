@@ -86,6 +86,7 @@ class FeedPetTest {
     ): User =
         User(
             id = id,
+            deviceToken = "DEVICE_TOKEN",
             name = name,
             foodQuantity = foodQuantity,
         )

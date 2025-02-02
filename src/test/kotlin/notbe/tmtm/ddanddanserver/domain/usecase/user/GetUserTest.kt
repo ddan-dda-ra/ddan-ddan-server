@@ -19,6 +19,7 @@ class GetUserTest {
         val existUser =
             User(
                 id = "ABCDEF1234567",
+                deviceToken = "DEVICE_TOKEN",
                 name = "userName",
                 purposeCalorie = 100,
             )

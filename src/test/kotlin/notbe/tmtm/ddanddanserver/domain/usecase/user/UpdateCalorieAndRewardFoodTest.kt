@@ -33,7 +33,7 @@ class UpdateCalorieAndRewardFoodTest {
         expectFoodQuantity: Int,
     ) {
         // given
-        val user = User.register(name = "userName")
+        val user = User.register(name = "userName", deviceToken = "DEVICE_TOKEN")
         val dailyInfo = DailyInfo.create(userId = user.id, calorie = previousCalorie)
         every { userGateway.getById(user.id) } returns user
         every { userGateway.save(user) } returns user

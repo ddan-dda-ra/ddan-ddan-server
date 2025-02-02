@@ -19,6 +19,7 @@ class UpdateUserTest {
         val user =
             User(
                 id = "ABCDEF1234567",
+                deviceToken = "DEVICE_TOKEN",
                 name = "oldUserName",
                 purposeCalorie = 100,
             )
@@ -47,6 +48,7 @@ class UpdateUserTest {
         val user =
             User(
                 id = "ABCDEF1234567",
+                deviceToken = "DEVICE_TOKEN",
                 name = "oldUserName",
                 purposeCalorie = 100,
             )
