@@ -2,6 +2,7 @@ package notbe.tmtm.ddanddanserver.domain.usecase.user
 
 import io.mockk.every
 import io.mockk.mockk
+import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.User
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -10,8 +11,9 @@ import kotlin.test.Test
 
 class UpdateUserTest {
     private val userGateway: UserGateway = mockk<UserGateway>()
+    private val dailyInfoGateway = mockk<DailyInfoGateway>()
 
-    private val updateUser: UpdateUser = UpdateUser(userGateway)
+    private val updateUser: UpdateUser = UpdateUser(userGateway, dailyInfoGateway)
 
     @Test
     fun `유저 정보 수정에 성공한다`() {
@@ -26,6 +28,7 @@ class UpdateUserTest {
 
         every { userGateway.getById(user.id) } returns user
         every { userGateway.update(user) } returns user
+        every { dailyInfoGateway.findBy(user.id, any()) } returns null
 
         // when
         val result =
