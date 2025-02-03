@@ -13,14 +13,10 @@ class DailyInfoGatewayImpl(
 ) : DailyInfoGateway {
     override fun save(dailyInfo: DailyInfo): DailyInfo = dailyInfoRepository.save(DailyInfoEntity.fromDomain(dailyInfo)).toDomain()
 
-    override fun getOrCreate(
+    override fun findBy(
         userId: String,
         date: LocalDate,
-    ): DailyInfo =
-        dailyInfoRepository
-            .findByUserIdAndDate(userId, date)
-            ?.toDomain()
-            ?: DailyInfo.create(userId, calorie = 0)
+    ): DailyInfo? = dailyInfoRepository.findByUserIdAndDate(userId, date)?.toDomain()
 
     override fun getByDateBeforeNDays(
         userId: String,

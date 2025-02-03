@@ -3,18 +3,21 @@ package notbe.tmtm.ddanddanserver.domain.usecase.user
 import io.mockk.every
 import io.mockk.mockk
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
+import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
 class UpdateCalorieAndRewardFoodTest {
     private val userGateway: UserGateway = mockk<UserGateway>()
+    private val petGateway: PetGateway = mockk<PetGateway>()
     private val dailyInfoGateway: DailyInfoGateway = mockk<DailyInfoGateway>()
 
-    private val updateCalorieAndRewardFood = UpdateCalorieAndRewardFood(userGateway, dailyInfoGateway)
+    private val updateCalorieAndRewardFood = UpdateCalorieAndRewardFood(userGateway, petGateway, dailyInfoGateway)
 
     @ParameterizedTest
     @CsvSource(
@@ -34,10 +37,10 @@ class UpdateCalorieAndRewardFoodTest {
     ) {
         // given
         val user = User.register(name = "userName", deviceToken = "DEVICE_TOKEN")
-        val dailyInfo = DailyInfo.create(userId = user.id, calorie = previousCalorie)
+        val dailyInfo = DailyInfo.create(userId = user.id, userName = user.name, petType = PetType.DOG, calorie = previousCalorie)
         every { userGateway.getById(user.id) } returns user
         every { userGateway.save(user) } returns user
-        every { dailyInfoGateway.getOrCreate(user.id, dailyInfo.date) } returns dailyInfo
+        every { dailyInfoGateway.findBy(user.id, dailyInfo.date) } returns dailyInfo
         every { dailyInfoGateway.getByDateBeforeNDays(user.id, any(), any()) } returns listOf(dailyInfo)
         every { dailyInfoGateway.save(dailyInfo) } returns dailyInfo
 

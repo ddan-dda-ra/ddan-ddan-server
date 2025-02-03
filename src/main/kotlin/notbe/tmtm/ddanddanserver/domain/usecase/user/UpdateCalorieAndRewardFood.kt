@@ -1,6 +1,7 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.user
 
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
+import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.User
@@ -15,6 +16,7 @@ private const val CALORIE_REWARD_UNIT = 100
 @Component
 class UpdateCalorieAndRewardFood(
     private val userGateway: UserGateway,
+    private val petGateway: PetGateway,
     private val dailyInfoGateway: DailyInfoGateway,
 ) : UseCase<UpdateCalorieAndRewardFood.Input, UpdateCalorieAndRewardFood.Output> {
     data class Input(
@@ -30,9 +32,9 @@ class UpdateCalorieAndRewardFood(
 
     @Transactional
     override fun execute(input: Input): Output {
-        val calorieDailyInfo = dailyInfoGateway.getOrCreate(input.userId, input.today)
-        val user =
-            userGateway.getById(input.userId).apply { foodQuantity += getRewardFood(calorieDailyInfo.calorie, input.calorie) }
+        val user = userGateway.getById(input.userId)
+        val calorieDailyInfo = getOrCreateDailyInfo(user, input.today)
+        user.foodQuantity += getRewardFood(calorieDailyInfo.calorie, input.calorie)
 
         if (isDailyPurposeAchieve(calorieDailyInfo, user, input.calorie)) {
             calorieDailyInfo.purposeAchieved = true
@@ -46,6 +48,16 @@ class UpdateCalorieAndRewardFood(
         calorieDailyInfo.update(input.calorie)
 
         return Output(userGateway.save(user), dailyInfoGateway.save(calorieDailyInfo))
+    }
+
+    private fun getOrCreateDailyInfo(
+        user: User,
+        today: LocalDate,
+    ): DailyInfo {
+        dailyInfoGateway.findBy(user.id, today)?.let { return it }
+
+        val mainPetType = user.mainPetId?.let { petGateway.getById(it).type }
+        return DailyInfo.create(user.id, user.name, mainPetType, today)
     }
 
     private fun validateToyGiven(dailyInfos: List<DailyInfo>): Boolean {

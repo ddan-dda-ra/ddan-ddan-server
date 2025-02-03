@@ -6,10 +6,10 @@ import java.time.LocalDate
 interface DailyInfoGateway {
     fun save(dailyInfo: DailyInfo): DailyInfo
 
-    fun getOrCreate(
+    fun findBy(
         userId: String,
         date: LocalDate,
-    ): DailyInfo
+    ): DailyInfo?
 
     fun getByDateBeforeNDays(
         userId: String,
