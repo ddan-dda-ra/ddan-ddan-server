@@ -1,6 +1,7 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
 import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
+import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate
@@ -10,6 +11,8 @@ data class DailyInfoEntity(
     @Id
     val id: String,
     val userId: String,
+    val userName: String?,
+    val petType: PetType?,
     val calorie: Int,
     val purposeAchieved: Boolean = false,
     val toyGiven: Boolean = false,
@@ -19,6 +22,8 @@ data class DailyInfoEntity(
         DailyInfo(
             id = id,
             userId = userId,
+            userName = userName,
+            petType = petType,
             date = date,
             calorie = calorie,
             purposeAchieved = purposeAchieved,
@@ -31,6 +36,8 @@ data class DailyInfoEntity(
                 DailyInfoEntity(
                     id = id,
                     userId = userId,
+                    userName = userName,
+                    petType = petType,
                     calorie = calorie,
                     purposeAchieved = purposeAchieved,
                     toyGiven = toyGiven,
