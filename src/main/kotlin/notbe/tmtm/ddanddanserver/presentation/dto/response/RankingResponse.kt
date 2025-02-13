@@ -27,6 +27,8 @@ data class RankingResponse(
         val userName: String,
         @Schema(description = "주 펫 종류", example = "DOG")
         val mainPetType: PetType,
+        @Schema(description = "펫 레벨", example = "1")
+        val petLevel: Int = 5,
         @Schema(description = "총 칼로리", example = "1000")
         val totalCalories: Int,
         @Schema(description = "총 성공 일수", example = "10")
