@@ -7,7 +7,7 @@ import notbe.tmtm.ddanddanserver.presentation.filter.JWTAuthFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
-import org.springframework.security.config.Customizer
+import org.springframework.core.env.Environment
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -17,7 +17,9 @@ import org.springframework.web.servlet.HandlerExceptionResolver
 
 @Configuration
 @EnableWebSecurity
-class WebSecurityConfig {
+class WebSecurityConfig(
+    private val environment: Environment,
+) {
     @Bean
     @Order(1)
     fun apiFilterChain(
@@ -28,7 +30,7 @@ class WebSecurityConfig {
         http
             .securityMatcher("/v1/**")
             .csrf { it.disable() }
-            .cors(Customizer.withDefaults())
+            .cors { if (isDevProfile()) it.configure(http) }
             .authorizeHttpRequests { it.anyRequest().authenticated() }
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -50,10 +52,14 @@ class WebSecurityConfig {
         httpSecurity
             .securityMatcher("/v1/auth/**", "/swagger-ui/index.html")
             .csrf { it.disable() }
-            .cors(Customizer.withDefaults())
+            .cors { if (isDevProfile()) it.configure(httpSecurity) }
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }.authorizeHttpRequests {
                 it.anyRequest().permitAll()
             }.build()
+
+    private fun isDevProfile(): Boolean {
+        return environment.activeProfiles.contains("dev")
+    }
 }
