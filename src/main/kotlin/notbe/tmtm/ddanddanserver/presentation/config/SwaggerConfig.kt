@@ -12,7 +12,11 @@ import org.springframework.context.annotation.Configuration
 @OpenAPIDefinition(
     servers = [
         Server(
-            url = "https://ddan-ddan.com/",
+            url = "https://dev-ddan-ddan-api.ddmz.org/",
+            description = "Development API server URL",
+        ),
+        Server(
+            url = "https://ddan-ddan-api.ddmz.org/",
             description = "Production API server URL",
         ),
         Server(
