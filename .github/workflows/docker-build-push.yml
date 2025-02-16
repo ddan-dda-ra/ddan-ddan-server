@@ -38,12 +38,6 @@ jobs:
         run: |
           echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      # YAML 설정
-      - name: application.yaml 파일 설정
-        run: |
-          touch ./src/main/resources/application.yaml
-          echo "${{ secrets.YAML }}" > ./src/main/resources/application.yaml
-
       # Jib 빌드 및 푸시
       - name: Jib Build & Push
         env:
@@ -61,7 +55,7 @@ jobs:
           key : ${{ secrets.EC2_PASSWORD }}
           script: |
             cd ${{ secrets.EC2_PATH }}
-            chmod +x ./deploy.sh && ./deploy.sh
+            chmod +x ./deploy.sh && ./deploy.sh dev && ./deploy.sh prod
 
       # 빌드 상태 저장 (성공/실패 구분)
       - name: Set build status
