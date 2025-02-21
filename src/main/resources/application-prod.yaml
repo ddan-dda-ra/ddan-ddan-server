@@ -16,3 +16,7 @@ app:
 
 slack:
   hook-url: ${SLACK_WEBHOOK_URL}
+
+fcm:
+  project-id: ${FCM_PROJECT_ID}
+  key: ${FCM_KEY}
