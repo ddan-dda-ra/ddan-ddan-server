@@ -3,17 +3,20 @@ package notbe.tmtm.ddanddanserver.infrastructure.config
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
-import jakarta.annotation.PostConstruct
-import org.springframework.stereotype.Component
+import com.google.firebase.messaging.FirebaseMessaging
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import java.io.IOException
 import java.util.Base64
 
-@Component
-class FCMInitializer(
-    private val fcmProperties: FCMProperties,
-) {
-    @PostConstruct
-    fun init() {
+@Configuration
+class FcmConfig {
+    @Bean
+    fun fcmClient(firebaseApp: FirebaseApp): FirebaseMessaging = FirebaseMessaging.getInstance(firebaseApp)
+
+    @Bean
+    fun firebaseApp(fcmProperties: FCMProperties): FirebaseApp {
         try {
             val serviceAccount = Base64.getDecoder().decode(fcmProperties.key).inputStream()
 
@@ -23,9 +26,15 @@ class FCMInitializer(
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .build()
 
-            FirebaseApp.initializeApp(options)
+            return FirebaseApp.initializeApp(options)
         } catch (e: IOException) {
             throw RuntimeException(e)
         }
     }
 }
+
+@ConfigurationProperties(prefix = "fcm")
+data class FCMProperties(
+    val projectId: String,
+    val key: String,
+)
