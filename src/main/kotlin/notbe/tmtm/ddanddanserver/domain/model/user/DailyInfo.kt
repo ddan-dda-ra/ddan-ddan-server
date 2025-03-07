@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.domain.model
+package notbe.tmtm.ddanddanserver.domain.model.user
 
 import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType

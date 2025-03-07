@@ -1,7 +1,7 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
-import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate

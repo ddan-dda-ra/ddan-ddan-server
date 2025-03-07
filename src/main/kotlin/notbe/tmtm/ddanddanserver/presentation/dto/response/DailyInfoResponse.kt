@@ -1,7 +1,7 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
+import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import java.time.LocalDate
 
 @Schema(description = "일일 정보 응답 DTO")

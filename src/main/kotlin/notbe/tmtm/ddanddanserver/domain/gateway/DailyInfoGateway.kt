@@ -1,6 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.gateway
 
-import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
+import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import java.time.LocalDate
 
 interface DailyInfoGateway {

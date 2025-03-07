@@ -6,10 +6,10 @@ import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.OAuthGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.TokenGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
-import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthInfo
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

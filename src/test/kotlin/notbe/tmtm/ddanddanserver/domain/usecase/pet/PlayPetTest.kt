@@ -7,9 +7,9 @@ import notbe.tmtm.ddanddanserver.domain.exception.PetOwnerMismatchException
 import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
-import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

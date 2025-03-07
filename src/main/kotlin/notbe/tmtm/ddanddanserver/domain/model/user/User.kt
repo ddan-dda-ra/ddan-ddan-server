@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.domain.model
+package notbe.tmtm.ddanddanserver.domain.model.user
 
 import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
@@ -12,6 +12,7 @@ class User(
     var purposeCalorie: Int = 100,
     var foodQuantity: Int = 0,
     var toyQuantity: Int = 0,
+    var setting: UserSetting = UserSetting(),
 ) {
     fun feed(quantity: Int = 1) {
         if (this.foodQuantity < quantity) {

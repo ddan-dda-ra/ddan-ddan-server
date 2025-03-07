@@ -2,7 +2,7 @@ package notbe.tmtm.ddanddanserver.domain.usecase.user
 
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser.UpdateUserInput
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser.UpdateUserOutput
