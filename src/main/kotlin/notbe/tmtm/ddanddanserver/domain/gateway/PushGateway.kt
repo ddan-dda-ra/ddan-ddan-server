@@ -2,12 +2,12 @@ package notbe.tmtm.ddanddanserver.domain.gateway
 
 interface PushGateway {
     fun send(
-        token: String,
+        deviceToken: String,
         content: String,
     )
 
     fun sendAll(
-        tokens: List<String>,
+        deviceTokens: List<String>,
         content: String,
     )
 }
