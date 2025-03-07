@@ -1,6 +1,7 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
+import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 
@@ -14,6 +15,7 @@ data class UserEntity(
     val purposeCalorie: Int,
     val foodQuantity: Int,
     val toyQuantity: Int,
+    val setting: UserSetting = UserSetting(),
 ) {
     fun toDomain() =
         User(
@@ -24,6 +26,7 @@ data class UserEntity(
             purposeCalorie = purposeCalorie,
             foodQuantity = foodQuantity,
             toyQuantity = toyQuantity,
+            setting = setting,
         )
 
     companion object {
@@ -37,6 +40,7 @@ data class UserEntity(
                     purposeCalorie = purposeCalorie,
                     foodQuantity = foodQuantity,
                     toyQuantity = toyQuantity,
+                    setting = setting,
                 )
             }
     }

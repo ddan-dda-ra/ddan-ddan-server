@@ -7,7 +7,7 @@ import io.jsonwebtoken.Jwts
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredAccessTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredRefreshTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication

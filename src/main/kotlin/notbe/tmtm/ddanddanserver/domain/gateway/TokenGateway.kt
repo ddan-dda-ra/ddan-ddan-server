@@ -1,6 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.gateway
 
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 
 interface TokenGateway {
     fun createAccessToken(user: User): String

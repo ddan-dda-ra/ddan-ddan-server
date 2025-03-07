@@ -4,7 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import kotlin.test.Test

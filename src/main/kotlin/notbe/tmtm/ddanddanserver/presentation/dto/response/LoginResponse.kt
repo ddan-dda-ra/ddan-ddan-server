@@ -1,7 +1,7 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 
 @Schema(description = "로그인 응답 DTO")
 data class LoginResponse(

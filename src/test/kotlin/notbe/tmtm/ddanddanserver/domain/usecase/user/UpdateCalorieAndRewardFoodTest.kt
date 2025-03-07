@@ -5,9 +5,9 @@ import io.mockk.mockk
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
-import notbe.tmtm.ddanddanserver.domain.model.DailyInfo
-import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource

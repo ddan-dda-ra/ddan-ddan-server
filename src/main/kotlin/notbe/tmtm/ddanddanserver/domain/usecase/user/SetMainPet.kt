@@ -4,8 +4,8 @@ import notbe.tmtm.ddanddanserver.domain.exception.PetOwnerMismatchException
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
-import notbe.tmtm.ddanddanserver.domain.model.User
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

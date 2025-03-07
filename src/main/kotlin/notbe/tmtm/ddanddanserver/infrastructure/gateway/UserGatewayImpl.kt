@@ -1,7 +1,7 @@
 package notbe.tmtm.ddanddanserver.infrastructure.gateway
 
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import org.springframework.stereotype.Component

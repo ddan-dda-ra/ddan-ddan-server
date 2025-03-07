@@ -1,7 +1,7 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import notbe.tmtm.ddanddanserver.domain.model.User
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 
 @Schema(description = "User 응답 DTO")
 data class UserResponse(
@@ -15,6 +15,8 @@ data class UserResponse(
     val foodQuantity: Int,
     @Schema(description = "User 장난감 수량", example = "2")
     val toyQuantity: Int,
+    @Schema(description = "User 설정 정보")
+    val setting: UserSettingResponse,
 ) {
     companion object {
         fun fromDomain(user: User) =
@@ -25,6 +27,7 @@ data class UserResponse(
                     purposeCalorie = purposeCalorie,
                     foodQuantity = foodQuantity,
                     toyQuantity = toyQuantity,
+                    setting = UserSettingResponse.fromDomain(setting),
                 )
             }
     }
