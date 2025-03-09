@@ -3,6 +3,7 @@ package notbe.tmtm.ddanddanserver.domain.model.user
 import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
+import java.time.LocalDate
 
 class User(
     val id: String,
@@ -13,6 +14,7 @@ class User(
     var foodQuantity: Int = 0,
     var toyQuantity: Int = 0,
     var setting: UserSetting = UserSetting(),
+    var lastLoginAt: LocalDate = LocalDate.now(),
 ) {
     fun feed(quantity: Int = 1) {
         if (this.foodQuantity < quantity) {

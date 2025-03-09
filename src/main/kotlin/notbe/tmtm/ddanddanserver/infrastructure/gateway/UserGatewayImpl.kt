@@ -12,6 +12,8 @@ class UserGatewayImpl(
 ) : UserGateway {
     override fun save(user: User) = userRepository.save(UserEntity.fromDomain(user)).toDomain()
 
+    override fun findAll() = userRepository.findAll().map(UserEntity::toDomain)
+
     override fun getById(userId: String) = userRepository.findById(userId).orElseThrow().toDomain()
 
     override fun update(user: User) = userRepository.save(UserEntity.fromDomain(user)).toDomain()
