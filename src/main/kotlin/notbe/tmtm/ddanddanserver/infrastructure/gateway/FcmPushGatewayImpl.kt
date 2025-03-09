@@ -14,6 +14,7 @@ class FcmPushGatewayImpl(
         deviceToken: String,
         content: String,
     ) {
+        if (deviceToken == "deviceToken") return
         val request =
             Message
                 .builder()
@@ -29,13 +30,15 @@ class FcmPushGatewayImpl(
         content: String,
     ) {
         val requests =
-            deviceTokens.map { token ->
-                Message
-                    .builder()
-                    .setToken(token)
-                    .setNotification(Notification.builder().setBody(content).build())
-                    .build()
-            }
+            deviceTokens
+                .filter { (it != "deviceToken") }
+                .map { token ->
+                    Message
+                        .builder()
+                        .setToken(token)
+                        .setNotification(Notification.builder().setBody(content).build())
+                        .build()
+                }
 
         fcmClient.sendEach(requests)
     }
