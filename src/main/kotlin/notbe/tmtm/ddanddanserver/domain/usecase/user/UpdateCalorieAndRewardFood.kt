@@ -46,6 +46,7 @@ class UpdateCalorieAndRewardFood(
         }
 
         calorieDailyInfo.update(input.calorie)
+        user.lastLoginAt = LocalDate.now()
 
         return Output(userGateway.save(user), dailyInfoGateway.save(calorieDailyInfo))
     }

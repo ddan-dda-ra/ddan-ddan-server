@@ -4,6 +4,7 @@ import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
+import java.time.LocalDate
 
 @Document("users")
 data class UserEntity(
@@ -16,6 +17,7 @@ data class UserEntity(
     val foodQuantity: Int,
     val toyQuantity: Int,
     val setting: UserSetting = UserSetting(),
+    val lastLoginAt: LocalDate = LocalDate.now(),
 ) {
     fun toDomain() =
         User(
@@ -27,6 +29,7 @@ data class UserEntity(
             foodQuantity = foodQuantity,
             toyQuantity = toyQuantity,
             setting = setting,
+            lastLoginAt = lastLoginAt,
         )
 
     companion object {
@@ -41,6 +44,7 @@ data class UserEntity(
                     foodQuantity = foodQuantity,
                     toyQuantity = toyQuantity,
                     setting = setting,
+                    lastLoginAt = lastLoginAt,
                 )
             }
     }
