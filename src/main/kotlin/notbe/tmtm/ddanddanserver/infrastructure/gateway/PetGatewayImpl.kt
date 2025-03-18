@@ -12,6 +12,8 @@ class PetGatewayImpl(
 ) : PetGateway {
     override fun save(pet: Pet) = petRepository.save(PetEntity.fromDomain(pet)).toDomain()
 
+    override fun getAll() = petRepository.findAll().map { it.toDomain() }
+
     override fun getById(petId: String) = petRepository.findById(petId).orElseThrow().toDomain()
 
     override fun getPetsByOwnerUserId(ownerUserId: String) = petRepository.findAllByOwnerUserId(ownerUserId).map { it.toDomain() }

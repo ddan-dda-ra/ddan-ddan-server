@@ -5,6 +5,8 @@ import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 interface PetGateway {
     fun save(pet: Pet): Pet
 
+    fun getAll(): List<Pet>
+
     fun getById(petId: String): Pet
 
     fun getPetsByOwnerUserId(ownerUserId: String): List<Pet>

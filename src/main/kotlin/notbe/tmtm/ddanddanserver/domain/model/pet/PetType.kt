@@ -9,5 +9,13 @@ enum class PetType {
 
     companion object {
         fun getRandom(): PetType = entries.toTypedArray().random()
+
+        fun getRandomWithout(types: List<PetType>): PetType {
+            val availableTypes = entries.filter { it !in types }
+            if (availableTypes.isEmpty()) {
+                return getRandom()
+            }
+            return availableTypes.toTypedArray().random()
+        }
     }
 }
