@@ -9,6 +9,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.CustomException
 import notbe.tmtm.ddanddanserver.domain.exception.ErrorCode
 import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.presentation.dto.response.ErrorResponse
+import org.apache.coyote.Response
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -93,8 +94,6 @@ class WebExceptionHandler {
     @ExceptionHandler(value = [Exception::class])
     fun handleUnhandledException(
         exception: Throwable,
-        request: HttpServletRequest,
-        bodyCache: ContentCachingRequestWrapper,
     ): ResponseEntity<ErrorResponse> {
         if (exception is IOException) {
             return ResponseEntity
@@ -135,5 +134,12 @@ class WebExceptionHandler {
             )
 
     @ExceptionHandler(value = [AccessDeniedException::class])
-    fun handleAccessDeniedException() = (PermissionDeniedException())
+    fun handleAccessDeniedException(exception: AccessDeniedException): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(
+                ErrorResponse.fromErrorCode(
+                    errorCode = ErrorCode.PERMISSION_DENIED,
+                ),
+            )
 }
