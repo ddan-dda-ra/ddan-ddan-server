@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.ranking
 
+import notbe.tmtm.ddanddanserver.domain.exception.NotFoundUserStatException
 import notbe.tmtm.ddanddanserver.domain.gateway.UserStatGateway
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
@@ -51,7 +52,7 @@ class GetRanking(
         userStats: List<Pair<UserStat, Int>>,
         userId: String,
     ): Pair<UserStat, Int> {
-        val myStats = userStats.find { it.first.userId == userId }!!
+        val myStats = userStats.find { it.first.userId == userId } ?: throw NotFoundUserStatException("갱신하지 않은 사용자입니다. userId=$userId")
         return myStats
     }
 }

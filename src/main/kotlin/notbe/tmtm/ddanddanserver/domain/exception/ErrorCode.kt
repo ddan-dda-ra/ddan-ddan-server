@@ -52,4 +52,10 @@ enum class ErrorCode(
     PET_NOT_FOUND("PE001", "펫을 찾을 수 없습니다."),
     PET_OWNER_MISMATCH("PE002", "펫의 소유자가 일치하지 않습니다."),
     PET_MAX_LEVEL("PE003", "펫이 최대 레벨입니다."),
+
+    /**
+     * 랭킹 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.RankingException
+     */
+    NOT_FOUND_USER_STAT("RA001", "유저의 랭킹 정보를 찾을 수 없습니다."),
 }
