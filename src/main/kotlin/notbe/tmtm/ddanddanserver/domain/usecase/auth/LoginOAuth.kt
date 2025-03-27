@@ -26,7 +26,7 @@ class LoginOAuth(
     data class LoginUserInput(
         val accessToken: String,
         val tokenType: OAuthType,
-        val deviceToken: String,
+        val deviceToken: String?,
     )
 
     data class LoginUserOutput(
@@ -59,7 +59,7 @@ class LoginOAuth(
         }
         // 가입된 유저의 경우 토큰 발급 & 디바이스 토큰 갱신
         val user = userGateway.getById(auth.userId)
-        user.deviceToken = input.deviceToken
+        user.deviceToken = input.deviceToken ?: user.deviceToken
         userGateway.update(user)
 
         return LoginUserOutput(

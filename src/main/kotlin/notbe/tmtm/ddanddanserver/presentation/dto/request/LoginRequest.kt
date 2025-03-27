@@ -10,5 +10,5 @@ data class LoginRequest(
     @Schema(description = "OAuth 타입", example = "KAKAO")
     val tokenType: OAuthType,
     @Schema(description = "디바이스 토큰", example = "DeviceToken")
-    val deviceToken: String = "default", //TODO 추후 기본값 제거
+    val deviceToken: String?,
 )
