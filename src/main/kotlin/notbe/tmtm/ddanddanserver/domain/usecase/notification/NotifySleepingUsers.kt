@@ -3,6 +3,7 @@ package notbe.tmtm.ddanddanserver.domain.usecase.notification
 import notbe.tmtm.ddanddanserver.domain.gateway.PushGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.notification.PushMessage
+import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import org.springframework.stereotype.Component
@@ -24,7 +25,7 @@ class NotifySleepingUsers(
     }
 
     private fun notifySleepingUser(deviceTokens: List<String>) {
-        pushGateway.sendAll(deviceTokens, PushMessage.LONG_SLEEPING_USER.content)
+        pushGateway.sendAll(deviceTokens, PushMessage.LONG_SLEEPING_USER.content, RoutingView.MAIN)
     }
 
     private fun filterByDay(
