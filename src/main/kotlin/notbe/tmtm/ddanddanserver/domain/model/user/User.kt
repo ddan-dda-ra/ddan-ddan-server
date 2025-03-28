@@ -7,7 +7,7 @@ import java.time.LocalDate
 
 class User(
     val id: String,
-    var deviceToken: String,
+    var deviceToken: String?,
     var name: String?,
     var mainPetId: String? = null,
     var purposeCalorie: Int = 100,
@@ -46,7 +46,7 @@ class User(
 
     companion object {
         fun register(
-            deviceToken: String,
+            deviceToken: String?,
             name: String? = null,
         ): User = User(id = generateObjectId(), deviceToken = deviceToken, name = name)
     }

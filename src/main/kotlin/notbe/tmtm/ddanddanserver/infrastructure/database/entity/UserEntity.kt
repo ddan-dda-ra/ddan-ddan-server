@@ -10,7 +10,7 @@ import java.time.LocalDate
 data class UserEntity(
     @Id
     val id: String,
-    val deviceToken: String,
+    val deviceToken: String?,
     val name: String?,
     val mainPetId: String?,
     val purposeCalorie: Int,
