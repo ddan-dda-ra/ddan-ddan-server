@@ -9,17 +9,18 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 @Component
-class NotifyCheckCalorie(
+class NotifyWeeklyRanking(
     private val userGateway: UserGateway,
     private val pushGateway: PushGateway,
-) : UseCase<Unit, Unit> {
+) : UseCase<Int, Unit> {
     @Transactional(readOnly = true)
-    override fun execute(input: Unit) {
+    override fun execute(input: Int) {
         val allUsers =
             userGateway
                 .findAll()
                 .filter { it.setting.isAppPushOn }
                 .filter { it.deviceToken.isNullOrEmpty().not() }
-        pushGateway.sendAll(allUsers.map { it.deviceToken!! }, PushMessage.CHECK_CALORIE.content, RoutingView.MAIN)
+                .map { it.deviceToken!! }
+        pushGateway.sendAll(allUsers, "${PushMessage.WEEKLY_RANKING.content} $input 칼로리를 소모했대요.", RoutingView.MAIN)
     }
 }
