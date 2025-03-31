@@ -12,14 +12,11 @@ import kotlin.jvm.optionals.getOrDefault
 class RankingBoardGatewayImpl(
     private val rankingBoardRepository: RankingBoardRepository,
 ) : RankingBoardGateway {
-    override fun save(rankingBoard: RankingBoard) =
-        rankingBoardRepository.save(RankingBoardEntity.fromDomain(rankingBoard)).toDomain()
+    override fun save(rankingBoard: RankingBoard) = rankingBoardRepository.save(RankingBoardEntity.fromDomain(rankingBoard)).toDomain()
 
-    override fun getById(id: PeriodType) =
-        rankingBoardRepository.findById(id).getOrDefault(RankingBoardEntity(id, emptyList())).toDomain()
+    override fun getById(id: PeriodType) = rankingBoardRepository.findById(id).getOrDefault(RankingBoardEntity(id, emptyList())).toDomain()
 
-    override fun update(rankingBoard: RankingBoard) =
-        rankingBoardRepository.save(RankingBoardEntity.fromDomain(rankingBoard)).toDomain()
+    override fun update(rankingBoard: RankingBoard) = rankingBoardRepository.save(RankingBoardEntity.fromDomain(rankingBoard)).toDomain()
 
     override fun delete(id: PeriodType) = rankingBoardRepository.deleteById(id)
 }

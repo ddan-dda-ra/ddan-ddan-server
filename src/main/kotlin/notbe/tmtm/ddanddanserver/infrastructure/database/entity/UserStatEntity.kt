@@ -26,7 +26,9 @@ data class UserStatEntity(
             UserStat(
                 userId = userId,
                 userName = userName ?: throw IllegalStateException("userName is null"),
-                mainPetType = mainPetType?.let { PetType.valueOf(it) } ?: throw IllegalStateException("mainPetType is null"),
+                mainPetType =
+                    mainPetType?.let { PetType.valueOf(it) }
+                        ?: throw IllegalStateException("mainPetType is null"),
                 totalCalories = totalCalories,
                 totalSucceededDays = totalSucceededDays,
             )

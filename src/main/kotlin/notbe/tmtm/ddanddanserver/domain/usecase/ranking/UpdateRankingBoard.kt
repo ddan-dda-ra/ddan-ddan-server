@@ -8,11 +8,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Component
 class UpdateRankingBoard(
-    private val rankingBoardGateway: RankingBoardGateway
+    private val rankingBoardGateway: RankingBoardGateway,
 ) : UseCase<RankingBoard, RankingBoard> {
-
     @Transactional(readOnly = true)
-    override fun execute(input: RankingBoard): RankingBoard {
-        return rankingBoardGateway.update(input)
-    }
+    override fun execute(input: RankingBoard): RankingBoard = rankingBoardGateway.update(input)
 }

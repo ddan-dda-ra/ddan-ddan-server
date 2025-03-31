@@ -9,11 +9,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Component
 class GetRankingBoard(
-    private val rankingBoardGateway: RankingBoardGateway
+    private val rankingBoardGateway: RankingBoardGateway,
 ) : UseCase<PeriodType, RankingBoard> {
-
     @Transactional(readOnly = true)
-    override fun execute(input: PeriodType): RankingBoard {
-        return rankingBoardGateway.getById(input)
-    }
+    override fun execute(input: PeriodType): RankingBoard = rankingBoardGateway.getById(input)
 }

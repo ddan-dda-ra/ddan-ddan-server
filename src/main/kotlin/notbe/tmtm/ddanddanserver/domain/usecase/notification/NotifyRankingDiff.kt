@@ -27,10 +27,11 @@ class NotifyRankingDiff(
         val now = LocalDateTime.now()
         val previousRankingBoard = getRankingBoard.execute(PeriodType.WEEKLY)
         val currentRanking = userStatGateway.getRanking(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY).take(100)
-        val currentRankingBoard = RankingBoard.of(
-            id = PeriodType.WEEKLY,
-            ranking = currentRanking,
-        )
+        val currentRankingBoard =
+            RankingBoard.of(
+                id = PeriodType.WEEKLY,
+                ranking = currentRanking,
+            )
 
         // 첫 주간 랭킹은 갱신만 수행
         if (now.dayOfWeek == DayOfWeek.MONDAY && now.hour in 0..11) {
@@ -53,6 +54,6 @@ class NotifyRankingDiff(
 
     private fun isRankingDown(
         currentUserStat: Pair<Int, UserStat>?,
-        previousRank: Int
+        previousRank: Int,
     ) = (currentUserStat != null && currentUserStat.first >= previousRank).not()
 }

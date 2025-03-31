@@ -20,7 +20,8 @@ class JWTAuthFilter(
         filterChain: FilterChain,
     ) {
         try {
-            val authenticationHeader = request.getHeader("Authorization") ?: throw AuthenticationTokenNotExistException()
+            val authenticationHeader =
+                request.getHeader("Authorization") ?: throw AuthenticationTokenNotExistException()
             val accessToken =
                 if (authenticationHeader.startsWith("Bearer ")) {
                     authenticationHeader.substring(7)
