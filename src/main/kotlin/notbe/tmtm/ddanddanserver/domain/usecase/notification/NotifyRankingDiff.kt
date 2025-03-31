@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.notification
 
 import notbe.tmtm.ddanddanserver.domain.gateway.PushGateway
-import notbe.tmtm.ddanddanserver.domain.gateway.RankingBoardGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserStatGateway
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView

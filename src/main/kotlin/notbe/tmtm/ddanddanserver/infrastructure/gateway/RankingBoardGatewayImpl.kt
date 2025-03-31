@@ -3,7 +3,6 @@ package notbe.tmtm.ddanddanserver.infrastructure.gateway
 import notbe.tmtm.ddanddanserver.domain.gateway.RankingBoardGateway
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingBoard
-import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.RankingBoardEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.RankingBoardRepository
 import org.springframework.stereotype.Component
