@@ -7,9 +7,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthorizationException
 import notbe.tmtm.ddanddanserver.domain.exception.CustomException
 import notbe.tmtm.ddanddanserver.domain.exception.ErrorCode
-import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.presentation.dto.response.ErrorResponse
-import org.apache.coyote.Response
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import org.springframework.web.util.BindErrorUtils
-import org.springframework.web.util.ContentCachingRequestWrapper
 import java.io.IOException
 
 @RestControllerAdvice
@@ -92,9 +89,7 @@ class WebExceptionHandler {
     }
 
     @ExceptionHandler(value = [Exception::class])
-    fun handleUnhandledException(
-        exception: Throwable,
-    ): ResponseEntity<ErrorResponse> {
+    fun handleUnhandledException(exception: Throwable): ResponseEntity<ErrorResponse> {
         if (exception is IOException) {
             return ResponseEntity
                 .internalServerError()

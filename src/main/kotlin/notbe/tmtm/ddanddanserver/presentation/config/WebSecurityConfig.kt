@@ -59,7 +59,5 @@ class WebSecurityConfig(
                 it.anyRequest().permitAll()
             }.build()
 
-    private fun isDevProfile(): Boolean {
-        return environment.activeProfiles.contains("dev")
-    }
+    private fun isDevProfile(): Boolean = environment.activeProfiles.contains("dev")
 }

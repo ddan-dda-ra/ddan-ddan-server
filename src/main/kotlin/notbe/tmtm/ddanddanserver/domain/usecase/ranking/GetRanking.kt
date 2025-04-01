@@ -52,7 +52,9 @@ class GetRanking(
         userStats: List<Pair<UserStat, Int>>,
         userId: String,
     ): Pair<UserStat, Int> {
-        val myStats = userStats.find { it.first.userId == userId } ?: throw NotFoundUserStatException("갱신하지 않은 사용자입니다. userId=$userId")
+        val myStats =
+            userStats.find { it.first.userId == userId }
+                ?: throw NotFoundUserStatException("갱신하지 않은 사용자입니다. userId=$userId")
         return myStats
     }
 }
