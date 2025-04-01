@@ -33,8 +33,8 @@ class NotifyRankingDiff(
                 ranking = currentRanking,
             )
 
-        // 첫 주간 랭킹은 갱신만 수행
-        if (now.dayOfWeek == DayOfWeek.MONDAY && now.hour in 0..11) {
+        // 월요일에는 갱신만 수행한다.
+        if (now.dayOfWeek == DayOfWeek.MONDAY) {
             updateRankingBoard.execute(currentRankingBoard)
             return
         }
