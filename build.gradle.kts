@@ -70,6 +70,7 @@ jib {
         creationTime = "USE_CURRENT_TIMESTAMP"
         ports = listOf("8080")
         user = "1000:1000"
+        jvmFlags = listOf("-Duser.timezone=Asia/Seoul")
     }
 }
 
