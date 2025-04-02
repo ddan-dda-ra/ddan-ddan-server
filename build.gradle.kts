@@ -69,7 +69,6 @@ jib {
     container {
         creationTime = "USE_CURRENT_TIMESTAMP"
         ports = listOf("8080")
-        environment = mapOf("timezone" to "Asia/Seoul")
         user = "1000:1000"
     }
 }
