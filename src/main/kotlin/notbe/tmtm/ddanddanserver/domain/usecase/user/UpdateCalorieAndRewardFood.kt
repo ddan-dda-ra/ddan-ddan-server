@@ -28,19 +28,24 @@ class UpdateCalorieAndRewardFood(
     data class Output(
         val user: User,
         val dailyInfo: DailyInfo,
+        val rewardedFoodQuantity: Int,
+        val rewardedToyQuantity: Int,
     )
 
     @Transactional
     override fun execute(input: Input): Output {
         val user = userGateway.getById(input.userId)
         val calorieDailyInfo = getOrCreateDailyInfo(user, input.today)
-        user.foodQuantity += getRewardFood(calorieDailyInfo.calorie, input.calorie)
+        val rewardFood = getRewardFood(calorieDailyInfo.calorie, input.calorie)
+        var rewardedToyQuantity = 0
+        user.foodQuantity += rewardFood
 
         if (isDailyPurposeAchieve(calorieDailyInfo, user, input.calorie)) {
             calorieDailyInfo.purposeAchieved = true
             val dailyInfosBefore2Days = dailyInfoGateway.getByDateBeforeNDays(input.userId, input.today, 2)
             if (validateToyGiven(dailyInfosBefore2Days)) {
                 user.toyQuantity++
+                rewardedToyQuantity = 1
                 calorieDailyInfo.toyGiven = true
             }
         }
@@ -48,7 +53,7 @@ class UpdateCalorieAndRewardFood(
         calorieDailyInfo.update(input.calorie)
         user.lastLoginAt = LocalDate.now()
 
-        return Output(userGateway.save(user), dailyInfoGateway.save(calorieDailyInfo))
+        return Output(userGateway.save(user), dailyInfoGateway.save(calorieDailyInfo), rewardFood, rewardedToyQuantity)
     }
 
     private fun getOrCreateDailyInfo(

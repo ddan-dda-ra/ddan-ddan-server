@@ -91,7 +91,12 @@ class UserController(
                     today = LocalDate.now(),
                 ),
             )
-        return UserDailyInfoResponse.fromDomain(result.user, result.dailyInfo)
+        return UserDailyInfoResponse.fromDomain(
+            result.user,
+            result.dailyInfo,
+            result.rewardedFoodQuantity,
+            result.rewardedToyQuantity,
+        )
     }
 
     @PostMapping("/me/main-pet")
