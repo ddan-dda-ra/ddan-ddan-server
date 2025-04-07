@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUserSetting
 import notbe.tmtm.ddanddanserver.presentation.dto.request.UserSettingRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserSettingResponse
+import org.bson.types.ObjectId
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -26,7 +27,7 @@ class UserSettingController(
         val result =
             updateUserSetting.execute(
                 UpdateUserSetting.Input(
-                    userId = authentication.name,
+                    userId = ObjectId(authentication.name),
                     isAppPushOn = request.isAppPushOn,
                 ),
             )

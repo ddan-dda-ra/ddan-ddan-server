@@ -15,6 +15,7 @@ import notbe.tmtm.ddanddanserver.presentation.dto.request.WithDrawRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserDailyInfoResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserMainPetResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserResponse
+import org.bson.types.ObjectId
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -44,7 +45,7 @@ class UserController(
         val result =
             getUser.execute(
                 GetUser.GetUserInput(
-                    userId = authentication.name,
+                    userId = ObjectId(authentication.name),
                 ),
             )
         return UserResponse.fromDomain(result.user)
@@ -59,7 +60,7 @@ class UserController(
         val result =
             updateUser.execute(
                 UpdateUser.UpdateUserInput(
-                    userId = authentication.name,
+                    userId = ObjectId(authentication.name),
                     name = request.name,
                     purposeCalorie = request.purposeCalorie,
                 ),
@@ -73,7 +74,7 @@ class UserController(
         authentication: Authentication,
         @RequestBody request: WithDrawRequest,
     ) {
-        withdrawUser.execute(WithdrawUser.Input(authentication.name, request.cause))
+        withdrawUser.execute(WithdrawUser.Input(ObjectId(authentication.name), request.cause))
         ResponseEntity.noContent()
     }
 
@@ -86,7 +87,7 @@ class UserController(
         val result =
             updateCalorieAndRewardFood.execute(
                 UpdateCalorieAndRewardFood.Input(
-                    userId = authentication.name,
+                    userId = ObjectId(authentication.name),
                     calorie = request.calorie,
                     today = LocalDate.now(),
                 ),
@@ -108,8 +109,8 @@ class UserController(
         val result =
             setMainPet.execute(
                 SetMainPet.Input(
-                    ownerUserId = authentication.name,
-                    petId = request.petId,
+                    ownerUserId = ObjectId(authentication.name),
+                    petId = ObjectId(request.petId),
                 ),
             )
         return UserMainPetResponse.fromDomain(result.pet)
@@ -121,7 +122,7 @@ class UserController(
         val result =
             getMainPet.execute(
                 GetMainPet.Input(
-                    userId = authentication.name,
+                    userId = ObjectId(authentication.name),
                 ),
             )
         return UserMainPetResponse.fromDomain(result.mainPet)

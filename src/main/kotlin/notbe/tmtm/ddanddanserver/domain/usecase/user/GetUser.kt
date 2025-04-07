@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.domain.usecase.user.GetUser.GetUserInput
 import notbe.tmtm.ddanddanserver.domain.usecase.user.GetUser.GetUserOutput
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -13,7 +14,7 @@ class GetUser(
     private val userGateway: UserGateway,
 ) : UseCase<GetUserInput, GetUserOutput> {
     data class GetUserInput(
-        val userId: String,
+        val userId: ObjectId,
     )
 
     data class GetUserOutput(

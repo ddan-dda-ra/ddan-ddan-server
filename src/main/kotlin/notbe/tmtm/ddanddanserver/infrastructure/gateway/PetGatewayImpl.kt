@@ -2,21 +2,21 @@ package notbe.tmtm.ddanddanserver.infrastructure.gateway
 
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 
 @Component
 class PetGatewayImpl(
     private val petRepository: PetRepository,
 ) : PetGateway {
-    override fun save(pet: Pet) = petRepository.save(PetEntity.fromDomain(pet)).toDomain()
+    override fun save(pet: Pet) = petRepository.save(pet)
 
-    override fun getAll() = petRepository.findAll().map { it.toDomain() }
+    override fun getAll(): List<Pet> = petRepository.findAll()
 
-    override fun getById(petId: String) = petRepository.findById(petId).orElseThrow().toDomain()
+    override fun getById(petId: ObjectId): Pet = petRepository.findById(petId).orElseThrow()
 
-    override fun getPetsByOwnerUserId(ownerUserId: String) = petRepository.findAllByOwnerUserId(ownerUserId).map { it.toDomain() }
+    override fun getPetsByOwnerUserId(ownerUserId: ObjectId) = petRepository.findAllByOwnerUserId(ownerUserId)
 
-    override fun deleteByUserId(userId: String) = petRepository.deleteByOwnerUserId(userId)
+    override fun deleteByUserId(userId: ObjectId) = petRepository.deleteByOwnerUserId(userId)
 }

@@ -1,20 +1,21 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.DailyInfoEntity
+import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
+import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 import java.time.LocalDate
 
-interface DailyInfoRepository : MongoRepository<DailyInfoEntity, String> {
+interface DailyInfoRepository : MongoRepository<DailyInfo, ObjectId> {
     fun findByUserIdAndDate(
-        userId: String,
+        userId: ObjectId,
         date: LocalDate,
-    ): DailyInfoEntity?
+    ): DailyInfo?
 
     fun findByUserIdAndDateBetween(
-        userId: String,
+        userId: ObjectId,
         startDate: LocalDate,
         endDate: LocalDate,
-    ): List<DailyInfoEntity>
+    ): List<DailyInfo>
 
-    fun deleteByUserId(userId: String)
+    fun deleteByUserId(userId: ObjectId)
 }

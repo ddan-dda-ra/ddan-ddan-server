@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser.UpdateUserInput
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser.UpdateUserOutput
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -16,7 +17,7 @@ class UpdateUser(
     private val dailyInfoGateway: DailyInfoGateway,
 ) : UseCase<UpdateUserInput, UpdateUserOutput> {
     data class UpdateUserInput(
-        val userId: String,
+        val userId: ObjectId,
         val name: String,
         val purposeCalorie: Int,
     ) {

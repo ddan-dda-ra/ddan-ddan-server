@@ -5,6 +5,7 @@ import io.mockk.mockk
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import org.bson.types.ObjectId
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -16,7 +17,7 @@ class GetPetsTest {
     @Test
     fun `펫 리스트 조회에 성공한다`() {
         // given
-        val ownerUserId: String = "ABCDEF1234567"
+        val ownerUserId: ObjectId = ObjectId()
         val pets: List<Pet> =
             listOf(
                 Pet.register(
@@ -49,7 +50,7 @@ class GetPetsTest {
     @Test
     fun `펫이 존재하지 않으면, 빈 리스트를 반환한다`() {
         // given
-        val ownerUserId: String = "ABCDEF1234567"
+        val ownerUserId: ObjectId = ObjectId()
         every { petGateway.getPetsByOwnerUserId(ownerUserId) } returns emptyList()
 
         // when

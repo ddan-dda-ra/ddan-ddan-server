@@ -19,8 +19,8 @@ data class DailyInfoResponse(
         fun fromDomain(dailyInfo: DailyInfo) =
             with(dailyInfo) {
                 DailyInfoResponse(
-                    id = id,
-                    userId = userId,
+                    id = id.toHexString(),
+                    userId = userId.toHexString(),
                     date = date,
                     calorie = calorie,
                 )

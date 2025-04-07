@@ -12,6 +12,7 @@ import notbe.tmtm.ddanddanserver.presentation.dto.request.AddPetRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.PetResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.PetsResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserPetResponse
+import org.bson.types.ObjectId
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -40,7 +41,7 @@ class PetController(
         val result =
             addPet.execute(
                 AddPet.Input(
-                    ownerUserId = authentication.name,
+                    ownerUserId = ObjectId(authentication.name),
                     petType = request.petType,
                 ),
             )
@@ -53,7 +54,7 @@ class PetController(
         val result =
             addRandomPet.execute(
                 AddRandomPet.Input(
-                    ownerUserId = authentication.name,
+                    ownerUserId = ObjectId(authentication.name),
                 ),
             )
         return PetResponse.fromDomain(result.pet)
@@ -68,8 +69,8 @@ class PetController(
         val result =
             feedPet.execute(
                 FeedPet.Input(
-                    ownerUserId = authentication.name,
-                    petId = petId,
+                    ownerUserId = ObjectId(authentication.name),
+                    petId = ObjectId(petId),
                 ),
             )
         return UserPetResponse.fromDomain(result.user, result.pet)
@@ -84,8 +85,8 @@ class PetController(
         val result =
             playPet.execute(
                 PlayPet.Input(
-                    ownerUserId = authentication.name,
-                    petId = petId,
+                    ownerUserId = ObjectId(authentication.name),
+                    petId = ObjectId(petId),
                 ),
             )
         return UserPetResponse.fromDomain(result.user, result.pet)
@@ -97,7 +98,7 @@ class PetController(
         val result =
             getPets.execute(
                 GetPets.Input(
-                    ownerUserId = authentication.name,
+                    ownerUserId = ObjectId(authentication.name),
                 ),
             )
         return PetsResponse.fromDomain(
@@ -115,8 +116,8 @@ class PetController(
         val result =
             getPet.execute(
                 GetPet.Input(
-                    userId = authentication.name,
-                    petId = petId,
+                    userId = ObjectId(authentication.name),
+                    petId = ObjectId(petId),
                 ),
             )
         return PetResponse.fromDomain(result.pet)

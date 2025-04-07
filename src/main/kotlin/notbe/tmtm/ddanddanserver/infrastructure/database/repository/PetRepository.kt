@@ -1,10 +1,11 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetEntity
+import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
+import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 
-interface PetRepository : MongoRepository<PetEntity, String> {
-    fun findAllByOwnerUserId(ownerUserId: String): List<PetEntity>
+interface PetRepository : MongoRepository<Pet, ObjectId> {
+    fun findAllByOwnerUserId(ownerUserId: ObjectId): List<Pet>
 
-    fun deleteByOwnerUserId(ownerUserId: String)
+    fun deleteByOwnerUserId(ownerUserId: ObjectId)
 }

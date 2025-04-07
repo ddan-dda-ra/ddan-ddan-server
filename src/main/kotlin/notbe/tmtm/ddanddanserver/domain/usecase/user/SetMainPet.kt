@@ -7,6 +7,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -18,8 +19,8 @@ class SetMainPet(
     private val dailyInfoGateway: DailyInfoGateway,
 ) : UseCase<SetMainPet.Input, SetMainPet.Output> {
     data class Input(
-        val ownerUserId: String,
-        val petId: String,
+        val ownerUserId: ObjectId,
+        val petId: ObjectId,
     )
 
     data class Output(

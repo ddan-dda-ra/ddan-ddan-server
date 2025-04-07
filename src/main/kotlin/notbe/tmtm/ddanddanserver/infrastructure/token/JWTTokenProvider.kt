@@ -8,6 +8,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredAccessTok
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredRefreshTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.model.user.User
+import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
@@ -43,7 +44,7 @@ class JWTTokenProvider(
             .add(TOKEN_TYPE, ACCESS)
             .and()
             .claims()
-            .add("user_id", user.id)
+            .add("user_id", user.id.toHexString())
             .and()
             .expiration(Date(System.currentTimeMillis() + accessTokenExpiration * 1000))
             .encryptWith(secretKey, Jwts.ENC.A128CBC_HS256)
@@ -56,7 +57,7 @@ class JWTTokenProvider(
             .add(TOKEN_TYPE, REFRESH)
             .and()
             .claims()
-            .add("user_id", user.id)
+            .add("user_id", user.id.toHexString())
             .and()
             .expiration(Date(System.currentTimeMillis() + refreshTokenExpiration * 1000))
             .encryptWith(secretKey, Jwts.ENC.A128CBC_HS256)
@@ -70,7 +71,7 @@ class JWTTokenProvider(
         }
     }
 
-    fun getUserIdFromRefreshToken(refreshToken: String): String {
+    fun getUserIdFromRefreshToken(refreshToken: String): ObjectId {
         val claims = getClaims(refreshToken, REFRESH)
 
         if (getTokenType(claims) != REFRESH) {
@@ -111,7 +112,7 @@ class JWTTokenProvider(
         runCatching { claims.header[TOKEN_TYPE] as? String? ?: throw AuthenticationInvalidTokenException() }
             .getOrElse { throw AuthenticationInvalidTokenException() }
 
-    private fun getUserId(claims: Jwe<Claims>): String =
-        runCatching { claims.payload["user_id"] as? String ?: throw AuthenticationInvalidTokenException() }
+    private fun getUserId(claims: Jwe<Claims>): ObjectId =
+        runCatching { ObjectId(claims.payload["user_id"] as? String ?: throw AuthenticationInvalidTokenException()) }
             .getOrElse { throw AuthenticationInvalidTokenException() }
 }

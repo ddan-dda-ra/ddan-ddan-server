@@ -2,7 +2,7 @@ package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.DailyInfoEntity
+import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
 import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.MongoTemplate
@@ -27,25 +27,25 @@ class UserStatRepositoryImpl(
             newAggregation(
                 match(
                     Criteria
-                        .where(DailyInfoEntity::date.name)
+                        .where(DailyInfo::date.name)
                         .gte(periodType.currentStartDate())
                         .lte(periodType.currentEndDate()),
                 ),
-                group(DailyInfoEntity::userId.name)
-                    .first(DailyInfoEntity::userId.name)
+                group(DailyInfo::userId.name)
+                    .first(DailyInfo::userId.name)
                     .`as`(UserStatEntity::userId.toSnakeCase())
-                    .last(DailyInfoEntity::userName.name)
+                    .last(DailyInfo::userName.name)
                     .`as`(UserStatEntity::userName.toSnakeCase())
-                    .last(DailyInfoEntity::petType.name)
+                    .last(DailyInfo::petType.name)
                     .`as`(UserStatEntity::mainPetType.toSnakeCase())
-                    .sum(DailyInfoEntity::calorie.name)
+                    .sum(DailyInfo::calorie.name)
                     .`as`(UserStatEntity::totalCalories.toSnakeCase())
-                    .sum(Cond.`when`(DailyInfoEntity::purposeAchieved.toSnakeCase()).then(1).otherwise(0))
+                    .sum(Cond.`when`(DailyInfo::purposeAchieved.toSnakeCase()).then(1).otherwise(0))
                     .`as`(UserStatEntity::totalSucceededDays.toSnakeCase()),
                 sort(Sort.Direction.DESC, criteria.fieldName())
                     .and(Sort.Direction.ASC, UserStatEntity::userId.toSnakeCase()),
             )
-        return mongoTemplate.aggregate(agg, DailyInfoEntity::class.java, UserStatEntity::class.java).mappedResults
+        return mongoTemplate.aggregate(agg, DailyInfo::class.java, UserStatEntity::class.java).mappedResults
     }
 
     private fun RankingCriteria.fieldName(): String = this.name.lowercase()

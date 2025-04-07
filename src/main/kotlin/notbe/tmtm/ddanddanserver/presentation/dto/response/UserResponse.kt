@@ -22,7 +22,7 @@ data class UserResponse(
         fun fromDomain(user: User) =
             with(user) {
                 UserResponse(
-                    id = id,
+                    id = id.toHexString(),
                     name = name,
                     purposeCalorie = purposeCalorie,
                     foodQuantity = foodQuantity,

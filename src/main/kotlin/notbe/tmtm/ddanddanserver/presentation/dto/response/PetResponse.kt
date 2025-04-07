@@ -19,7 +19,7 @@ data class PetResponse(
         fun fromDomain(userPet: Pet) =
             with(userPet) {
                 PetResponse(
-                    id = id,
+                    id = id.toHexString(),
                     type = type,
                     level = getLevel().level,
                     expPercent = getExpPercent(),

@@ -4,6 +4,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.PetOwnerMismatchException
 import notbe.tmtm.ddanddanserver.domain.gateway.PetGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -12,8 +13,8 @@ class GetPet(
     private val petGateway: PetGateway,
 ) : UseCase<GetPet.Input, GetPet.Output> {
     data class Input(
-        val userId: String,
-        val petId: String,
+        val userId: ObjectId,
+        val petId: ObjectId,
     )
 
     data class Output(
@@ -29,8 +30,8 @@ class GetPet(
     }
 
     private fun validate(
-        userId: String,
-        ownerUserId: String,
+        userId: ObjectId,
+        ownerUserId: ObjectId,
     ) {
         if (userId != ownerUserId) {
             throw PetOwnerMismatchException("펫의 주인이 아닙니다.")

@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.usecase.ranking.GetRanking
 import notbe.tmtm.ddanddanserver.presentation.dto.response.RankingResponse
+import org.bson.types.ObjectId
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -28,7 +29,7 @@ class RankingController(
         val result =
             getRanking.execute(
                 GetRanking.Input(
-                    userId = authentication.name,
+                    userId = ObjectId(authentication.name),
                     criteria = criteria,
                     periodType = periodType,
                 ),
