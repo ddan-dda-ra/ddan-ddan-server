@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationTokenNotExistException
-import notbe.tmtm.ddanddanserver.infrastructure.token.JWTTokenProvider
+import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.servlet.HandlerExceptionResolver
