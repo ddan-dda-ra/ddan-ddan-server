@@ -1,8 +1,8 @@
-package notbe.tmtm.ddanddanserver.presentation.config
+package notbe.tmtm.ddanddanserver.config
 
 import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.domain.exception.UnauthorizedException
-import notbe.tmtm.ddanddanserver.infrastructure.token.JWTTokenProvider
+import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.presentation.filter.JWTAuthFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

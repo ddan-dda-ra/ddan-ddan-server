@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.infrastructure.token
+package notbe.tmtm.ddanddanserver.common
 
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException

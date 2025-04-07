@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.presentation.config
+package notbe.tmtm.ddanddanserver.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

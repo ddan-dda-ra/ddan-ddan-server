@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.presentation.config
+package notbe.tmtm.ddanddanserver.common
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.ConstraintViolationException
