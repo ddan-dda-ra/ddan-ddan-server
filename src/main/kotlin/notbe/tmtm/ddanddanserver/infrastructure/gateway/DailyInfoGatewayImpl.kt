@@ -2,8 +2,8 @@ package notbe.tmtm.ddanddanserver.infrastructure.gateway
 
 import notbe.tmtm.ddanddanserver.domain.gateway.DailyInfoGateway
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.DailyInfoEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 
@@ -11,21 +11,21 @@ import java.time.LocalDate
 class DailyInfoGatewayImpl(
     private val dailyInfoRepository: DailyInfoRepository,
 ) : DailyInfoGateway {
-    override fun save(dailyInfo: DailyInfo): DailyInfo = dailyInfoRepository.save(DailyInfoEntity.fromDomain(dailyInfo)).toDomain()
+    override fun save(dailyInfo: DailyInfo): DailyInfo = dailyInfoRepository.save(dailyInfo)
 
     override fun findBy(
-        userId: String,
+        userId: ObjectId,
         date: LocalDate,
-    ): DailyInfo? = dailyInfoRepository.findByUserIdAndDate(userId, date)?.toDomain()
+    ): DailyInfo? = dailyInfoRepository.findByUserIdAndDate(userId, date)
 
     override fun getByDateBeforeNDays(
-        userId: String,
+        userId: ObjectId,
         date: LocalDate,
         n: Int,
     ): List<DailyInfo> {
         val startDate = date.minusDays(n.toLong())
-        return dailyInfoRepository.findByUserIdAndDateBetween(userId, startDate, date).map { it.toDomain() }
+        return dailyInfoRepository.findByUserIdAndDateBetween(userId, startDate, date)
     }
 
-    override fun deleteByUserId(userId: String) = dailyInfoRepository.deleteByUserId(userId)
+    override fun deleteByUserId(userId: ObjectId) = dailyInfoRepository.deleteByUserId(userId)
 }

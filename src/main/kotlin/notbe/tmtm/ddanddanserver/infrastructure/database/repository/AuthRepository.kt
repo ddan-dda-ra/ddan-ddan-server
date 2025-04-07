@@ -1,14 +1,15 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
+import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.AuthEntity
+import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 
-interface AuthRepository : MongoRepository<AuthEntity, String> {
+interface AuthRepository : MongoRepository<Auth, ObjectId> {
     fun findByOAuthIdAndType(
         oAuthId: String,
         type: OAuthType,
-    ): AuthEntity?
+    ): Auth?
 
-    fun deleteByUserId(userId: String)
+    fun deleteByUserId(userId: ObjectId)
 }

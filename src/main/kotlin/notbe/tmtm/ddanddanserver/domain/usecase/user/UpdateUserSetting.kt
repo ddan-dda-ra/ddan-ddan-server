@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUserSetting.Input
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUserSetting.Output
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 
 @Component
@@ -12,7 +13,7 @@ class UpdateUserSetting(
     private val userGateway: UserGateway,
 ) : UseCase<Input, Output> {
     data class Input(
-        val userId: String,
+        val userId: ObjectId,
         val isAppPushOn: Boolean?,
     )
 

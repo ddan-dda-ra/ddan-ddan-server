@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
+import org.bson.types.ObjectId
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -20,7 +21,7 @@ class UpdateCalorieAndRewardFood(
     private val dailyInfoGateway: DailyInfoGateway,
 ) : UseCase<UpdateCalorieAndRewardFood.Input, UpdateCalorieAndRewardFood.Output> {
     data class Input(
-        val userId: String,
+        val userId: ObjectId,
         val calorie: Int,
         val today: LocalDate,
     )

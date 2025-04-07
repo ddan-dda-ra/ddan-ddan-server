@@ -2,9 +2,10 @@ package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
+import org.bson.types.ObjectId
 
 data class UserStatEntity(
-    val userId: String,
+    val userId: ObjectId,
     val userName: String?,
     val mainPetType: String?,
     val totalCalories: Int,

@@ -1,13 +1,15 @@
 package notbe.tmtm.ddanddanserver.domain.model.pet
 
-import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet.Level.Companion.MAX_EXP
+import org.bson.types.ObjectId
+import org.springframework.data.mongodb.core.mapping.Document
 import kotlin.math.min
 
+@Document("pets")
 class Pet(
-    val id: String,
+    val id: ObjectId,
     val type: PetType,
-    val ownerUserId: String,
+    val ownerUserId: ObjectId,
     var exp: Int,
 ) {
     fun eat(quantity: Int = 1) {
@@ -19,7 +21,7 @@ class Pet(
         exp = min(exp, MAX_EXP)
     }
 
-    fun isOwner(userId: String): Boolean = ownerUserId == userId
+    fun isOwner(userId: ObjectId): Boolean = ownerUserId == userId
 
     fun isMaxLevel(): Boolean = exp >= Level.MAX_EXP
 
@@ -51,10 +53,10 @@ class Pet(
     companion object {
         fun register(
             type: PetType,
-            ownerUserId: String,
+            ownerUserId: ObjectId,
         ): Pet =
             Pet(
-                id = generateObjectId(),
+                id = ObjectId(),
                 type = type,
                 ownerUserId = ownerUserId,
                 exp = 0,

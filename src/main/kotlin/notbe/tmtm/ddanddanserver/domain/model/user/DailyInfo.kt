@@ -1,19 +1,21 @@
 package notbe.tmtm.ddanddanserver.domain.model.user
 
-import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import org.bson.types.ObjectId
+import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate
 import kotlin.math.max
 
+@Document("daily_calories")
 class DailyInfo(
-    val id: String,
-    val userId: String,
+    val id: ObjectId,
+    val userId: ObjectId,
     var userName: String?,
     var petType: PetType?,
-    val date: LocalDate,
     var calorie: Int,
     var purposeAchieved: Boolean = false,
     var toyGiven: Boolean = false,
+    val date: LocalDate,
 ) {
     fun update(calorie: Int) {
         this.calorie = max(this.calorie, calorie)
@@ -21,14 +23,14 @@ class DailyInfo(
 
     companion object {
         fun create(
-            userId: String,
+            userId: ObjectId,
             userName: String?,
             petType: PetType?,
             date: LocalDate = LocalDate.now(),
             calorie: Int = 0,
         ): DailyInfo =
             DailyInfo(
-                id = generateObjectId(),
+                id = ObjectId(),
                 userId = userId,
                 userName = userName,
                 petType = petType,

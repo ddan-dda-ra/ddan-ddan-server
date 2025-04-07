@@ -40,7 +40,7 @@ data class RankingResponse(
                 userStat: UserStat,
             ) = RankingUserStatResponse(
                 rank = rank,
-                userId = userStat.userId,
+                userId = userStat.userId.toHexString(),
                 userName = userStat.userName,
                 mainPetType = userStat.mainPetType,
                 totalCalories = userStat.totalCalories,

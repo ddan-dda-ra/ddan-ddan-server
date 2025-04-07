@@ -1,15 +1,17 @@
 package notbe.tmtm.ddanddanserver.domain.model.user
 
-import notbe.tmtm.ddanddanserver.common.util.generateObjectId
 import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
+import org.bson.types.ObjectId
+import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate
 
+@Document("users")
 class User(
-    val id: String,
+    val id: ObjectId,
     var deviceToken: String?,
     var name: String?,
-    var mainPetId: String? = null,
+    var mainPetId: ObjectId? = null,
     var purposeCalorie: Int = 100,
     var foodQuantity: Int = 0,
     var toyQuantity: Int = 0,
@@ -38,7 +40,7 @@ class User(
         this.purposeCalorie = purposeCalorie
     }
 
-    fun setMainPet(petId: String) {
+    fun setMainPet(petId: ObjectId) {
         this.mainPetId = petId
     }
 
@@ -48,6 +50,6 @@ class User(
         fun register(
             deviceToken: String?,
             name: String? = null,
-        ): User = User(id = generateObjectId(), deviceToken = deviceToken, name = name)
+        ): User = User(id = ObjectId(), deviceToken = deviceToken, name = name)
     }
 }

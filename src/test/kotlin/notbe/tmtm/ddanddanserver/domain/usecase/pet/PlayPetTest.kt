@@ -10,6 +10,7 @@ import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
+import org.bson.types.ObjectId
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -31,7 +32,7 @@ class PlayPetTest {
         every { petGateway.save(pet) } returns pet
 
         // when
-        val result = playPet.execute(PlayPet.Input("USER_ID", "PET_ID"))
+        val result = playPet.execute(PlayPet.Input(ObjectId(), ObjectId()))
 
         // then
         assertEquals(500, result.pet.exp)
@@ -40,8 +41,8 @@ class PlayPetTest {
     @Test
     fun `펫의 소유자가 다르면 예외를 던진다`() {
         // given
-        val user = createUser(id = "USER_ID")
-        val pet = createPet(ownerUserId = "ANOTHER_USER_ID")
+        val user = createUser(id = ObjectId())
+        val pet = createPet(ownerUserId = ObjectId())
         every { userGateway.getById(user.id) } returns user
         every { petGateway.getById(pet.id) } returns pet
 
@@ -80,7 +81,7 @@ class PlayPetTest {
     }
 
     private fun createUser(
-        id: String = "USER_ID",
+        id: ObjectId = ObjectId(),
         name: String = "홍길동",
         toyQuantity: Int = 10,
     ): User =
@@ -92,9 +93,9 @@ class PlayPetTest {
         )
 
     private fun createPet(
-        id: String = "PET_ID",
+        id: ObjectId = ObjectId(),
         type: PetType = PetType.DOG,
-        ownerUserId: String = "USER_ID",
+        ownerUserId: ObjectId = ObjectId(),
         exp: Int = 0,
     ): Pet =
         Pet(
