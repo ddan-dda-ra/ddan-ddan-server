@@ -17,7 +17,7 @@ class AddPetTest {
     @Test
     fun `요청하는 펫 종류의 펫을 추가합니다`() {
         // given
-        val userId: ObjectId = ObjectId()
+        val userId = ObjectId()
         val requestPetType = PetType.DOG
         val pet =
             Pet.register(
@@ -37,7 +37,7 @@ class AddPetTest {
     @Test
     fun `펫은 exp가 0인 상태로 추가됩니다`() {
         // given
-        val userId: ObjectId = ObjectId()
+        val userId = ObjectId()
         val requestPetType = PetType.CAT
         val pet =
             Pet.register(

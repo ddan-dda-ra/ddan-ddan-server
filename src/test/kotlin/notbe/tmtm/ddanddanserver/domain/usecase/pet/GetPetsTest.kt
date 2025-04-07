@@ -17,7 +17,7 @@ class GetPetsTest {
     @Test
     fun `펫 리스트 조회에 성공한다`() {
         // given
-        val ownerUserId: ObjectId = ObjectId()
+        val ownerUserId = ObjectId()
         val pets: List<Pet> =
             listOf(
                 Pet.register(
@@ -50,7 +50,7 @@ class GetPetsTest {
     @Test
     fun `펫이 존재하지 않으면, 빈 리스트를 반환한다`() {
         // given
-        val ownerUserId: ObjectId = ObjectId()
+        val ownerUserId = ObjectId()
         every { petGateway.getPetsByOwnerUserId(ownerUserId) } returns emptyList()
 
         // when
