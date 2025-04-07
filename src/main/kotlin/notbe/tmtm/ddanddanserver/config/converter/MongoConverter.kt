@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.infrastructure.config.converter
+package notbe.tmtm.ddanddanserver.config.converter
 
 import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.ReadingConverter

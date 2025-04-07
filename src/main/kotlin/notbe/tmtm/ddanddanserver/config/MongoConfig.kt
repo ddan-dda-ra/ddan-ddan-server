@@ -1,9 +1,9 @@
-package notbe.tmtm.ddanddanserver.infrastructure.config
+package notbe.tmtm.ddanddanserver.config
 
-import notbe.tmtm.ddanddanserver.infrastructure.config.converter.DateToLocalDateConverter
-import notbe.tmtm.ddanddanserver.infrastructure.config.converter.DateToLocalDateTimeConverter
-import notbe.tmtm.ddanddanserver.infrastructure.config.converter.LocalDateTimeToDateConverter
-import notbe.tmtm.ddanddanserver.infrastructure.config.converter.LocalDateToDateConverter
+import notbe.tmtm.ddanddanserver.config.converter.DateToLocalDateConverter
+import notbe.tmtm.ddanddanserver.config.converter.DateToLocalDateTimeConverter
+import notbe.tmtm.ddanddanserver.config.converter.LocalDateTimeToDateConverter
+import notbe.tmtm.ddanddanserver.config.converter.LocalDateToDateConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.mongodb.MongoDatabaseFactory

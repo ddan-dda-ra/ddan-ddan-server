@@ -2,7 +2,7 @@ package notbe.tmtm.ddanddanserver.infrastructure.gateway
 
 import notbe.tmtm.ddanddanserver.domain.gateway.TokenGateway
 import notbe.tmtm.ddanddanserver.domain.model.user.User
-import notbe.tmtm.ddanddanserver.infrastructure.token.JWTTokenProvider
+import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import org.springframework.stereotype.Component
 
 @Component

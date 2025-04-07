@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.infrastructure.config
+package notbe.tmtm.ddanddanserver.config
 
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
