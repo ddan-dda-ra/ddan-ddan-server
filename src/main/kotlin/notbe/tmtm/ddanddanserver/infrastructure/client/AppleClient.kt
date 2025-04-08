@@ -4,32 +4,30 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import notbe.tmtm.ddanddanserver.infrastructure.client.dto.response.AppleOAuthInfoResponse
+import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.RSAPublicKeySpec
-import java.util.*
+import java.util.Base64
 
 @Component
 class AppleClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
-) {
-    fun getOAuthInfo(token: String): AppleOAuthInfoResponse {
-        val headers = parseHeaders(token)
+) : OAuthClient {
+    override fun getOAuth(accessToken: String): OAuth {
+        val headers = parseHeaders(accessToken)
         val appleKeys = getAppleKeys()
         val publicKey = generatePublicKey(headers, appleKeys)
-        val claims = parseClaims(token, publicKey)
+        val claims = parseClaims(accessToken, publicKey)
 
-        return AppleOAuthInfoResponse(
+        return OAuth(
             id = claims["sub"].toString(),
-            properties =
-                AppleOAuthInfoResponse.Properties(
-                    nickname = claims["email"].toString(),
-                ),
+            type = this.getProviderType(),
+            nickName = claims["email"].toString(),
         )
     }
 
