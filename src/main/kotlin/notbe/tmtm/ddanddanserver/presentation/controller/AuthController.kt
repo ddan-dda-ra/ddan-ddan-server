@@ -1,8 +1,7 @@
 package notbe.tmtm.ddanddanserver.presentation.controller
 
 import io.swagger.v3.oas.annotations.tags.Tag
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.LoginOAuth
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.ReissueToken
+import notbe.tmtm.ddanddanserver.application.service.AuthService
 import notbe.tmtm.ddanddanserver.presentation.dto.request.LoginRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.RefreshTokenRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.LoginResponse
@@ -15,27 +14,18 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/v1/auth")
 @Tag(name = "로그인 & 인증")
 class AuthController(
-    val loginOAuth: LoginOAuth,
-    val reissueToken: ReissueToken,
+    val authService: AuthService,
 ) {
     @PostMapping("/login")
     fun login(
         @RequestBody request: LoginRequest,
     ): LoginResponse {
-        val result =
-            loginOAuth.execute(
-                LoginOAuth.LoginUserInput(
-                    accessToken = request.token,
-                    tokenType = request.tokenType,
-                    deviceToken = request.deviceToken,
-                ),
-            )
+        val result = authService.login(request.token, request.tokenType, request.deviceToken)
 
         return LoginResponse.fromDomain(
             accessToken = result.accessToken,
             refreshToken = result.refreshToken,
             user = result.user,
-            isOnboardingComplete = result.isOnboardingComplete,
         )
     }
 
@@ -43,18 +33,12 @@ class AuthController(
     fun refresh(
         @RequestBody request: RefreshTokenRequest,
     ): LoginResponse {
-        val result =
-            reissueToken.execute(
-                ReissueToken.ReissueTokenInput(
-                    refreshToken = request.refreshToken,
-                ),
-            )
+        val result = authService.reissueToken(request.refreshToken)
 
         return LoginResponse.fromDomain(
             accessToken = result.accessToken,
             refreshToken = result.refreshToken,
             user = result.user,
-            isOnboardingComplete = true,
         )
     }
 }

@@ -40,6 +40,10 @@ class User(
         this.purposeCalorie = purposeCalorie
     }
 
+    fun updateDeviceToken(deviceToken: String) {
+        this.deviceToken = deviceToken
+    }
+
     fun setMainPet(petId: ObjectId) {
         this.mainPetId = petId
     }

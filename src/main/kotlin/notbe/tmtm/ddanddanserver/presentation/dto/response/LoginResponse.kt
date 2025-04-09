@@ -18,12 +18,11 @@ data class LoginResponse(
             accessToken: String,
             refreshToken: String,
             user: User,
-            isOnboardingComplete: Boolean,
         ) = LoginResponse(
             accessToken = accessToken,
             refreshToken = refreshToken,
             user = UserResponse.fromDomain(user),
-            isOnboardingComplete = isOnboardingComplete,
+            isOnboardingComplete = user.hasMainPet(),
         )
     }
 }
