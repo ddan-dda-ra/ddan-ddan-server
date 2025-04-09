@@ -1,7 +1,5 @@
-package notbe.tmtm.ddanddanserver.infrastructure.client
+package notbe.tmtm.ddanddanserver.infrastructure.api
 
-import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
-import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -10,14 +8,14 @@ import org.springframework.web.client.support.RestClientAdapter
 import org.springframework.web.service.invoker.HttpServiceProxyFactory
 
 @Configuration
-class ClientConfiguration {
+class ApiConfiguration {
     @Bean
-    fun slackClient(
+    fun slackHookApi(
         @Value("\${slack.hook-url}") hookUrl: String,
-    ): SlackHookClient {
+    ): SlackHookApi {
         val factory = HttpServiceProxyFactory.builderFor(restClientAdapter(hookUrl)).build()
 
-        return factory.createClient(SlackHookClient::class.java)
+        return factory.createClient(SlackHookApi::class.java)
     }
 
     @Bean
