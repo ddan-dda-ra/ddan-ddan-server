@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.infrastructure.client
 
+import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -13,15 +14,30 @@ class ClientConfiguration {
     fun slackClient(
         @Value("\${slack.hook-url}") hookUrl: String,
     ): SlackHookClient {
-        val restClient =
-            RestClient
-                .builder()
-                .baseUrl(hookUrl)
-                .build()
-
-        val restClientAdapter = RestClientAdapter.create(restClient)
-        val factory = HttpServiceProxyFactory.builderFor(restClientAdapter).build()
+        val factory = HttpServiceProxyFactory.builderFor(restClientAdapter(hookUrl)).build()
 
         return factory.createClient(SlackHookClient::class.java)
     }
+
+    @Bean
+    fun kakaoAuthApi(): KakaoAuthApi {
+        val factory = HttpServiceProxyFactory.builderFor(restClientAdapter()).build()
+
+        return factory.createClient(KakaoAuthApi::class.java)
+    }
+
+    private fun restClientAdapter(): RestClientAdapter =
+        RestClientAdapter.create(
+            RestClient
+                .builder()
+                .build(),
+        )
+
+    private fun restClientAdapter(baseUrl: String): RestClientAdapter =
+        RestClientAdapter.create(
+            RestClient
+                .builder()
+                .baseUrl(baseUrl)
+                .build(),
+        )
 }
