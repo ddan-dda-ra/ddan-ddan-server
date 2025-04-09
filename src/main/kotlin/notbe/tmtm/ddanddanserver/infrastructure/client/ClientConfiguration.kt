@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.infrastructure.client
 
+import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
 import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -24,6 +25,13 @@ class ClientConfiguration {
         val factory = HttpServiceProxyFactory.builderFor(restClientAdapter()).build()
 
         return factory.createClient(KakaoAuthApi::class.java)
+    }
+
+    @Bean
+    fun appleAuthApi(): AppleAuthApi {
+        val factory = HttpServiceProxyFactory.builderFor(restClientAdapter()).build()
+
+        return factory.createClient(AppleAuthApi::class.java)
     }
 
     private fun restClientAdapter(): RestClientAdapter =
