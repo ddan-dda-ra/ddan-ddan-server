@@ -47,14 +47,14 @@ class AppleProcessor(
     private fun getAppleKeys(): AppleKeys =
         AppleKeys(
             keys =
-                appleAuthApi.getPublicKey().key.map { key ->
+                appleAuthApi.getPublicKey().keys.map { keys ->
                     Key(
-                        kty = key.kty,
-                        kid = key.kid,
-                        use = key.use,
-                        alg = key.alg,
-                        n = key.n,
-                        e = key.e,
+                        kty = keys.kty,
+                        kid = keys.kid,
+                        use = keys.use,
+                        alg = keys.alg,
+                        n = keys.n,
+                        e = keys.e,
                     )
                 },
         )
