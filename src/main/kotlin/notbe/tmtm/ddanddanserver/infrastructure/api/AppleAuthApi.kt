@@ -8,7 +8,7 @@ interface AppleAuthApi {
     fun getPublicKey(): ApplePublicKeyResponse
 
     data class ApplePublicKeyResponse(
-        val keyResponses: List<KeyResponse>,
+        val key: List<KeyResponse>,
     ) {
         data class KeyResponse(
             val kty: String,
