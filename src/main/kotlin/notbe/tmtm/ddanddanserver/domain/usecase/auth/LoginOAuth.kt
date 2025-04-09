@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.auth
 
+import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.OAuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
@@ -9,7 +10,6 @@ import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
-import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
