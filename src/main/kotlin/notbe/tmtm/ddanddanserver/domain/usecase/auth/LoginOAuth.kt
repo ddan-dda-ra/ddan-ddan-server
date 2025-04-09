@@ -1,13 +1,12 @@
 package notbe.tmtm.ddanddanserver.domain.usecase.auth
 
+import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.OAuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.gateway.AuthGateway
-import notbe.tmtm.ddanddanserver.domain.gateway.OAuthGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.TokenGateway
 import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
-import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthInfo
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
@@ -16,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Component
 class LoginOAuth(
-    private val oAuthGateway: OAuthGateway,
+    private val oAuthProcessorFactory: OAuthProcessorFactory,
     private val authGateway: AuthGateway,
     private val userGateway: UserGateway,
     private val tokenGateway: TokenGateway,
@@ -39,16 +38,16 @@ class LoginOAuth(
     @Transactional
     override fun execute(input: LoginUserInput): LoginUserOutput {
         // 로그인 방식에 따라 오어스 정보를 가져온다.
-        val oAuthInfo = getOAuthInfo(input.accessToken, input.tokenType)
+        val oAuth = getOAuthInfo(input.accessToken, input.tokenType)
 
         // 해당 오어스 id 값에 맞는 auth 정보 찾아오기
-        val auth = authGateway.findByOAuthIdAndType(oAuthInfo.id, input.tokenType)
+        val auth = authGateway.findByOAuthIdAndType(oAuth.id, input.tokenType)
 
         // 가입되지 않은 유저의 경우 등록 후 토큰 발급
         if (auth == null) {
-            val newUser = userGateway.save(User.register(name = oAuthInfo.nickName, deviceToken = input.deviceToken))
+            val newUser = userGateway.save(User.register(name = oAuth.nickName, deviceToken = input.deviceToken))
             authGateway.save(
-                Auth.create(oAuthId = oAuthInfo.id, type = input.tokenType, userId = newUser.id),
+                Auth.create(oAuthId = oAuth.id, type = input.tokenType, userId = newUser.id),
             )
             return LoginUserOutput(
                 accessToken = tokenGateway.createAccessToken(newUser),
@@ -73,27 +72,14 @@ class LoginOAuth(
     private fun getOAuthInfo(
         accessToken: String,
         oAuthType: OAuthType,
-    ): OAuthInfo {
-        when (oAuthType) {
-            OAuthType.KAKAO -> {
-                return try {
-                    oAuthGateway.getOAuthUserInfo(accessToken)
-                } catch (e: Exception) {
-                    logger.error("loginError accessToken: $accessToken, error: ${e.message}")
-                    throw OAuthenticationInvalidTokenException(oAuthType)
-                }
+    ): OAuth {
+        oAuthProcessorFactory.getClient(oAuthType).let { oAuthClient ->
+            return try {
+                oAuthClient.getOAuth(accessToken)
+            } catch (e: Exception) {
+                logger.error("loginError accessToken: $accessToken, error: ${e.message}")
+                throw OAuthenticationInvalidTokenException(oAuthType)
             }
-
-            OAuthType.APPLE -> {
-                return try {
-                    oAuthGateway.getOAuthUserInfoFromApple(accessToken)
-                } catch (e: Exception) {
-                    logger.error("loginError accessToken: $accessToken, error: ${e.message}")
-                    throw OAuthenticationInvalidTokenException(oAuthType)
-                }
-            }
-
-            else -> throw Exception("Not Supported Token Type")
         }
     }
 }

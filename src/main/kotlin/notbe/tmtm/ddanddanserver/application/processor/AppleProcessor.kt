@@ -1,35 +1,33 @@
-package notbe.tmtm.ddanddanserver.infrastructure.client
+package notbe.tmtm.ddanddanserver.application.processor
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import notbe.tmtm.ddanddanserver.infrastructure.client.dto.response.AppleOAuthInfoResponse
+import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
+import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
 import org.springframework.stereotype.Component
-import org.springframework.web.client.RestClient
 import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.RSAPublicKeySpec
-import java.util.*
+import java.util.Base64
 
 @Component
-class AppleClient(
-    private val restClient: RestClient,
+class AppleProcessor(
+    private val appleAuthApi: AppleAuthApi,
     private val objectMapper: ObjectMapper,
-) {
-    fun getOAuthInfo(token: String): AppleOAuthInfoResponse {
-        val headers = parseHeaders(token)
+) : OAuthProcessor {
+    override fun getOAuth(accessToken: String): OAuth {
+        val headers = parseHeaders(accessToken)
         val appleKeys = getAppleKeys()
         val publicKey = generatePublicKey(headers, appleKeys)
-        val claims = parseClaims(token, publicKey)
+        val claims = parseClaims(accessToken, publicKey)
 
-        return AppleOAuthInfoResponse(
+        return OAuth(
             id = claims["sub"].toString(),
-            properties =
-                AppleOAuthInfoResponse.Properties(
-                    nickname = claims["email"].toString(),
-                ),
+            type = this.getProviderType(),
+            nickName = claims["email"].toString(),
         )
     }
 
@@ -47,13 +45,19 @@ class AppleClient(
     }
 
     private fun getAppleKeys(): AppleKeys =
-        restClient
-            .get()
-            .uri("https://appleid.apple.com/auth/keys")
-            .exchange { _, clientResponse ->
-                clientResponse.bodyTo(AppleKeys::class.java)
-                    ?: throw IllegalStateException("Apple 로그인 과정중 문제 발생. public key를 조회할 수 없음. $clientResponse")
-            }
+        AppleKeys(
+            keys =
+                appleAuthApi.getPublicKey().keyResponses.map { keyResponse ->
+                    Key(
+                        kty = keyResponse.kty,
+                        kid = keyResponse.kid,
+                        use = keyResponse.use,
+                        alg = keyResponse.alg,
+                        n = keyResponse.n,
+                        e = keyResponse.e,
+                    )
+                },
+        )
 
     private fun generatePublicKey(
         tokenHeaders: Map<String, String>,
