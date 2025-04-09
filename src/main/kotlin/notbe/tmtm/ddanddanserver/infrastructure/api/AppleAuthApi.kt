@@ -1,14 +1,19 @@
 package notbe.tmtm.ddanddanserver.infrastructure.api
 
+import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
+import org.springframework.web.service.annotation.GetExchange
 import org.springframework.web.service.annotation.HttpExchange
 
 @HttpExchange(url = "https://appleid.apple.com")
 interface AppleAuthApi {
-    @HttpExchange(url = "/auth/keys")
+    @GetExchange(
+        url = "/auth/keys",
+        accept = [APPLICATION_JSON_VALUE],
+    )
     fun getPublicKey(): ApplePublicKeyResponse
 
     data class ApplePublicKeyResponse(
-        val key: List<KeyResponse>,
+        val keys: List<KeyResponse>,
     ) {
         data class KeyResponse(
             val kty: String,
