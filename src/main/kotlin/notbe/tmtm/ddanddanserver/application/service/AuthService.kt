@@ -50,8 +50,8 @@ class AuthService(
                 ?: throw RuntimeException("auth와 user의 정합성 불일치")
 
         // 디바이스 토큰 갱신
-        if (user.deviceToken != null && user.deviceToken != deviceToken) {
-            user.updateDeviceToken(deviceToken!!)
+        if (deviceToken != null && user.deviceToken != deviceToken) {
+            user.updateDeviceToken(deviceToken)
             userRepository.save(user)
         }
 
