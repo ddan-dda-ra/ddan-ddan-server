@@ -9,13 +9,13 @@ import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
-import notbe.tmtm.ddanddanserver.infrastructure.client.OAuthClientFactory
+import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 @Component
 class LoginOAuth(
-    private val oAuthClientFactory: OAuthClientFactory,
+    private val oAuthProcessorFactory: OAuthProcessorFactory,
     private val authGateway: AuthGateway,
     private val userGateway: UserGateway,
     private val tokenGateway: TokenGateway,
@@ -73,7 +73,7 @@ class LoginOAuth(
         accessToken: String,
         oAuthType: OAuthType,
     ): OAuth {
-        oAuthClientFactory.getClient(oAuthType).let { oAuthClient ->
+        oAuthProcessorFactory.getClient(oAuthType).let { oAuthClient ->
             return try {
                 oAuthClient.getOAuth(accessToken)
             } catch (e: Exception) {

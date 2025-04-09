@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.infrastructure.client
+package notbe.tmtm.ddanddanserver.application.processor
 
 import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoParseError
@@ -7,9 +7,9 @@ import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
 import org.springframework.stereotype.Component
 
 @Component
-class KakaoClient(
+class KakaoProcessor(
     private val kakaoAuthApi: KakaoAuthApi,
-) : OAuthClient {
+) : OAuthProcessor {
     override fun getOAuth(accessToken: String): OAuth =
         kakaoAuthApi
             .getUserInfo("Bearer $accessToken")

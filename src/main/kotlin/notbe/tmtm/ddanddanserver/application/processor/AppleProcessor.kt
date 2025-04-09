@@ -1,4 +1,4 @@
-package notbe.tmtm.ddanddanserver.infrastructure.client
+package notbe.tmtm.ddanddanserver.application.processor
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -14,10 +14,10 @@ import java.security.spec.RSAPublicKeySpec
 import java.util.Base64
 
 @Component
-class AppleClient(
+class AppleProcessor(
     private val appleAuthApi: AppleAuthApi,
     private val objectMapper: ObjectMapper,
-) : OAuthClient {
+) : OAuthProcessor {
     override fun getOAuth(accessToken: String): OAuth {
         val headers = parseHeaders(accessToken)
         val appleKeys = getAppleKeys()
