@@ -14,6 +14,12 @@ app:
       access-token: 216000
       refresh-token: 2592000
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, loggers, mappings
+
 slack:
   hook-url: ${SLACK_WEBHOOK_URL}
 
