@@ -6,7 +6,9 @@ import notbe.tmtm.ddanddanserver.domain.gateway.UserGateway
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
 import org.bson.types.ObjectId
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -19,6 +21,7 @@ class UpdateCalorieAndRewardFood(
     private val userGateway: UserGateway,
     private val petGateway: PetGateway,
     private val dailyInfoGateway: DailyInfoGateway,
+    private val dailyInfoRepository: DailyInfoRepository,
 ) : UseCase<UpdateCalorieAndRewardFood.Input, UpdateCalorieAndRewardFood.Output> {
     data class Input(
         val userId: ObjectId,
@@ -64,7 +67,11 @@ class UpdateCalorieAndRewardFood(
         dailyInfoGateway.findBy(user.id, today)?.let { return it }
 
         val mainPetType = user.mainPetId?.let { petGateway.getById(it).type }
-        return DailyInfo.create(user.id, user.name, mainPetType, today)
+        return try {
+            dailyInfoRepository.insert(DailyInfo.create(user.id, user.name, mainPetType, today))
+        } catch (e: DuplicateKeyException) {
+            dailyInfoGateway.findBy(user.id, today)!!
+        }
     }
 
     private fun validateToyGiven(dailyInfos: List<DailyInfo>): Boolean {
