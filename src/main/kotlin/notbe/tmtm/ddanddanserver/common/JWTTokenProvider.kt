@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.common
 
-import com.google.common.net.HttpHeaders.REFRESH
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.Jwe
