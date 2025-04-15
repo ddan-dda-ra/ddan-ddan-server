@@ -18,9 +18,10 @@ class LoggingFilter : OncePerRequestFilter() {
         val wrappedRequest = ContentCachingRequestWrapper(request)
         val wrappedResponse = ContentCachingResponseWrapper(response)
 
+        filterChain.doFilter(wrappedRequest, wrappedResponse)
+
         if (request.requestURI.startsWith("/v1")) {
             logRequest(wrappedRequest)
-            filterChain.doFilter(wrappedRequest, wrappedResponse)
             logResponse(wrappedResponse)
         }
 
