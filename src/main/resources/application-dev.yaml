@@ -11,8 +11,8 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration:
-      access-token: 216000
-      refresh-token: 2592000
+      access-token: 30
+      refresh-token: 180
 
 management:
   endpoints:
