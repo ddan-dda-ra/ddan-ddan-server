@@ -1,9 +1,11 @@
 package notbe.tmtm.ddanddanserver.common
 
+import com.google.common.net.HttpHeaders.REFRESH
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.Jwe
 import io.jsonwebtoken.Jwts
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredAccessTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredRefreshTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
@@ -23,6 +25,8 @@ class JWTTokenProvider(
     @Value("\${app.jwt.expiration.access-token}") private val accessTokenExpiration: Long,
     @Value("\${app.jwt.expiration.refresh-token}") private val refreshTokenExpiration: Long,
 ) {
+    val logger = logger()
+
     companion object {
         private const val TOKEN_TYPE = "token_type"
         private const val ACCESS = "access"
@@ -96,6 +100,7 @@ class JWTTokenProvider(
         tokenType: String,
     ) = runCatching { jwtParser.parseEncryptedClaims(token) }
         .getOrElse {
+            logger.error("토큰 파싱 에러 로그", it)
             when (it) {
                 is ExpiredJwtException ->
                     when (tokenType) {
