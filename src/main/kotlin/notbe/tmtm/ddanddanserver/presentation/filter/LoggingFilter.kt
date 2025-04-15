@@ -18,6 +18,10 @@ class LoggingFilter : OncePerRequestFilter() {
         val wrappedRequest = ContentCachingRequestWrapper(request)
         val wrappedResponse = ContentCachingResponseWrapper(response)
 
+        if (request.requestURI.startsWith("/actuator")) {
+            return
+        }
+
         logRequest(wrappedRequest)
         filterChain.doFilter(wrappedRequest, wrappedResponse)
         logResponse(wrappedResponse)
