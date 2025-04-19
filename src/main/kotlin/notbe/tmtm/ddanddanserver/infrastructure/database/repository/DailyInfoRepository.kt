@@ -17,5 +17,10 @@ interface DailyInfoRepository : MongoRepository<DailyInfo, ObjectId> {
         endDate: LocalDate,
     ): List<DailyInfo>
 
+    fun findAllByDateAndPurposeAchieved(
+        date: LocalDate,
+        purposeAchieved: Boolean,
+    ): List<DailyInfo>
+
     fun deleteByUserId(userId: ObjectId)
 }
