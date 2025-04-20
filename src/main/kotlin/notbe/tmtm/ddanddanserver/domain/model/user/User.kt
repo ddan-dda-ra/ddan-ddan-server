@@ -15,6 +15,7 @@ class User(
     var purposeCalorie: Int = 100,
     var foodQuantity: Int = 0,
     var toyQuantity: Int = 0,
+    var purposeStrict: Int = 0,
     var setting: UserSetting = UserSetting(),
     var lastLoginAt: LocalDate = LocalDate.now(),
 ) {
@@ -30,6 +31,10 @@ class User(
             throw UserToyQuantityLackException()
         }
         this.toyQuantity -= quantity
+    }
+
+    fun addPurposeStrict() {
+        this.purposeStrict += 1
     }
 
     fun update(
