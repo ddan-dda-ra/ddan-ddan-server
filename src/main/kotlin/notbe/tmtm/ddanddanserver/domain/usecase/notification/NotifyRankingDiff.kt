@@ -44,9 +44,10 @@ class NotifyRankingDiff(
             val currentUserStat = currentRankingBoard.ranking.find { it.second.userId == previousUserStat.userId }
             // 현재 랭킹에 없거나 순위가 떨어진경우
             if (isRankingDown(currentUserStat, previousRank)) {
-                userGateway.getById(currentUserStat!!.second.userId).deviceToken?.let { deviceToken ->
-                    pushGateway.send(deviceToken, "\uD83D\uDCC9  순위가 떨어졌어요!", RoutingView.MAIN)
-                }
+                userGateway
+                    .getById(currentUserStat!!.second.userId)
+                    .takeIf { it.setting.isAppPushOn && it.deviceToken != null }
+                    ?.let { pushGateway.send(it.deviceToken!!, "\uD83D\uDCC9  순위가 떨어졌어요!", RoutingView.MAIN) }
             }
         }
         updateRankingBoard.execute(currentRankingBoard)
