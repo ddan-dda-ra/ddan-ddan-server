@@ -46,8 +46,8 @@ class UpdateCalorieAndRewardFood(
 
         if (isDailyPurposeAchieve(calorieDailyInfo, user, input.calorie)) {
             calorieDailyInfo.purposeAchieved = true
-            user.toyQuantity++
             if (validateToyGiven(user.purposeStrict)) {
+                user.toyQuantity++
                 rewardedToyQuantity = 1
                 user.addPurposeStrict()
                 calorieDailyInfo.toyGiven = true
