@@ -26,12 +26,12 @@ class PurposeStrictMigration {
             while (true) {
                 val dailyInfo = dailyInfoRepository.findByUserIdAndDate(user.id, date.minusDays(strict))
                 if (dailyInfo == null || dailyInfo.purposeAchieved.not()) {
-                    user.purposeStrict = strict.toInt()
                     dailyInfoRepository.findByUserIdAndDate(user.id, LocalDate.now())?.let {
                         if (it.purposeAchieved) {
                             strict += 1
                         }
                     }
+                    user.purposeStrict = strict.toInt()
                     break
                 } else {
                     strict += 1
