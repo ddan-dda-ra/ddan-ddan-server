@@ -36,7 +36,7 @@ jobs:
       - name: Extract Git Info
         id: git_info
         run: |
-          echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "full_commit=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       # Jib 빌드 및 푸시
       - name: Jib Build & Push
@@ -59,13 +59,13 @@ jobs:
       - name: Update GitOps image tag and commit
         run: |
           cd gitops/ddan-ddan-app
-          sed -i "s/tag: .*/tag: \"${short_commit}\"/" values-dev.yaml
-          sed -i "s/tag: .*/tag: \"${short_commit}\"/" values-prod.yaml
+          sed -i "s/tag: .*/tag: \"${full_commit}\"/" values-dev.yaml
+          sed -i "s/tag: .*/tag: \"${full_commit}\"/" values-prod.yaml
 
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
           git add values-dev.yaml
           git add values-prod.yaml
-          git commit -m "Update image tag to ${short_commit} [ci skip]"
+          git commit -m "Update image tag to ${full_commit} [ci skip]"
           git push origin main
