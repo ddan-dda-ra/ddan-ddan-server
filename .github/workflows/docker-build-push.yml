@@ -1,4 +1,4 @@
-name: Docker Build
+name: Docker Build & Push
 
 on:
   workflow_dispatch:
@@ -47,35 +47,13 @@ jobs:
           chmod +x ./gradlew
           ./gradlew jib
 
-      - name: Deploy
-        uses: appleboy/ssh-action@v1.2.0
+      # 커밋 해시 파일 생성
+      - name: Output tag to artifacts
+        run: echo "${{ env.SHORT_SHA }}" > image-tag.txt
+
+      # 커밋 해시 파일 업로드
+      - name: Upload tag as artifact
+        uses: actions/upload-artifact@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key : ${{ secrets.EC2_PASSWORD }}
-          script: |
-            cd ${{ secrets.EC2_PATH }}
-            chmod +x ./deploy.sh && ./deploy.sh dev && ./deploy.sh prod
-
-      # 빌드 상태 저장 (성공/실패 구분)
-      - name: Set build status
-        if: success()
-        run: echo "DEPLOY_STATUS=SUCCESS" >> $GITHUB_ENV
-
-      - name: Set build status
-        if: failure()
-        run: echo "DEPLOY_STATUS=FAILURE" >> $GITHUB_ENV
-
-      # 빌드 상태 설정 및 성공/실패 메시지 워크플로우 호출
-      - name: Set build status and trigger notification workflow
-        run: |
-          DEPLOY_STATUS="SUCCESS"
-          if [ $? -ne 0 ]; then
-            DEPLOY_STATUS="FAILURE"
-          fi
-          echo "DEPLOY_STATUS=$DEPLOY_STATUS" >> $GITHUB_ENV
-
-          # 메시지 전송 워크플로우 호출
-          curl -X POST -H "Authorization: Bearer ${{ github.token }}" \
-            -d '{"build_status": "'"$DEPLOY_STATUS"'", "short_commit": "'"${{ env.short_commit }}"'", "repository": "'"${{ github.repository }}"'"}' \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/discord-notify.yml/dispatches
+          name: image-tag
+          path: image-tag.txt
