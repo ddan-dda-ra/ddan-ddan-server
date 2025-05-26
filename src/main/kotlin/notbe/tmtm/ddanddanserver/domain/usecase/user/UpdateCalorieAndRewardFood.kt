@@ -46,10 +46,10 @@ class UpdateCalorieAndRewardFood(
 
         if (isDailyPurposeAchieve(calorieDailyInfo, user, input.calorie)) {
             calorieDailyInfo.purposeAchieved = true
+            user.addPurposeStrict()
             if (validateToyGiven(user.purposeStrict)) {
                 user.toyQuantity++
                 rewardedToyQuantity = 1
-                user.addPurposeStrict()
                 calorieDailyInfo.toyGiven = true
             }
         }
@@ -68,6 +68,9 @@ class UpdateCalorieAndRewardFood(
 
         val mainPetType = user.mainPetId?.let { petGateway.getById(it).type }
         return try {
+            if (dailyInfoGateway.findBy(user.id, today.minusDays(1))?.purposeAchieved == false) {
+                user.purposeStrict = 0
+            }
             dailyInfoRepository.insert(DailyInfo.create(user.id, user.name, mainPetType, today))
         } catch (e: DuplicateKeyException) {
             dailyInfoGateway.findBy(user.id, today)!!
