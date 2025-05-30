@@ -12,7 +12,6 @@ import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.domain.usecase.ranking.GetRankingBoard
 import notbe.tmtm.ddanddanserver.domain.usecase.ranking.UpdateRankingBoard
 import org.springframework.stereotype.Component
-import java.time.DayOfWeek
 import java.time.LocalDateTime
 
 @Component
@@ -25,16 +24,21 @@ class NotifyRankingDiff(
 ) : UseCase<Unit, Unit> {
     override fun execute(input: Unit) {
         val now = LocalDateTime.now()
-        val previousRankingBoard = getRankingBoard.execute(PeriodType.WEEKLY)
-        val currentRanking = userStatGateway.getRanking(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY).take(100)
+        val currentRanking = userStatGateway.getRanking(RankingCriteria.TOTAL_CALORIES, PeriodType.MONTHLY).take(100)
         val currentRankingBoard =
             RankingBoard.of(
-                id = PeriodType.WEEKLY,
+                id = PeriodType.MONTHLY,
                 ranking = currentRanking,
             )
+        val previousRankingBoard =
+            runCatching { getRankingBoard.execute(PeriodType.MONTHLY) }
+                .getOrElse {
+                    updateRankingBoard.execute(currentRankingBoard)
+                    return
+                }
 
-        // 월요일에는 갱신만 수행한다.
-        if (now.dayOfWeek == DayOfWeek.MONDAY) {
+        // 매달 1일에는 갱신만 수행한다.
+        if (now.dayOfMonth == 1) {
             updateRankingBoard.execute(currentRankingBoard)
             return
         }
@@ -56,5 +60,5 @@ class NotifyRankingDiff(
     private fun isRankingDown(
         currentUserStat: Pair<Int, UserStat>?,
         previousRank: Int,
-    ) = (currentUserStat != null && currentUserStat.first >= previousRank).not()
+    ) = (currentUserStat == null || currentUserStat.first > previousRank)
 }
