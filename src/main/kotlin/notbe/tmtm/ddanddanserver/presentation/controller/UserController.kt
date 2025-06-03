@@ -2,12 +2,11 @@ package notbe.tmtm.ddanddanserver.presentation.controller
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import notbe.tmtm.ddanddanserver.application.service.DailyInfoService
+import notbe.tmtm.ddanddanserver.application.service.UserService
 import notbe.tmtm.ddanddanserver.domain.usecase.user.GetMainPet
-import notbe.tmtm.ddanddanserver.domain.usecase.user.GetUser
 import notbe.tmtm.ddanddanserver.domain.usecase.user.SetMainPet
 import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateCalorieAndRewardFood
-import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateUser
-import notbe.tmtm.ddanddanserver.domain.usecase.user.WithdrawUser
 import notbe.tmtm.ddanddanserver.presentation.dto.request.CalorieRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.SetMainPetRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.UserRequest
@@ -32,23 +31,18 @@ import java.time.LocalDate
 @RequestMapping("/v1/users")
 @Tag(name = "유저")
 class UserController(
-    val getUser: GetUser,
-    val updateUser: UpdateUser,
     val updateCalorieAndRewardFood: UpdateCalorieAndRewardFood,
-    val withdrawUser: WithdrawUser,
     val setMainPet: SetMainPet,
     val getMainPet: GetMainPet,
+    private val userService: UserService,
+    private val dailyInfoService: DailyInfoService,
 ) {
     @GetMapping("/me")
     @Operation(summary = "내 정보 조회", description = "내 정보를 조회합니다.")
     fun getMyInfo(authentication: Authentication): UserResponse {
-        val result =
-            getUser.execute(
-                GetUser.GetUserInput(
-                    userId = ObjectId(authentication.name),
-                ),
-            )
-        return UserResponse.fromDomain(result.user)
+        val userId = ObjectId(authentication.name)
+        val user = userService.getByIdOrThrow(userId)
+        return UserResponse.fromDomain(user)
     }
 
     @PutMapping("/me")
@@ -57,15 +51,16 @@ class UserController(
         authentication: Authentication,
         @RequestBody request: UserRequest,
     ): UserResponse {
-        val result =
-            updateUser.execute(
-                UpdateUser.UpdateUserInput(
-                    userId = ObjectId(authentication.name),
-                    name = request.name,
-                    purposeCalorie = request.purposeCalorie,
-                ),
-            )
-        return UserResponse.fromDomain(result.user)
+        val userId = ObjectId(authentication.name)
+        val user = userService.updateInfo(userId, request.name, request.purposeCalorie)
+
+        // 데일리 데이터에 이름 갱신
+        dailyInfoService.getByUserIdAndDate(user.id, LocalDate.now())?.let {
+            it.userName = user.name
+            dailyInfoService.update(it)
+        }
+
+        return UserResponse.fromDomain(user)
     }
 
     @DeleteMapping("/me")
@@ -74,7 +69,8 @@ class UserController(
         authentication: Authentication,
         @RequestBody request: WithDrawRequest,
     ) {
-        withdrawUser.execute(WithdrawUser.Input(ObjectId(authentication.name), request.cause))
+        val userId = ObjectId(authentication.name)
+        userService.withdraw(userId)
         ResponseEntity.noContent()
     }
 

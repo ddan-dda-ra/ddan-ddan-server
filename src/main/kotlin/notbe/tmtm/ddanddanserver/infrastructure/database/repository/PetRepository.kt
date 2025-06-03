@@ -7,5 +7,5 @@ import org.springframework.data.mongodb.repository.MongoRepository
 interface PetRepository : MongoRepository<Pet, ObjectId> {
     fun findAllByOwnerUserId(ownerUserId: ObjectId): List<Pet>
 
-    fun deleteByOwnerUserId(ownerUserId: ObjectId)
+    fun deleteAllByOwnerUserId(ownerUserId: ObjectId)
 }

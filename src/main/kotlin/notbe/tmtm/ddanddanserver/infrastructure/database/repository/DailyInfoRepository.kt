@@ -22,5 +22,5 @@ interface DailyInfoRepository : MongoRepository<DailyInfo, ObjectId> {
         purposeAchieved: Boolean,
     ): List<DailyInfo>
 
-    fun deleteByUserId(userId: ObjectId)
+    fun deleteAllByUserId(userId: ObjectId)
 }

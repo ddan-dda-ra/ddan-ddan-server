@@ -11,12 +11,4 @@ interface DailyInfoGateway {
         userId: ObjectId,
         date: LocalDate,
     ): DailyInfo?
-
-    fun getByDateBeforeNDays(
-        userId: ObjectId,
-        date: LocalDate,
-        n: Int,
-    ): List<DailyInfo>
-
-    fun deleteByUserId(userId: ObjectId)
 }
