@@ -17,6 +17,4 @@ class PetGatewayImpl(
     override fun getById(petId: ObjectId): Pet = petRepository.findById(petId).orElseThrow()
 
     override fun getPetsByOwnerUserId(ownerUserId: ObjectId) = petRepository.findAllByOwnerUserId(ownerUserId)
-
-    override fun deleteByUserId(userId: ObjectId) = petRepository.deleteByOwnerUserId(userId)
 }

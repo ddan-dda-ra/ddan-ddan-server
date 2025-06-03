@@ -17,15 +17,4 @@ class DailyInfoGatewayImpl(
         userId: ObjectId,
         date: LocalDate,
     ): DailyInfo? = dailyInfoRepository.findByUserIdAndDate(userId, date)
-
-    override fun getByDateBeforeNDays(
-        userId: ObjectId,
-        date: LocalDate,
-        n: Int,
-    ): List<DailyInfo> {
-        val startDate = date.minusDays(n.toLong())
-        return dailyInfoRepository.findByUserIdAndDateBetween(userId, startDate, date)
-    }
-
-    override fun deleteByUserId(userId: ObjectId) = dailyInfoRepository.deleteByUserId(userId)
 }

@@ -37,10 +37,11 @@ class User(
         this.purposeStrict += 1
     }
 
-    fun update(
+    fun updateInfo(
         name: String,
         purposeCalorie: Int,
     ) {
+        require(purposeCalorie in 100..1000) { "purposeCalorie should be between 100 and 1000" }
         this.name = name
         this.purposeCalorie = purposeCalorie
     }

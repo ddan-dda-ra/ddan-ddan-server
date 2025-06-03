@@ -11,6 +11,4 @@ interface PetGateway {
     fun getById(petId: ObjectId): Pet
 
     fun getPetsByOwnerUserId(ownerUserId: ObjectId): List<Pet>
-
-    fun deleteByUserId(userId: ObjectId)
 }

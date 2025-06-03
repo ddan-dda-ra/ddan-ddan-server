@@ -8,4 +8,9 @@ data class UserRequest(
     val name: String,
     @Schema(description = "User 목표 칼로리", example = "100", minimum = "100", maximum = "1000")
     val purposeCalorie: Int,
-)
+) {
+    init {
+        require(name.isNotBlank()) { "name should not be blank" }
+        require(purposeCalorie in 100..1000) { "purposeCalorie should be between 100 and 1000" }
+    }
+}

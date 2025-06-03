@@ -11,5 +11,5 @@ interface AuthRepository : MongoRepository<Auth, ObjectId> {
         type: OAuthType,
     ): Auth?
 
-    fun deleteByUserId(userId: ObjectId)
+    fun deleteAllByUserId(userId: ObjectId)
 }
