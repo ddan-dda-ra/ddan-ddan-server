@@ -97,20 +97,18 @@ class JWTTokenProvider(
     private fun getClaims(
         token: String,
         tokenType: String,
-    ) = runCatching { jwtParser.parseEncryptedClaims(token) }
-        .getOrElse {
-            logger.error("토큰 파싱 에러 로그", it)
-            when (it) {
-                is ExpiredJwtException ->
-                    when (tokenType) {
-                        ACCESS -> throw AuthenticationExpiredAccessTokenException()
-                        REFRESH -> throw AuthenticationExpiredRefreshTokenException()
-                        else -> throw AuthenticationInvalidTokenException()
-                    }
-
-                else -> throw AuthenticationInvalidTokenException()
-            }
+    ) = try {
+        jwtParser.parseEncryptedClaims(token)
+    } catch (e: ExpiredJwtException) {
+        when (tokenType) {
+            ACCESS -> throw AuthenticationExpiredAccessTokenException()
+            REFRESH -> throw AuthenticationExpiredRefreshTokenException()
+            else -> throw AuthenticationInvalidTokenException()
         }
+    } catch (e: Exception) {
+        logger.error("토큰 파싱 에러 로그", e)
+        throw AuthenticationInvalidTokenException()
+    }
 
     private fun getTokenType(claims: Jwe<Claims>): String =
         runCatching { claims.header[TOKEN_TYPE] as? String? ?: throw AuthenticationInvalidTokenException() }
