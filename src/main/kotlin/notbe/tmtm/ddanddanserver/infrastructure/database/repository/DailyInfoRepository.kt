@@ -11,12 +11,6 @@ interface DailyInfoRepository : MongoRepository<DailyInfo, ObjectId> {
         date: LocalDate,
     ): DailyInfo?
 
-    fun findByUserIdAndDateBetween(
-        userId: ObjectId,
-        startDate: LocalDate,
-        endDate: LocalDate,
-    ): List<DailyInfo>
-
     fun findAllByDateAndPurposeAchieved(
         date: LocalDate,
         purposeAchieved: Boolean,
