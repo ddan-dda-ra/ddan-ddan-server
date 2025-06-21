@@ -22,7 +22,7 @@ class AddRandomPet(
 
     @Transactional
     override fun execute(input: Input): Output {
-        val pets = petGateway.getAll().map { it.type }.distinct()
+        val pets = petGateway.getPetsByOwnerUserId(input.ownerUserId).map { it.type }.distinct()
         return Output(
             petGateway.save(
                 Pet.register(
