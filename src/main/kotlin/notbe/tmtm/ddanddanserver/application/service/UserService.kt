@@ -2,6 +2,7 @@ package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.user.User
+import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
@@ -33,6 +34,17 @@ class UserService(
         val user = getByIdOrThrow(userId)
         user.updateInfo(name, purposeCalorie)
         return update(user)
+    }
+
+    fun updateSetting(
+        userId: ObjectId,
+        isAppPushOn: Boolean?,
+    ): UserSetting {
+        val user = getByIdOrThrow(userId)
+        user.setting = user.setting.copy(
+            isAppPushOn = isAppPushOn ?: user.setting.isAppPushOn,
+        )
+        return update(user).setting
     }
 
     fun withdraw(userId: ObjectId) {
