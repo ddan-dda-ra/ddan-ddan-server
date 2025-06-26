@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
+import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingResult
+import notbe.tmtm.ddanddanserver.domain.model.ranking.UserRanking
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
 
 @Schema(description = "랭킹 조회 응답 DTO")
@@ -46,6 +48,12 @@ data class RankingResponse(
                 totalCalories = userStat.totalCalories,
                 totalSucceededDays = userStat.totalSucceededDays,
             )
+
+            fun fromDomain(userRanking: UserRanking) =
+                fromDomain(
+                    rank = userRanking.rank,
+                    userStat = userRanking.userStat,
+                )
         }
     }
 
@@ -53,13 +61,12 @@ data class RankingResponse(
         fun fromDomain(
             criteria: RankingCriteria,
             periodType: PeriodType,
-            userStats: List<Pair<UserStat, Int>>,
-            myStats: Pair<UserStat, Int>,
+            result: RankingResult,
         ) = RankingResponse(
             criteria = criteria,
             periodType = periodType,
-            ranking = userStats.map { (userStat, rank) -> RankingUserStatResponse.fromDomain(rank, userStat) },
-            myRanking = RankingUserStatResponse.fromDomain(myStats.second, myStats.first),
+            ranking = result.getTopRankings(100).map { userRanking -> RankingUserStatResponse.fromDomain(userRanking) },
+            myRanking = RankingUserStatResponse.fromDomain(result.myRanking),
         )
     }
 }
