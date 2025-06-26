@@ -19,7 +19,7 @@ import kotlin.reflect.KProperty
 class UserStatRepositoryImpl(
     private val mongoTemplate: MongoTemplate,
 ) : UserStatRepository {
-    override fun getRanking(
+    override fun getAllRankingBy(
         criteria: RankingCriteria,
         periodType: PeriodType,
     ): List<UserStatEntity> {

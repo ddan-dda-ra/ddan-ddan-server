@@ -2,9 +2,9 @@ package notbe.tmtm.ddanddanserver.presentation.controller
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import notbe.tmtm.ddanddanserver.application.service.UserRankingService
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
-import notbe.tmtm.ddanddanserver.domain.usecase.ranking.GetRanking
 import notbe.tmtm.ddanddanserver.presentation.dto.response.RankingResponse
 import org.bson.types.ObjectId
 import org.springframework.security.core.Authentication
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/v1/ranking")
 @Tag(name = "랭킹")
 class RankingController(
-    private val getRanking: GetRanking,
+    private val userRankingService: UserRankingService,
 ) {
     @GetMapping
     @Operation(summary = "랭킹 조회", description = "랭킹을 조회합니다.")
@@ -27,19 +27,16 @@ class RankingController(
         @RequestParam periodType: PeriodType,
     ): RankingResponse {
         val result =
-            getRanking.execute(
-                GetRanking.Input(
-                    userId = ObjectId(authentication.name),
-                    criteria = criteria,
-                    periodType = periodType,
-                ),
+            userRankingService.getRanking(
+                userId = ObjectId(authentication.name),
+                criteria = criteria,
+                periodType = periodType,
             )
 
         return RankingResponse.fromDomain(
             criteria = criteria,
             periodType = periodType,
-            userStats = result.userStats,
-            myStats = result.myStats,
+            result = result,
         )
     }
 }
