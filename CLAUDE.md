@@ -105,6 +105,94 @@ Jib 플러그인을 사용하여 Docker 이미지를 빌드합니다:
 - 포트: 8080
 - 타임존: Asia/Seoul
 
+# Git 브랜치 전략
+
+## 이슈 기반 개발 워크플로우
+
+1. **이슈 생성**: GitHub에서 새로운 이슈를 생성합니다
+2. **브랜치 생성**: 이슈 번호를 포함한 브랜치를 생성합니다
+3. **작업 수행**: 해당 브랜치에서 이슈 내용에 맞는 작업을 진행합니다
+4. **PR 생성**: develop 브랜치로 Pull Request를 생성합니다
+
+## 브랜치 명명 규칙
+
+```bash
+# 기본 형태
+{타입}/#이슈번호-간단한-설명
+
+# 브랜치 타입별 예시
+feature/#190-ranking-refactor-to-layered    # 새로운 기능 개발
+refactor/#189-user-pet-layered-architecture # 리팩토링
+docs/#194-git-branch-strategy-docs          # 문서화 작업
+fix/#xxx-bug-fix-description                # 버그 수정
+chore/#xxx-dependency-update                # 빌드, 의존성 등
+```
+
+### 브랜치 타입 가이드
+- **feature/**: 새로운 기능 개발
+- **refactor/**: 코드 리팩토링
+- **docs/**: 문서화 작업 (README, CLAUDE.md 등)
+- **fix/**: 버그 수정
+- **chore/**: 빌드 스크립트, 의존성 업데이트 등
+
+## 주요 명령어
+
+```bash
+# 현재 이슈 목록 확인
+gh issue list
+
+# 특정 이슈 상세 정보 확인
+gh issue view 190
+
+# 새 브랜치 생성 및 체크아웃
+git checkout -b feature/#190-ranking-refactor-to-layered
+
+# develop 브랜치로 PR 생성
+gh pr create --title "refactor: Ranking 기능 레이어드 아키텍처로 변경 (#190)" --body "$(cat <<'EOF'
+## Summary
+- UseCase 로직을 Service 레이어로 통합
+- Controller가 Service를 직접 호출하도록 수정
+- Gateway 인터페이스 제거 및 Repository 직접 의존으로 변경
+
+## Changes
+- `GetRanking`, `GetRankingBoard`, `GetTopRanking`, `UpdateRankingBoard` UseCase 제거
+- `RankingService`에 해당 로직 통합
+- `RankingController`가 `RankingService` 직접 호출
+- `RankingBoardGateway` 인터페이스 제거
+- `RankingService`가 `RankingBoardRepository` 직접 의존
+
+## Test plan
+- [ ] 기존 테스트 케이스 통과 확인
+- [ ] API 동작 정상 확인
+- [ ] 빌드 및 배포 정상 확인
+
+Closes #190
+EOF
+)"
+```
+
+## PR 본문 템플릿
+
+PR을 생성할 때는 다음 형식을 따릅니다:
+
+```markdown
+## Summary
+- 주요 변경사항을 3-5개 bullet point로 요약
+
+## Changes
+- 구체적인 코드 변경 내용
+- 추가/수정/삭제된 파일들
+- 주요 로직 변경사항
+
+## Test plan
+- [ ] 단위 테스트 통과 확인
+- [ ] 통합 테스트 확인  
+- [ ] API 동작 테스트
+- [ ] 빌드 및 배포 확인
+
+Closes #이슈번호
+```
+
 # 개발 시 참고사항
 
 - MongoDB는 `@Document` 어노테이션을 사용한 엔티티로 관리
