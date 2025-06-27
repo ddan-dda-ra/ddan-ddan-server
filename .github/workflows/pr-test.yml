@@ -77,7 +77,17 @@ jobs:
         run: |
           echo "## 🧪 Detailed Test Results" >> $GITHUB_STEP_SUMMARY
           
-          if [ -f build/test-results/test/TEST-*.xml ]; then
+          # Debug: Show what files exist
+          echo "### 🔍 Debug: Available test files" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -la build/test-results/ || echo "build/test-results/ not found"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          find build -name "*.xml" -type f 2>/dev/null || echo "No XML files found in build/"
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if any XML test files exist
+          if find build/test-results -name "TEST-*.xml" -type f | grep -q .; then
             echo "### 📊 Overall Statistics" >> $GITHUB_STEP_SUMMARY
             
             # Extract test statistics from XML files
@@ -101,7 +111,7 @@ jobs:
             echo "| Test Class | Tests | Failures | Errors | Duration |" >> $GITHUB_STEP_SUMMARY
             echo "|------------|-------|----------|--------|----------|" >> $GITHUB_STEP_SUMMARY
             
-            for xml_file in build/test-results/test/TEST-*.xml; do
+            find build/test-results -name "TEST-*.xml" -type f | while read xml_file; do
               if [ -f "$xml_file" ]; then
                 class_name=$(grep -o 'name="[^"]*"' "$xml_file" | head -1 | sed 's/name="//;s/"//')
                 class_tests=$(grep -o 'tests="[^"]*"' "$xml_file" | head -1 | sed 's/tests="//;s/"//')
@@ -128,7 +138,7 @@ jobs:
             # Show failed test details if any
             if [ "$FAILED_TESTS" -gt 0 ] || [ "$ERROR_TESTS" -gt 0 ]; then
               echo "### ❌ Failed/Error Test Details" >> $GITHUB_STEP_SUMMARY
-              for xml_file in build/test-results/test/TEST-*.xml; do
+              find build/test-results -name "TEST-*.xml" -type f | while read xml_file; do
                 if [ -f "$xml_file" ]; then
                   # Check for failures or errors in this file
                   if grep -q '<failure\|<error' "$xml_file"; then
@@ -150,5 +160,10 @@ jobs:
             fi
             
           else
-            echo "❌ No test results found" >> $GITHUB_STEP_SUMMARY
+            echo "❌ No test XML files found in build/test-results/" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📂 Available directories:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            ls -la build/ 2>/dev/null || echo "build/ directory not found"
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           fi
