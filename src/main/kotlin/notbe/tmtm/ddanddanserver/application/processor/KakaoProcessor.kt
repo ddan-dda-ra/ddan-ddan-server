@@ -2,7 +2,6 @@ package notbe.tmtm.ddanddanserver.application.processor
 
 import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoParseError
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
 import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
 import org.springframework.stereotype.Component
 
@@ -10,7 +9,7 @@ import org.springframework.stereotype.Component
 class KakaoProcessor(
     private val kakaoAuthApi: KakaoAuthApi,
 ) : OAuthProcessor {
-    override fun getOAuth(accessToken: String): OAuth =
+    override fun getOAuth(accessToken: String): OAuthInfo =
         kakaoAuthApi
             .getUserInfo("Bearer $accessToken")
             .let { response ->
@@ -18,7 +17,7 @@ class KakaoProcessor(
                     logger().error("Kakao id is blank")
                     throw KakaoParseError()
                 }
-                OAuth(
+                OAuthInfo(
                     id = response.id,
                     type = this.getProviderType(),
                     nickName = response.properties?.nickname,

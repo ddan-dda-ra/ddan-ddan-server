@@ -1,10 +1,9 @@
 package notbe.tmtm.ddanddanserver.application.processor
 
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
 
 interface OAuthProcessor {
-    fun getOAuth(accessToken: String): OAuth
+    fun getOAuth(accessToken: String): OAuthInfo
 
     fun getProviderType(): OAuthType =
         when (this) {
