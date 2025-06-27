@@ -2,12 +2,14 @@ package notbe.tmtm.ddanddanserver.migration
 
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.time.LocalDate
 
 @SpringBootTest
+@Disabled
 class PurposeStrictMigration {
     @Autowired
     lateinit var userRepository: UserRepository
