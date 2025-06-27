@@ -1,16 +1,14 @@
 package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.exception.PetMaxLevelException
-import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.PetOwnerMismatchException
-import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -21,12 +19,7 @@ class PetService(
 ) {
     @Transactional
     fun addPet(ownerUserId: ObjectId, petType: PetType): Pet {
-        return petRepository.save(
-            Pet.register(
-                type = petType,
-                ownerUserId = ownerUserId,
-            ),
-        )
+        return addPet(petType, ownerUserId)
     }
 
     @Transactional
@@ -35,25 +28,20 @@ class PetService(
             .map { it.type }
             .distinct()
         
-        return petRepository.save(
-            Pet.register(
-                type = PetType.getRandomWithout(existingPetTypes),
-                ownerUserId = ownerUserId,
-            ),
-        )
+        return addPet(PetType.getRandomWithout(existingPetTypes), ownerUserId)
     }
 
     @Transactional
     fun feedPet(ownerUserId: ObjectId, petId: ObjectId): FeedPetResult {
-        val user = getUserByIdOrThrow(ownerUserId)
-        val pet = getPetByIdOrThrow(petId)
-        
+        val user = userRepository.findByIdOrThrow(ownerUserId)
+        val pet = petRepository.findByIdOrThrow(petId)
+
         validatePetOwnership(pet, ownerUserId)
         validatePetNotMaxLevel(pet)
-        
+
         pet.eat()
         user.feed()
-        
+
         return FeedPetResult(
             user = userRepository.save(user),
             pet = petRepository.save(pet),
@@ -62,15 +50,15 @@ class PetService(
 
     @Transactional
     fun playPet(ownerUserId: ObjectId, petId: ObjectId): PlayPetResult {
-        val user = getUserByIdOrThrow(ownerUserId)
-        val pet = getPetByIdOrThrow(petId)
-        
+        val user = userRepository.findByIdOrThrow(ownerUserId)
+        val pet = petRepository.findByIdOrThrow(petId)
+
         validatePetOwnership(pet, ownerUserId)
         validatePetNotMaxLevel(pet)
-        
+
         pet.play()
         user.play()
-        
+
         return PlayPetResult(
             user = userRepository.save(user),
             pet = petRepository.save(pet),
@@ -79,7 +67,7 @@ class PetService(
 
     @Transactional(readOnly = true)
     fun getPet(userId: ObjectId, petId: ObjectId): Pet {
-        val pet = getPetByIdOrThrow(petId)
+        val pet = petRepository.findByIdOrThrow(petId)
         validatePetOwnership(pet, userId)
         return pet
     }
@@ -89,15 +77,15 @@ class PetService(
         return petRepository.findAllByOwnerUserId(ownerUserId)
     }
 
-    private fun getUserByIdOrThrow(userId: ObjectId): User {
-        return userRepository.findByIdOrNull(userId)
-            ?: throw UserNotFoundException("User not found with id: $userId")
-    }
-
-    private fun getPetByIdOrThrow(petId: ObjectId): Pet {
-        return petRepository.findByIdOrNull(petId)
-            ?: throw PetNotFoundException("Pet not found with id: $petId")
-    }
+    private fun addPet(
+        petType: PetType,
+        ownerUserId: ObjectId
+    ) = petRepository.save(
+        Pet.register(
+            type = petType,
+            ownerUserId = ownerUserId,
+        ),
+    )
 
     private fun validatePetOwnership(pet: Pet, userId: ObjectId) {
         if (!pet.isOwner(userId)) {
