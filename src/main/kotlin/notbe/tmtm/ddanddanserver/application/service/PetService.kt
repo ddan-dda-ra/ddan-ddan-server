@@ -1,12 +1,12 @@
 package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.exception.PetMaxLevelException
-import notbe.tmtm.ddanddanserver.domain.exception.PetOwnerMismatchException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdAndOwnerUserIdOrThrow
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.springframework.stereotype.Service
@@ -27,16 +27,15 @@ class PetService(
         val existingPetTypes = petRepository.findAllByOwnerUserId(ownerUserId)
             .map { it.type }
             .distinct()
-        
+
         return addPet(PetType.getRandomWithout(existingPetTypes), ownerUserId)
     }
 
     @Transactional
     fun feedPet(ownerUserId: ObjectId, petId: ObjectId): FeedPetResult {
         val user = userRepository.findByIdOrThrow(ownerUserId)
-        val pet = petRepository.findByIdOrThrow(petId)
+        val pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId)
 
-        validatePetOwnership(pet, ownerUserId)
         validatePetNotMaxLevel(pet)
 
         pet.eat()
@@ -51,9 +50,8 @@ class PetService(
     @Transactional
     fun playPet(ownerUserId: ObjectId, petId: ObjectId): PlayPetResult {
         val user = userRepository.findByIdOrThrow(ownerUserId)
-        val pet = petRepository.findByIdOrThrow(petId)
+        val pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId)
 
-        validatePetOwnership(pet, ownerUserId)
         validatePetNotMaxLevel(pet)
 
         pet.play()
@@ -66,11 +64,7 @@ class PetService(
     }
 
     @Transactional(readOnly = true)
-    fun getPet(userId: ObjectId, petId: ObjectId): Pet {
-        val pet = petRepository.findByIdOrThrow(petId)
-        validatePetOwnership(pet, userId)
-        return pet
-    }
+    fun getMyPet(userId: ObjectId, petId: ObjectId): Pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId)
 
     @Transactional(readOnly = true)
     fun getPetsByOwner(ownerUserId: ObjectId): List<Pet> {
@@ -86,12 +80,6 @@ class PetService(
             ownerUserId = ownerUserId,
         ),
     )
-
-    private fun validatePetOwnership(pet: Pet, userId: ObjectId) {
-        if (!pet.isOwner(userId)) {
-            throw PetOwnerMismatchException("펫의 주인이 아닙니다.")
-        }
-    }
 
     private fun validatePetNotMaxLevel(pet: Pet) {
         if (pet.isMaxLevel()) {

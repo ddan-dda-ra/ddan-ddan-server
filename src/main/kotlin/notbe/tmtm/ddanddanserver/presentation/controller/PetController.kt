@@ -88,7 +88,7 @@ class PetController(
         authentication: Authentication,
         @PathVariable petId: String,
     ): PetResponse {
-        val pet = petService.getPet(
+        val pet = petService.getMyPet(
             userId = ObjectId(authentication.name),
             petId = ObjectId(petId),
         )

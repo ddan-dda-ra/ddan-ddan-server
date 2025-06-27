@@ -5,20 +5,19 @@ import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.exception.PetMaxLevelException
 import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
-import notbe.tmtm.ddanddanserver.domain.exception.PetOwnerMismatchException
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdAndOwnerUserIdOrThrow
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 class PetServiceTest {
     private lateinit var petRepository: PetRepository
@@ -80,8 +79,7 @@ class PetServiceTest {
         val savedPet = mockk<Pet>()
 
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(ownerUserId) } returns true
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
         every { pet.isMaxLevel() } returns false
         every { userRepository.save(user) } returns savedUser
         every { petRepository.save(pet) } returns savedPet
@@ -109,8 +107,7 @@ class PetServiceTest {
         val savedPet = mockk<Pet>()
 
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(ownerUserId) } returns true
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
         every { pet.isMaxLevel() } returns false
         every { userRepository.save(user) } returns savedUser
         every { petRepository.save(pet) } returns savedPet
@@ -134,14 +131,13 @@ class PetServiceTest {
         val petId = ObjectId()
         val pet = mockk<Pet>()
 
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(userId) } returns true
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId) } returns pet
 
         // when
-        val result = petService.getPet(userId, petId)
+        val result = petService.getMyPet(userId, petId)
 
         // then
-        verify { petRepository.findByIdOrThrow(petId) }
+        verify { petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId) }
         assertEquals(pet, result)
     }
 
@@ -183,7 +179,7 @@ class PetServiceTest {
         val user = mockk<User>()
 
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdOrThrow(petId) } throws PetNotFoundException("Pet not found")
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } throws PetNotFoundException("Pet not found")
 
         // when & then
         assertThrows<PetNotFoundException> {
@@ -197,14 +193,12 @@ class PetServiceTest {
         val ownerUserId = ObjectId()
         val petId = ObjectId()
         val user = mockk<User>()
-        val pet = mockk<Pet>()
 
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(ownerUserId) } returns false
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } throws PetNotFoundException("Pet not found")
 
         // when & then
-        assertThrows<PetOwnerMismatchException> {
+        assertThrows<PetNotFoundException> {
             petService.feedPet(ownerUserId, petId)
         }
     }
@@ -218,8 +212,7 @@ class PetServiceTest {
         val pet = mockk<Pet>()
 
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(ownerUserId) } returns true
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
         every { pet.isMaxLevel() } returns true
 
         // when & then
@@ -234,14 +227,12 @@ class PetServiceTest {
         val ownerUserId = ObjectId()
         val petId = ObjectId()
         val user = mockk<User>()
-        val pet = mockk<Pet>()
 
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(ownerUserId) } returns false
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } throws PetNotFoundException("Pet not found")
 
         // when & then
-        assertThrows<PetOwnerMismatchException> {
+        assertThrows<PetNotFoundException> {
             petService.playPet(ownerUserId, petId)
         }
     }
@@ -255,8 +246,7 @@ class PetServiceTest {
         val pet = mockk<Pet>()
 
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(ownerUserId) } returns true
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
         every { pet.isMaxLevel() } returns true
 
         // when & then
@@ -270,14 +260,12 @@ class PetServiceTest {
         // given
         val userId = ObjectId()
         val petId = ObjectId()
-        val pet = mockk<Pet>()
 
-        every { petRepository.findByIdOrThrow(petId) } returns pet
-        every { pet.isOwner(userId) } returns false
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId) } throws PetNotFoundException("Pet not found")
 
         // when & then
-        assertThrows<PetOwnerMismatchException> {
-            petService.getPet(userId, petId)
+        assertThrows<PetNotFoundException> {
+            petService.getMyPet(userId, petId)
         }
     }
 
@@ -287,11 +275,11 @@ class PetServiceTest {
         val userId = ObjectId()
         val petId = ObjectId()
 
-        every { petRepository.findByIdOrThrow(petId) } throws PetNotFoundException("Pet not found")
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId) } throws PetNotFoundException("Pet not found")
 
         // when & then
         assertThrows<PetNotFoundException> {
-            petService.getPet(userId, petId)
+            petService.getMyPet(userId, petId)
         }
     }
 }
