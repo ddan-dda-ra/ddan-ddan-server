@@ -6,10 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
 import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.MongoTemplate
-import org.springframework.data.mongodb.core.aggregation.Aggregation.group
-import org.springframework.data.mongodb.core.aggregation.Aggregation.match
-import org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation
-import org.springframework.data.mongodb.core.aggregation.Aggregation.sort
+import org.springframework.data.mongodb.core.aggregation.Aggregation.*
 import org.springframework.data.mongodb.core.aggregation.ConditionalOperators.Cond
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.stereotype.Repository
@@ -19,7 +16,7 @@ import kotlin.reflect.KProperty
 class UserStatRepositoryImpl(
     private val mongoTemplate: MongoTemplate,
 ) : UserStatRepository {
-    override fun getAllRankingBy(
+    override fun findAllRankingBy(
         criteria: RankingCriteria,
         periodType: PeriodType,
     ): List<UserStatEntity> {

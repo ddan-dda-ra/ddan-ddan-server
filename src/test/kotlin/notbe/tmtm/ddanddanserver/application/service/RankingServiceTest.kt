@@ -43,14 +43,14 @@ class RankingServiceTest {
             )
 
         every {
-            userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+            userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
         } returns userStatEntities
 
         // when
         val result = rankingService.getRanking(userId2, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
-        verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
+        verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
 
         assertNotNull(result)
         assertEquals(3, result.rankings.size)
@@ -88,14 +88,14 @@ class RankingServiceTest {
             )
 
         every {
-            userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY)
+            userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY)
         } returns userStatEntities
 
         // when
         val result = rankingService.getRanking(userId3, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY)
 
         // then
-        verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY) }
+        verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY) }
 
         assertNotNull(result)
         assertEquals(3, result.rankings.size)
@@ -128,14 +128,14 @@ class RankingServiceTest {
             )
 
         every {
-            userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY)
+            userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY)
         } returns userStatEntities
 
         // when
         val result = rankingService.getRanking(userId, RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY)
 
         // then
-        verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY) }
+        verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY) }
         assertNotNull(result)
         assertEquals(1, result.rankings.size)
         assertEquals(1, result.myRanking.rank)
@@ -151,14 +151,14 @@ class RankingServiceTest {
             )
 
         every {
-            userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY)
+            userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY)
         } returns userStatEntities
 
         // when
         val result = rankingService.getRanking(userId, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY)
 
         // then
-        verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY) }
+        verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY) }
         assertNotNull(result)
         assertEquals(1, result.rankings.size)
         assertEquals(365, result.myRanking.userStat.totalSucceededDays)
@@ -175,14 +175,14 @@ class RankingServiceTest {
             }
 
         every {
-            userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+            userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
         } returns userStatEntities
 
         // when
         val result = rankingService.getRanking(targetUserId, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
-        verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
+        verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
 
         assertNotNull(result)
         assertEquals(200, result.rankings.size)
@@ -213,7 +213,7 @@ class RankingServiceTest {
             )
 
         every {
-            userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+            userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
         } returns userStatEntities
 
         // when
@@ -237,13 +237,13 @@ class RankingServiceTest {
     ): UserStatEntity {
         val entity = mockk<UserStatEntity>()
         every { entity.toDomain() } returns
-            UserStat(
-                userId = userId,
-                userName = userName,
-                mainPetType = PetType.DOG,
-                totalCalories = totalCalories,
-                totalSucceededDays = totalSucceededDays,
-            )
+                UserStat(
+                    userId = userId,
+                    userName = userName,
+                    mainPetType = PetType.DOG,
+                    totalCalories = totalCalories,
+                    totalSucceededDays = totalSucceededDays,
+                )
         return entity
     }
 }

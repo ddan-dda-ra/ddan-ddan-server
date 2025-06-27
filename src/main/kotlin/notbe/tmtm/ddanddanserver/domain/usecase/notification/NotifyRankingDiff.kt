@@ -10,6 +10,7 @@ import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
 import notbe.tmtm.ddanddanserver.domain.usecase.UseCase
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.getAllRankingBy
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -23,7 +24,7 @@ class NotifyRankingDiff(
     override fun execute(input: Unit) {
         val now = LocalDateTime.now()
         val currentRanking = userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.MONTHLY)
-            .map { it.toDomain() }.take(100)
+            .take(100)
         val currentRankingBoard =
             RankingBoard.of(
                 id = PeriodType.MONTHLY,
