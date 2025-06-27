@@ -2,12 +2,7 @@ package notbe.tmtm.ddanddanserver.presentation.controller
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import notbe.tmtm.ddanddanserver.domain.usecase.pet.AddPet
-import notbe.tmtm.ddanddanserver.domain.usecase.pet.AddRandomPet
-import notbe.tmtm.ddanddanserver.domain.usecase.pet.FeedPet
-import notbe.tmtm.ddanddanserver.domain.usecase.pet.GetPet
-import notbe.tmtm.ddanddanserver.domain.usecase.pet.GetPets
-import notbe.tmtm.ddanddanserver.domain.usecase.pet.PlayPet
+import notbe.tmtm.ddanddanserver.application.service.PetService
 import notbe.tmtm.ddanddanserver.presentation.dto.request.AddPetRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.PetResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.PetsResponse
@@ -25,12 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/v1/pets")
 @Tag(name = "펫")
 class PetController(
-    private val addPet: AddPet,
-    private val addRandomPet: AddRandomPet,
-    private val feedPet: FeedPet,
-    private val playPet: PlayPet,
-    private val getPets: GetPets,
-    private val getPet: GetPet,
+    private val petService: PetService,
 ) {
     @PostMapping("/me")
     @Operation(summary = "펫 추가", description = "펫을 추가합니다.")
@@ -38,26 +28,20 @@ class PetController(
         authentication: Authentication,
         @RequestBody request: AddPetRequest,
     ): PetResponse {
-        val result =
-            addPet.execute(
-                AddPet.Input(
-                    ownerUserId = ObjectId(authentication.name),
-                    petType = request.petType,
-                ),
-            )
-        return PetResponse.fromDomain(result.pet)
+        val pet = petService.addPet(
+            ownerUserId = ObjectId(authentication.name),
+            petType = request.petType,
+        )
+        return PetResponse.fromDomain(pet)
     }
 
     @PostMapping("/me/random")
     @Operation(summary = "랜덤 펫 추가", description = "랜덤으로 펫을 추가합니다.")
     fun addRandomPet(authentication: Authentication): PetResponse {
-        val result =
-            addRandomPet.execute(
-                AddRandomPet.Input(
-                    ownerUserId = ObjectId(authentication.name),
-                ),
-            )
-        return PetResponse.fromDomain(result.pet)
+        val pet = petService.addRandomPet(
+            ownerUserId = ObjectId(authentication.name),
+        )
+        return PetResponse.fromDomain(pet)
     }
 
     @PostMapping("/{petId}/food")
@@ -66,13 +50,10 @@ class PetController(
         authentication: Authentication,
         @PathVariable petId: String,
     ): UserPetResponse {
-        val result =
-            feedPet.execute(
-                FeedPet.Input(
-                    ownerUserId = ObjectId(authentication.name),
-                    petId = ObjectId(petId),
-                ),
-            )
+        val result = petService.feedPet(
+            ownerUserId = ObjectId(authentication.name),
+            petId = ObjectId(petId),
+        )
         return UserPetResponse.fromDomain(result.user, result.pet)
     }
 
@@ -82,28 +63,22 @@ class PetController(
         authentication: Authentication,
         @PathVariable petId: String,
     ): UserPetResponse {
-        val result =
-            playPet.execute(
-                PlayPet.Input(
-                    ownerUserId = ObjectId(authentication.name),
-                    petId = ObjectId(petId),
-                ),
-            )
+        val result = petService.playPet(
+            ownerUserId = ObjectId(authentication.name),
+            petId = ObjectId(petId),
+        )
         return UserPetResponse.fromDomain(result.user, result.pet)
     }
 
     @GetMapping("/me")
     @Operation(summary = "내가 소유한 펫 조회", description = "내가 소유한 펫을 모두 조회합니다.")
     fun getMyPets(authentication: Authentication): PetsResponse {
-        val result =
-            getPets.execute(
-                GetPets.Input(
-                    ownerUserId = ObjectId(authentication.name),
-                ),
-            )
+        val pets = petService.getPetsByOwner(
+            ownerUserId = ObjectId(authentication.name),
+        )
         return PetsResponse.fromDomain(
             ownerUserId = authentication.name,
-            pets = result.pets,
+            pets = pets,
         )
     }
 
@@ -113,13 +88,10 @@ class PetController(
         authentication: Authentication,
         @PathVariable petId: String,
     ): PetResponse {
-        val result =
-            getPet.execute(
-                GetPet.Input(
-                    userId = ObjectId(authentication.name),
-                    petId = ObjectId(petId),
-                ),
-            )
-        return PetResponse.fromDomain(result.pet)
+        val pet = petService.getPet(
+            userId = ObjectId(authentication.name),
+            petId = ObjectId(petId),
+        )
+        return PetResponse.fromDomain(pet)
     }
 }
