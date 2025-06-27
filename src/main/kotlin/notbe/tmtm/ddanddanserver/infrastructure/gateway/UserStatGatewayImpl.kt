@@ -14,5 +14,5 @@ class UserStatGatewayImpl(
     override fun getRanking(
         criteria: RankingCriteria,
         periodType: PeriodType,
-    ): List<UserStat> = userStatRepository.getAllRankingBy(criteria, periodType).map { it.toDomain() }
+    ): List<UserStat> = userStatRepository.findAllRankingBy(criteria, periodType).map { it.toDomain() }
 }
