@@ -53,4 +53,103 @@ class UserService(
         dailyInfoRepository.deleteAllByUserId(userId)
         userRepository.deleteById(userId)
     }
+
+    fun getMainPet(userId: ObjectId): notbe.tmtm.ddanddanserver.domain.model.pet.Pet? {
+        val user = getById(userId)
+        return user?.mainPetId?.let { petRepository.findByIdOrNull(it) }
+    }
+
+    fun setMainPet(
+        ownerUserId: ObjectId,
+        petId: ObjectId,
+    ): notbe.tmtm.ddanddanserver.domain.model.pet.Pet {
+        val user = getByIdOrThrow(ownerUserId)
+        val pet = petRepository.findByIdOrNull(petId) ?: throw IllegalArgumentException("Pet not found with id: $petId")
+        if (!pet.isOwner(user.id)) {
+            throw notbe.tmtm.ddanddanserver.domain.exception.PetOwnerMismatchException()
+        }
+
+        user.setMainPet(pet.id)
+        userRepository.save(user)
+
+        // 데일리 데이터에 펫 타입 갱신
+        dailyInfoRepository.findByUserIdAndDate(userId = user.id, date = java.time.LocalDate.now())?.let {
+            it.petType = pet.type
+            dailyInfoRepository.save(it)
+        }
+        return pet
+    }
+
+    fun updateCalorieAndRewardFood(
+        userId: ObjectId,
+        calorie: Int,
+        today: java.time.LocalDate,
+    ): UpdateCalorieAndRewardFoodResult {
+        val user = getByIdOrThrow(userId)
+        val calorieDailyInfo = getOrCreateDailyInfo(user, today)
+        val rewardFood = getRewardFood(calorieDailyInfo.calorie, calorie)
+        var rewardedToyQuantity = 0
+        user.foodQuantity += rewardFood
+
+        if (isDailyPurposeAchieve(calorieDailyInfo, user, calorie)) {
+            calorieDailyInfo.purposeAchieved = true
+            user.addPurposeStrict()
+            if (validateToyGiven(user.purposeStrict)) {
+                user.toyQuantity++
+                rewardedToyQuantity = 1
+                calorieDailyInfo.toyGiven = true
+            }
+        }
+
+        calorieDailyInfo.update(calorie)
+        user.lastLoginAt = java.time.LocalDate.now()
+
+        return UpdateCalorieAndRewardFoodResult(
+            userRepository.save(user),
+            dailyInfoRepository.save(calorieDailyInfo),
+            rewardFood,
+            rewardedToyQuantity,
+        )
+    }
+
+    private fun getOrCreateDailyInfo(
+        user: User,
+        today: java.time.LocalDate,
+    ): notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo {
+        dailyInfoRepository.findByUserIdAndDate(user.id, today)?.let { return it }
+
+        val mainPetType = user.mainPetId?.let { petRepository.findByIdOrNull(it)?.type }
+        return try {
+            if (dailyInfoRepository.findByUserIdAndDate(user.id, today.minusDays(1))?.purposeAchieved == false) {
+                user.purposeStrict = 0
+            }
+            dailyInfoRepository.insert(notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo.create(user.id, user.name, mainPetType, today))
+        } catch (e: org.springframework.dao.DuplicateKeyException) {
+            dailyInfoRepository.findByUserIdAndDate(user.id, today)!!
+        }
+    }
+
+    private fun validateToyGiven(purposeStrict: Int): Boolean = purposeStrict != 0 && purposeStrict % 3 == 0
+
+    private fun isDailyPurposeAchieve(
+        calorieDailyInfo: notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo,
+        user: User,
+        currentCalorie: Int,
+    ) = calorieDailyInfo.calorie < user.purposeCalorie && currentCalorie >= user.purposeCalorie
+
+    private fun getRewardFood(
+        previousCalorie: Int,
+        currentCalorie: Int,
+    ): Int = kotlin.math.max(currentCalorie / CALORIE_REWARD_UNIT - previousCalorie / CALORIE_REWARD_UNIT, 0)
+
+    companion object {
+        private const val CALORIE_REWARD_UNIT = 100
+    }
+
+    data class UpdateCalorieAndRewardFoodResult(
+        val user: User,
+        val dailyInfo: notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo,
+        val rewardedFoodQuantity: Int,
+        val rewardedToyQuantity: Int,
+    )
 }

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
+
 import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
 import org.springframework.stereotype.Component
 import java.math.BigInteger
@@ -18,13 +18,13 @@ class AppleProcessor(
     private val appleAuthApi: AppleAuthApi,
     private val objectMapper: ObjectMapper,
 ) : OAuthProcessor {
-    override fun getOAuth(accessToken: String): OAuth {
+    override fun getOAuth(accessToken: String): OAuthInfo {
         val headers = parseHeaders(accessToken)
         val appleKeys = getAppleKeys()
         val publicKey = generatePublicKey(headers, appleKeys)
         val claims = parseClaims(accessToken, publicKey)
 
-        return OAuth(
+        return OAuthInfo(
             id = claims["sub"].toString(),
             type = this.getProviderType(),
             nickName = claims["email"].toString(),
@@ -112,6 +112,7 @@ class AppleProcessor(
     )
 
     private companion object {
-        private const val TOKEN_VALUE_DELIMITER = "\\."
+        private const val TOKEN_VALUE_DELIMITER = "."
     }
 }
+

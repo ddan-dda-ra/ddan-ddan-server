@@ -1,0 +1,6 @@
+# act 설정 파일
+# Ubuntu 환경 사용 (GitHub Actions와 동일)
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# 로컬 환경에서 불필요한 단계 건너뛰기
+--container-daemon-socket -

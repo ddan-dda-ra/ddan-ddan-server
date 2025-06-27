@@ -4,9 +4,6 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import notbe.tmtm.ddanddanserver.application.service.DailyInfoService
 import notbe.tmtm.ddanddanserver.application.service.UserService
-import notbe.tmtm.ddanddanserver.domain.usecase.user.GetMainPet
-import notbe.tmtm.ddanddanserver.domain.usecase.user.SetMainPet
-import notbe.tmtm.ddanddanserver.domain.usecase.user.UpdateCalorieAndRewardFood
 import notbe.tmtm.ddanddanserver.presentation.dto.request.CalorieRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.SetMainPetRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.UserRequest
@@ -31,9 +28,6 @@ import java.time.LocalDate
 @RequestMapping("/v1/users")
 @Tag(name = "유저")
 class UserController(
-    val updateCalorieAndRewardFood: UpdateCalorieAndRewardFood,
-    val setMainPet: SetMainPet,
-    val getMainPet: GetMainPet,
     private val userService: UserService,
     private val dailyInfoService: DailyInfoService,
 ) {
@@ -81,12 +75,10 @@ class UserController(
         @RequestBody request: CalorieRequest,
     ): UserDailyInfoResponse {
         val result =
-            updateCalorieAndRewardFood.execute(
-                UpdateCalorieAndRewardFood.Input(
-                    userId = ObjectId(authentication.name),
-                    calorie = request.calorie,
-                    today = LocalDate.now(),
-                ),
+            userService.updateCalorieAndRewardFood(
+                userId = ObjectId(authentication.name),
+                calorie = request.calorie,
+                today = LocalDate.now(),
             )
         return UserDailyInfoResponse.fromDomain(
             result.user,
@@ -103,24 +95,20 @@ class UserController(
         @RequestBody request: SetMainPetRequest,
     ): UserMainPetResponse {
         val result =
-            setMainPet.execute(
-                SetMainPet.Input(
-                    ownerUserId = ObjectId(authentication.name),
-                    petId = ObjectId(request.petId),
-                ),
+            userService.setMainPet(
+                ownerUserId = ObjectId(authentication.name),
+                petId = ObjectId(request.petId),
             )
-        return UserMainPetResponse.fromDomain(result.pet)
+        return UserMainPetResponse.fromDomain(result)
     }
 
     @GetMapping("/me/main-pet")
     @Operation(summary = "메인 펫 조회", description = "메인 펫을 조회합니다.")
     fun getMainPet(authentication: Authentication): UserMainPetResponse {
         val result =
-            getMainPet.execute(
-                GetMainPet.Input(
-                    userId = ObjectId(authentication.name),
-                ),
+            userService.getMainPet(
+                userId = ObjectId(authentication.name),
             )
-        return UserMainPetResponse.fromDomain(result.mainPet)
+        return UserMainPetResponse.fromDomain(result)
     }
 }

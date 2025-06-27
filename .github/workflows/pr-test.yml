@@ -8,6 +8,12 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      issues: read
+      checks: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -33,7 +39,22 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run tests
-        run: ./gradlew test
+        run: ./gradlew test --continue --info
+        continue-on-error: true
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            build/test-results/**/*.xml
+          comment_mode: always
+          check_name: "Test Results"
+          report_individual_runs: true
+          deduplicate_classes_by_file_name: false
+          job_summary: true
+          compare_to_earlier_commit: true
+          pull_request_build: merge
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -50,3 +71,99 @@ jobs:
           name: test-reports
           path: build/reports/tests/
           retention-days: 30
+
+      - name: Generate Detailed Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 Detailed Test Results" >> $GITHUB_STEP_SUMMARY
+          
+          # Debug: Show what files exist
+          echo "### 🔍 Debug: Available test files" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -la build/test-results/ || echo "build/test-results/ not found"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          find build -name "*.xml" -type f 2>/dev/null || echo "No XML files found in build/"
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if any XML test files exist
+          if find build/test-results -name "TEST-*.xml" -type f | grep -q .; then
+            echo "### 📊 Overall Statistics" >> $GITHUB_STEP_SUMMARY
+            
+            # Extract test statistics from XML files
+            TOTAL_TESTS=$(find build/test-results -name "*.xml" -exec grep -h "tests=" {} \; | sed 's/.*tests="\([^"]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
+            FAILED_TESTS=$(find build/test-results -name "*.xml" -exec grep -h "failures=" {} \; | sed 's/.*failures="\([^"]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
+            SKIPPED_TESTS=$(find build/test-results -name "*.xml" -exec grep -h "skipped=" {} \; | sed 's/.*skipped="\([^"]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
+            ERROR_TESTS=$(find build/test-results -name "*.xml" -exec grep -h "errors=" {} \; | sed 's/.*errors="\([^"]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
+            PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS - SKIPPED_TESTS - ERROR_TESTS))
+            
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| **Total Tests** | $TOTAL_TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "| **✅ Passed** | $PASSED_TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "| **❌ Failed** | $FAILED_TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "| **🚫 Errors** | $ERROR_TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "| **⏭️ Skipped** | $SKIPPED_TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Test class breakdown
+            echo "### 📝 Test Classes" >> $GITHUB_STEP_SUMMARY
+            echo "| Test Class | Tests | Failures | Errors | Duration |" >> $GITHUB_STEP_SUMMARY
+            echo "|------------|-------|----------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            
+            find build/test-results -name "TEST-*.xml" -type f | while read xml_file; do
+              if [ -f "$xml_file" ]; then
+                class_name=$(grep -o 'name="[^"]*"' "$xml_file" | head -1 | sed 's/name="//;s/"//')
+                class_tests=$(grep -o 'tests="[^"]*"' "$xml_file" | head -1 | sed 's/tests="//;s/"//')
+                class_failures=$(grep -o 'failures="[^"]*"' "$xml_file" | head -1 | sed 's/failures="//;s/"//')
+                class_errors=$(grep -o 'errors="[^"]*"' "$xml_file" | head -1 | sed 's/errors="//;s/"//')
+                class_time=$(grep -o 'time="[^"]*"' "$xml_file" | head -1 | sed 's/time="//;s/"//')
+                
+                # Extract just the class name (remove package)
+                short_class_name=$(echo "$class_name" | sed 's/.*\.//')
+                
+                # Status emoji
+                if [ "$class_failures" -gt 0 ] || [ "$class_errors" -gt 0 ]; then
+                  status="❌"
+                else
+                  status="✅"
+                fi
+                
+                echo "| $status $short_class_name | $class_tests | $class_failures | $class_errors | ${class_time}s |" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Show failed test details if any
+            if [ "$FAILED_TESTS" -gt 0 ] || [ "$ERROR_TESTS" -gt 0 ]; then
+              echo "### ❌ Failed/Error Test Details" >> $GITHUB_STEP_SUMMARY
+              find build/test-results -name "TEST-*.xml" -type f | while read xml_file; do
+                if [ -f "$xml_file" ]; then
+                  # Check for failures or errors in this file
+                  if grep -q '<failure\|<error' "$xml_file"; then
+                    class_name=$(grep -o 'name="[^"]*"' "$xml_file" | head -1 | sed 's/name="//;s/"//')
+                    short_class_name=$(echo "$class_name" | sed 's/.*\.//')
+                    echo "#### $short_class_name" >> $GITHUB_STEP_SUMMARY
+                    
+                    # Extract failed test cases
+                    while IFS= read -r line; do
+                      if echo "$line" | grep -q '<testcase.*<failure\|<testcase.*<error'; then
+                        test_name=$(echo "$line" | grep -o 'name="[^"]*"' | head -1 | sed 's/name="//;s/"//')
+                        echo "- 🔴 **$test_name**" >> $GITHUB_STEP_SUMMARY
+                      fi
+                    done < "$xml_file"
+                    echo "" >> $GITHUB_STEP_SUMMARY
+                  fi
+                fi
+              done
+            fi
+            
+          else
+            echo "❌ No test XML files found in build/test-results/" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📂 Available directories:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            ls -la build/ 2>/dev/null || echo "build/ directory not found"
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
