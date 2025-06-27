@@ -9,6 +9,8 @@ import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
+import notbe.tmtm.ddanddanserver.infrastructure.gateway.RankingBoardAdapter
+import notbe.tmtm.ddanddanserver.infrastructure.gateway.UserStatAdapter
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -17,12 +19,16 @@ import kotlin.test.assertNotNull
 
 class UserRankingServiceTest {
     private lateinit var userStatRepository: UserStatRepository
+    private lateinit var rankingBoardAdapter: RankingBoardAdapter
+    private lateinit var userStatAdapter: UserStatAdapter
     private lateinit var userRankingService: UserRankingService
 
     @BeforeEach
     fun setUp() {
         userStatRepository = mockk()
-        userRankingService = UserRankingService(userStatRepository)
+        rankingBoardAdapter = mockk<RankingBoardAdapter>()
+        userStatAdapter = mockk<UserStatAdapter>()
+        userRankingService = UserRankingService(userStatRepository, rankingBoardAdapter, userStatAdapter)
     }
 
     @Test
