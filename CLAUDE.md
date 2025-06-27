@@ -200,3 +200,8 @@ Closes #이슈번호
 - 예외 처리는 `WebExceptionHandler`에서 글로벌 처리
 - 모든 API는 Swagger UI로 문서화됨 (`/swagger-ui.html`)
 - 로깅은 `LoggingFilter`와 `LoggingUtils`를 활용
+
+# Commit & PR 가이드
+
+## PR 제목 가이드
+- PR 제목을 작성할 때 아직 마지막에 (#199) 처럼 이슈 번호를 작성하지 마
