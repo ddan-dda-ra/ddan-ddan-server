@@ -33,7 +33,19 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run tests
-        run: ./gradlew test
+        run: ./gradlew test --continue
+        continue-on-error: true
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            build/test-results/**/*.xml
+          comment_mode: create new
+          check_name: "Test Results"
+          report_individual_runs: true
+          deduplicate_classes_by_file_name: false
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -50,3 +62,23 @@ jobs:
           name: test-reports
           path: build/reports/tests/
           retention-days: 30
+
+      - name: Add Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          if [ -f build/test-results/test/TEST-*.xml ]; then
+            echo "✅ Test results found" >> $GITHUB_STEP_SUMMARY
+            # Extract test statistics from XML files
+            TOTAL_TESTS=$(find build/test-results -name "*.xml" -exec grep -h "tests=" {} \; | sed 's/.*tests="\([^"]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
+            FAILED_TESTS=$(find build/test-results -name "*.xml" -exec grep -h "failures=" {} \; | sed 's/.*failures="\([^"]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
+            SKIPPED_TESTS=$(find build/test-results -name "*.xml" -exec grep -h "skipped=" {} \; | sed 's/.*skipped="\([^"]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
+            PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS - SKIPPED_TESTS))
+            
+            echo "- **Total Tests**: $TOTAL_TESTS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Passed**: $PASSED_TESTS ✅" >> $GITHUB_STEP_SUMMARY
+            echo "- **Failed**: $FAILED_TESTS ❌" >> $GITHUB_STEP_SUMMARY
+            echo "- **Skipped**: $SKIPPED_TESTS ⏭️" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ No test results found" >> $GITHUB_STEP_SUMMARY
+          fi
