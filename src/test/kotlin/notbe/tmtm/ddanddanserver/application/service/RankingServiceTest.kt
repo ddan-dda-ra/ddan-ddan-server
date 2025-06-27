@@ -8,6 +8,7 @@ import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.RankingBoardRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.BeforeEach
@@ -15,14 +16,16 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class UserRankingServiceTest {
+class RankingServiceTest {
     private lateinit var userStatRepository: UserStatRepository
-    private lateinit var userRankingService: UserRankingService
+    private lateinit var rankingBoardRepository: RankingBoardRepository
+    private lateinit var rankingService: RankingService
 
     @BeforeEach
     fun setUp() {
         userStatRepository = mockk()
-        userRankingService = UserRankingService(userStatRepository)
+        rankingBoardRepository = mockk()
+        rankingService = RankingService(userStatRepository, rankingBoardRepository)
     }
 
     @Test
@@ -44,7 +47,7 @@ class UserRankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = userRankingService.getRanking(userId2, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+        val result = rankingService.getRanking(userId2, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
         verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
@@ -89,7 +92,7 @@ class UserRankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = userRankingService.getRanking(userId3, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY)
+        val result = rankingService.getRanking(userId3, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY)
 
         // then
         verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY) }
@@ -129,7 +132,7 @@ class UserRankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = userRankingService.getRanking(userId, RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY)
+        val result = rankingService.getRanking(userId, RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY)
 
         // then
         verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY) }
@@ -152,7 +155,7 @@ class UserRankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = userRankingService.getRanking(userId, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY)
+        val result = rankingService.getRanking(userId, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY)
 
         // then
         verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY) }
@@ -176,7 +179,7 @@ class UserRankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = userRankingService.getRanking(targetUserId, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+        val result = rankingService.getRanking(targetUserId, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
         verify { userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
@@ -214,7 +217,7 @@ class UserRankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = userRankingService.getRanking(userId2, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+        val result = rankingService.getRanking(userId2, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
         assertEquals(3, result.rankings.size)
