@@ -1,12 +1,12 @@
 package notbe.tmtm.ddanddanserver.application.service
 
+import notbe.tmtm.ddanddanserver.application.processor.OAuth
 import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.AuthResult
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import org.springframework.data.repository.findByIdOrNull
