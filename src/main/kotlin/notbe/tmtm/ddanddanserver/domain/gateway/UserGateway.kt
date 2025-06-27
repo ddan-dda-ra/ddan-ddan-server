@@ -4,13 +4,8 @@ import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.bson.types.ObjectId
 
 interface UserGateway {
+    fun getById(id: ObjectId): User
     fun save(user: User): User
-
-    fun findAll(): List<User>
-
-    fun getById(userId: ObjectId): User
-
     fun update(user: User): User
-
-    fun delete(userId: ObjectId)
+    fun findAll(): List<User>
 }
