@@ -12,3 +12,7 @@ class KakaoParseError(
 class KakaoRestClientError(
     data: Any? = null,
 ) : KakaoOAuthException(ErrorCode.KAKAO_REST_CLIENT_ERROR, data)
+
+class KakaoUnauthorizedError(
+    data: Any? = null,
+) : KakaoOAuthException(ErrorCode.KAKAO_UNAUTHORIZED_ERROR, data)

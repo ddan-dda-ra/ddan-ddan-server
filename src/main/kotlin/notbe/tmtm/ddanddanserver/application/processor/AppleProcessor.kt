@@ -4,13 +4,18 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
+import notbe.tmtm.ddanddanserver.common.util.logger
+import notbe.tmtm.ddanddanserver.domain.exception.AppleKeyGenerationError
+import notbe.tmtm.ddanddanserver.domain.exception.AppleRestClientError
+import notbe.tmtm.ddanddanserver.domain.exception.AppleTokenParseError
+import notbe.tmtm.ddanddanserver.domain.exception.AppleTokenValidationError
 import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
 import org.springframework.stereotype.Component
 import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.RSAPublicKeySpec
-import java.util.Base64
+import java.util.*
 
 @Component
 class AppleProcessor(
@@ -31,71 +36,101 @@ class AppleProcessor(
     }
 
     private fun parseHeaders(token: String): Map<String, String> {
-        val encodedHeader: String =
-            token
-                .split(TOKEN_VALUE_DELIMITER.toRegex())
-                .dropLastWhile { it.isEmpty() }
-                .toTypedArray()[0]
-        val decodedHeader = String(Base64.getUrlDecoder().decode(encodedHeader))
-        return objectMapper.readValue(
-            decodedHeader,
-            object : TypeReference<Map<String, String>>() {},
-        )
+        return try {
+            val encodedHeader: String =
+                token
+                    .split(TOKEN_VALUE_DELIMITER.toRegex())
+                    .dropLastWhile { it.isEmpty() }
+                    .toTypedArray()[0]
+            val decodedHeader = String(Base64.getUrlDecoder().decode(encodedHeader))
+            objectMapper.readValue(
+                decodedHeader,
+                object : TypeReference<Map<String, String>>() {},
+            )
+        } catch (exception: Exception) {
+            logger().error("Apple 토큰 헤더 파싱 중 오류가 발생했습니다", exception)
+            throw AppleTokenParseError(exception.message)
+        }
     }
 
     private fun getAppleKeys(): AppleKeys =
-        AppleKeys(
-            keys =
-                appleAuthApi.getPublicKey().keys.map { keys ->
-                    Key(
-                        kty = keys.kty,
-                        kid = keys.kid,
-                        use = keys.use,
-                        alg = keys.alg,
-                        n = keys.n,
-                        e = keys.e,
-                    )
-                },
-        )
+        try {
+            AppleKeys(
+                keys =
+                    appleAuthApi.getPublicKey().keys.map { keys ->
+                        Key(
+                            kty = keys.kty,
+                            kid = keys.kid,
+                            use = keys.use,
+                            alg = keys.alg,
+                            n = keys.n,
+                            e = keys.e,
+                        )
+                    },
+            )
+        } catch (exception: Exception) {
+            logger().error("Apple 공개키 조회 중 오류가 발생했습니다", exception)
+            throw AppleRestClientError(exception.message)
+        }
 
     private fun generatePublicKey(
         tokenHeaders: Map<String, String>,
         appleKeys: AppleKeys,
     ): PublicKey {
-        val publicKeys: List<Key> = appleKeys.keys
-        val publicKey: Key =
-            publicKeys
-                .stream()
-                .filter { key -> key.alg == tokenHeaders["alg"] }
-                .filter { key -> key.kid == tokenHeaders["kid"] }
-                .findAny()
-                .orElseThrow()
+        return try {
+            val publicKeys: List<Key> = appleKeys.keys
+            val publicKey: Key =
+                publicKeys
+                    .stream()
+                    .filter { key -> key.alg == tokenHeaders["alg"] }
+                    .filter { key -> key.kid == tokenHeaders["kid"] }
+                    .findAny()
+                    .orElseThrow {
+                        logger().error("일치하는 Apple 공개키를 찾을 수 없습니다. alg: ${tokenHeaders["alg"]}, kid: ${tokenHeaders["kid"]}")
+                        AppleKeyGenerationError("일치하는 Apple 공개키를 찾을 수 없습니다")
+                    }
 
-        return generatePublicKeyWithApplePublicKey(publicKey)
+            generatePublicKeyWithApplePublicKey(publicKey)
+        } catch (exception: AppleKeyGenerationError) {
+            throw exception
+        } catch (exception: Exception) {
+            logger().error("Apple 공개키 생성 중 오류가 발생했습니다", exception)
+            throw AppleKeyGenerationError(exception.message)
+        }
     }
 
     private fun generatePublicKeyWithApplePublicKey(applePublicKey: Key): PublicKey {
-        val n = Base64.getUrlDecoder().decode(applePublicKey.n)
-        val e = Base64.getUrlDecoder().decode(applePublicKey.e)
+        return try {
+            val n = Base64.getUrlDecoder().decode(applePublicKey.n)
+            val e = Base64.getUrlDecoder().decode(applePublicKey.e)
 
-        val publicKeySpec =
-            RSAPublicKeySpec(BigInteger(1, n), BigInteger(1, e))
+            val publicKeySpec =
+                RSAPublicKeySpec(BigInteger(1, n), BigInteger(1, e))
 
-        val keyFactory: KeyFactory = KeyFactory.getInstance(applePublicKey.kty)
+            val keyFactory: KeyFactory = KeyFactory.getInstance(applePublicKey.kty)
 
-        return keyFactory.generatePublic(publicKeySpec)
+            keyFactory.generatePublic(publicKeySpec)
+        } catch (exception: Exception) {
+            logger().error("Apple RSA 공개키 생성 중 오류가 발생했습니다", exception)
+            throw AppleKeyGenerationError(exception.message)
+        }
     }
 
     private fun parseClaims(
         idToken: String?,
         publicKey: PublicKey?,
     ): Claims =
-        Jwts
-            .parser()
-            .verifyWith(publicKey)
-            .build()
-            .parseSignedClaims(idToken)
-            .payload
+        try {
+            Jwts
+                .parser()
+                .verifyWith(publicKey)
+                .build()
+                .parseSignedClaims(idToken)
+                .payload
+        } catch (exception: Exception) {
+            logger().error("Apple 토큰 검증 중 오류가 발생했습니다", exception)
+            throw AppleTokenValidationError(exception.message)
+        }
 
     data class AppleKeys(
         val keys: List<Key>,

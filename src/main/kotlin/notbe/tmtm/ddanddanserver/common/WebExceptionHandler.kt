@@ -3,10 +3,7 @@ package notbe.tmtm.ddanddanserver.common
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.ConstraintViolationException
 import notbe.tmtm.ddanddanserver.common.util.logger
-import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationException
-import notbe.tmtm.ddanddanserver.domain.exception.AuthorizationException
-import notbe.tmtm.ddanddanserver.domain.exception.CustomException
-import notbe.tmtm.ddanddanserver.domain.exception.ErrorCode
+import notbe.tmtm.ddanddanserver.domain.exception.*
 import notbe.tmtm.ddanddanserver.presentation.dto.response.ErrorResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -106,6 +103,20 @@ class WebExceptionHandler {
     @ExceptionHandler(value = [AuthenticationException::class])
     fun handleAuthenticationException(
         exception: AuthenticationException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(
+                ErrorResponse.fromErrorCode(
+                    errorCode = exception.errorCode,
+                    data = exception.data,
+                ),
+            )
+
+    @ExceptionHandler(value = [KakaoOAuthException::class, AppleOAuthException::class])
+    fun handleOAuthException(
+        exception: CustomException,
         request: HttpServletRequest,
     ): ResponseEntity<ErrorResponse> =
         ResponseEntity
