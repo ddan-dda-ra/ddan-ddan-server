@@ -36,6 +36,16 @@ enum class ErrorCode(
      */
     KAKAO_RESPONSE_PARSE_ERROR("KO001", "카카오 응답을 파싱하는데 실패하였습니다."),
     KAKAO_REST_CLIENT_ERROR("KO002", "카카오 API 요청 중 오류가 발생하였습니다."),
+    KAKAO_UNAUTHORIZED_ERROR("KO003", "카카오 인증에 실패하였습니다."),
+
+    /**
+     * 애플 OAuth 인증 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.AppleOAuthException
+     */
+    APPLE_TOKEN_PARSE_ERROR("AO001", "애플 토큰을 파싱하는데 실패하였습니다."),
+    APPLE_KEY_GENERATION_ERROR("AO002", "애플 공개키 생성에 실패하였습니다."),
+    APPLE_TOKEN_VALIDATION_ERROR("AO003", "애플 토큰 검증에 실패하였습니다."),
+    APPLE_REST_CLIENT_ERROR("AO004", "애플 API 요청 중 오류가 발생하였습니다."),
 
     /**
      * 유저 오류
