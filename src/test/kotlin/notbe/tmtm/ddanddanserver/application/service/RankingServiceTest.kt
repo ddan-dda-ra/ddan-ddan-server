@@ -36,7 +36,7 @@ class RankingServiceTest {
     fun setUp() {
         userStatRepository = mockk()
         rankingBoardRepository = mockk()
-        rankingService = RankingService(userStatRepository)
+        rankingService = RankingService(userStatRepository, rankingBoardRepository)
     }
 
     @Test
