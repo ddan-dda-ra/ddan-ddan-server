@@ -1,50 +1,190 @@
 # Gemini AI 어시스턴트를 위한 프로젝트 컨텍스트
 
-## 프로젝트 개요
+# 프로젝트 개요
 
-- **프로젝트명:** 딴딴 서버 (ddan-ddan-server)
-- **설명:** 사용자의 활동(칼로리 소모)을 기반으로 펫을 육성하고 랭킹으로 경쟁하는 모바일 애플리케이션의 백엔드 서버입니다.
-- **언어:** Kotlin
-- **프레임워크:** Spring Boot
-- **빌드 툴:** Gradle
-- **데이터베이스:** MongoDB
-- **인증:** JWT, OAuth 2.0 (카카오, 애플)
+Kotlin과 Spring Boot 기반의 다마고치 게임 백엔드 서버입니다. 사용자는 OAuth 로그인을 통해 동물을 키우고, 칼로리를 관리하며, 다른 사용자들과 랭킹을 비교할 수 있습니다.
 
-## 아키텍처
+# 개발 명령어
 
-현재 클린 아키텍처를 적용하고 있습니다. 레이어는 다음과 같습니다.
+## 빌드 및 실행
 
-- `presentation`: API 엔드포인트 (Controller, DTO)
-- `application`: 비즈니스 로직 (Service, Processor)
-- `domain`: 핵심 비즈니스 규칙 (Model, UseCase, Gateway 인터페이스)
-- `infrastructure`: 외부 의존성 구현체 (DB Repository, 외부 API 클라이언트)
+```bash
+# 프로젝트 빌드
+./gradlew build
 
-### 리팩토링 목표
+# 애플리케이션 실행
+./gradlew bootRun
 
-현재 아키텍처는 과도하게 복잡하다고 판단되어 리팩토링이 필요합니다.
+# 테스트 실행
+./gradlew test
 
-**핵심 목표:**
-`domain` 레이어의 `UseCase`와 `Gateway` 인터페이스를 제거하고, `application` 레이어의 `Service`가 `infrastructure` 레이어의 `Gateway` 구현체(Repository 등)를 직접 호출하도록 구조를 단순화하는 것입니다.
+# Docker 이미지 빌드
+./gradlew jib
+```
 
-이를 통해 불필요한 추상화 레이어를 줄이고 코드 추적 및 유지보수를 용이하게 만들 것으로 기대합니다.
+## 코드 품질
 
-## 주요 기능
+현재 ktlint는 주석 처리되어 있습니다 (build.gradle.kts:4).
 
-- **사용자 인증:** OAuth (카카오, 애플) 로그인, JWT 토큰 발급/재발급
-- **펫 관리:** 펫 추가, 먹이주기, 놀아주기 등
-- **랭킹 시스템:** 기간별 랭킹 조회 및 보드 업데이트
-- **사용자 정보:** 칼로리 업데이트, 메인 펫 설정
-- **알림:** FCM을 이용한 푸시 알림
+# 기술 스택
 
-## 주요 디렉토리 구조
+- **언어**: Kotlin 1.9.24
+- **프레임워크**: Spring Boot 3.3.1
+- **데이터베이스**: MongoDB (Spring Data MongoDB)
+- **인증**: JWT + OAuth2 (Kakao, Apple)
+- **푸시 알림**: Firebase FCM
+- **문서화**: SpringDoc OpenAPI (Swagger)
+- **모니터링**: Spring Actuator + Prometheus
+- **컨테이너**: Docker (Jib 플러그인)
+- **테스트**: JUnit 5 + MockK
 
-- **Controller, DTO:** `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation`
-- **Service, Processor:** `src/main/kotlin/notbe/tmtm/ddanddanserver/application`
-- **Model, UseCase, Gateway:** `src/main/kotlin/notbe/tmtm/ddanddanserver/domain`
-- **Repository, 외부 API:** `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure`
+# 아키텍처
 
-## PR 생성 규칙
+- layered 아키텍처로 구성되어 있다.
 
-- PR 제목: `타입: 설명 (#이슈번호)` 형식
-- PR 본문: `.github/pull_request_template.md` 템플릿 사용
-- 작업 내용과 기타 사항을 명확하게 기재
+## 레이어 구조
+
+### Domain Layer (`domain/`)
+
+- **model/**: 비즈니스 도메인 모델 (User, Pet, Auth, Ranking 등)
+- **exception/**: 도메인별 커스텀 예외 클래스
+- **gateway/**: 외부 의존성에 대한 인터페이스 (향후 제거 예정)
+
+### Application Layer (`application/`)
+
+- **service/**: 비즈니스 로직을 처리하는 서비스 클래스
+- **processor/**: OAuth 처리를 위한 프로세서 (Factory 패턴)
+
+### Infrastructure Layer (`infrastructure/`)
+
+- **database/**: MongoDB 엔티티 및 리포지토리
+- **api/**: 외부 API 클라이언트 (Kakao, Apple, Slack)
+- **gateway/**: Gateway 인터페이스 구현체 (향후 제거 예정)
+
+### Presentation Layer (`presentation/`)
+
+- **controller/**: REST API 엔드포인트
+- **dto/**: 요청/응답 데이터 전송 객체
+- **filter/**: JWT 인증 및 로깅 필터
+- **scheduler/**: 정기 실행 스케줄러
+
+# 주요 기능
+
+## 인증 (`auth/`)
+
+- OAuth2 로그인 (Kakao, Apple)
+- JWT 토큰 기반 인증/인가
+- 토큰 갱신
+
+## 사용자 관리 (`user/`)
+
+- 사용자 정보 관리
+- 사용자 설정 (알림, 개인정보)
+- 메인 펫 설정
+
+## 반려동물 (`pet/`)
+
+- 반려동물 추가/조회
+- 먹이 주기, 놀아주기
+- 랜덤 펫 추가
+
+## 랭킹 시스템 (`ranking/`)
+
+- 사용자 랭킹 조회
+- 랭킹 보드 관리
+- 주기별 랭킹 업데이트
+
+## 푸시 알림 (`notification/`)
+
+- FCM을 통한 푸시 알림
+- 칼로리 체크 알림
+- 주간 랭킹 알림
+- 비활성 사용자 알림
+
+# 설정 파일
+
+- `application.yaml`: 메인 설정 파일
+- `config/application.yaml`: 환경별 설정
+
+# Docker 배포
+
+Jib 플러그인을 사용하여 Docker 이미지를 빌드합니다:
+
+- 베이스 이미지: amazoncorretto:17-alpine-jdk
+- 플랫폼: linux/arm64
+- 포트: 8080
+- 타임존: Asia/Seoul
+
+# Git 브랜치 전략
+
+## 이슈 기반 개발 워크플로우
+
+1. **이슈 생성**: GitHub에서 새로운 이슈를 생성합니다
+    - 이슈 제목은 간단명료하게 작성합니다
+    - 이슈 내용에 작업의 목적과 세부사항을 기재합니다
+    - 이슈 번호는 브랜치 명명 규칙에 사용됩니다
+    - 이슈 제목의 형식은 `[작업 형태] 간단한 설명`입니다
+    - 작업 형태는 `feat`, `refactor`, `docs`, `fix`, `chore` 등으로 구분합니다
+2. **브랜치 생성**: 이슈 번호를 포함한 브랜치를 생성합니다
+    - 브랜치 이름은 `타입/#이슈번호-간단한-설명` 형식으로 작성합니다
+3. **작업 수행**: 해당 브랜치에서 이슈 내용에 맞는 작업을 진행합니다
+4. **PR 생성**: develop 브랜치로 Pull Request를 생성합니다
+    - PR 제목은 `타입: 설명` 형식으로 작성합니다
+    - PR 제목에 끝에 이슈번호는 추가하지 않습니다
+    - PR 본문은 `.github/pull_request_template.md` 템플릿을 사용합니다
+
+## 브랜치 명명 규칙
+
+```bash
+# 기본 형태
+{타입}/#이슈번호-간단한-설명
+
+# 브랜치 타입별 예시
+feature/#190-ranking-refactor-to-layered    # 새로운 기능 개발
+refactor/#189-user-pet-layered-architecture # 리팩토링
+docs/#194-git-branch-strategy-docs          # 문서화 작업
+fix/#xxx-bug-fix-description                # 버그 수정
+chore/#xxx-dependency-update                # 빌드, 의존성 등
+```
+
+### 브랜치 타입 가이드
+
+- **feature/**: 새로운 기능 개발
+- **refactor/**: 코드 리팩토링
+- **docs/**: 문서화 작업 (README, CLAUDE.md 등)
+- **fix/**: 버그 수정
+- **chore/**: 빌드 스크립트, 의존성 업데이트 등
+
+## 주요 명령어
+
+```bash
+# 현재 이슈 목록 확인
+gh issue list
+
+# 특정 이슈 상세 정보 확인
+gh issue view 190
+
+# 새 브랜치 생성 및 체크아웃
+git checkout -b feature/#190-ranking-refactor-to-layered
+
+# develop 브랜치로 PR 생성
+gh pr create --title "refactor: Ranking 기능 레이어드 아키텍처로 변경 (#190)" --body "$(cat <<'EOF'
+## 🔎 작업 내용
+- 
+
+## ➕ 기타
+- 
+
+close #이슈번호
+EOF
+)"
+```
+
+# 개발 시 참고사항
+
+- MongoDB는 `@Document` 어노테이션을 사용한 엔티티로 관리
+- JWT 토큰은 `JWTTokenProvider`에서 생성/검증
+- 예외 처리는 `WebExceptionHandler`에서 글로벌 처리
+- 모든 API는 Swagger UI로 문서화됨 (`/swagger-ui.html`)
+- 로깅은 `LoggingFilter`와 `LoggingUtils`를 활용
+- 파일 끝에는 항상 개행 문자를 추가합니다
