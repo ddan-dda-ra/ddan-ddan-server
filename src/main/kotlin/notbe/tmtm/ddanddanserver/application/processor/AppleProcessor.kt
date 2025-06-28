@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
 import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
 import org.springframework.stereotype.Component
 import java.math.BigInteger

@@ -2,7 +2,6 @@ package notbe.tmtm.ddanddanserver.application.processor
 
 import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoParseError
-import notbe.tmtm.ddanddanserver.domain.usecase.auth.OAuth
 import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
 import org.springframework.stereotype.Component
 
@@ -21,7 +20,7 @@ class KakaoProcessor(
                 OAuth(
                     id = response.id,
                     type = this.getProviderType(),
-                    nickName = response.properties?.nickname,
+                    nickName = response.properties?.nickname ?: response.id,
                 )
             }
 }
