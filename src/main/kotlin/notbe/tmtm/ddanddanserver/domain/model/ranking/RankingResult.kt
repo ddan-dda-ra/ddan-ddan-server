@@ -16,10 +16,10 @@ data class RankingResult private constructor(
         fun create(
             userStats: List<UserStat>,
             criteria: RankingCriteria,
-            userId: ObjectId,
+            myUserId: ObjectId,
         ): RankingResult {
             val sortedUserRankings = calculateRankings(userStats, criteria)
-            val myRanking = findMyRanking(sortedUserRankings, userId)
+            val myRanking = findMyRanking(sortedUserRankings, myUserId)
 
             return RankingResult(sortedUserRankings, myRanking)
         }
@@ -50,7 +50,7 @@ data class RankingResult private constructor(
             rankings: List<UserRanking>,
             userId: ObjectId,
         ): UserRanking =
-            rankings.find { it.userStat.userId == userId }
+            rankings.find { it.userStat.user.id == userId }
                 ?: throw NotFoundUserStatException("갱신하지 않은 사용자입니다. userId=$userId")
     }
 }

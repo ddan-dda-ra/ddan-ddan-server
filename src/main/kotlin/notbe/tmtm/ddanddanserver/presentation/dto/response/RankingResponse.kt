@@ -2,11 +2,7 @@ package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
-import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
-import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
-import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingResult
-import notbe.tmtm.ddanddanserver.domain.model.ranking.UserRanking
-import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
+import notbe.tmtm.ddanddanserver.domain.model.ranking.*
 
 @Schema(description = "랭킹 조회 응답 DTO")
 data class RankingResponse(
@@ -42,18 +38,18 @@ data class RankingResponse(
                 userStat: UserStat,
             ) = RankingUserStatResponse(
                 rank = rank,
-                userId = userStat.userId.toHexString(),
-                userName = userStat.userName,
-                mainPetType = userStat.mainPetType,
+                userId = userStat.user.id.toHexString(),
+                userName = userStat.user.name!!,
+                mainPetType = userStat.mainPet.type,
+                petLevel = userStat.mainPet.getLevel().level,
                 totalCalories = userStat.totalCalories,
                 totalSucceededDays = userStat.totalSucceededDays,
             )
 
-            fun fromDomain(userRanking: UserRanking) =
-                fromDomain(
-                    rank = userRanking.rank,
-                    userStat = userRanking.userStat,
-                )
+            fun fromDomain(userRanking: UserRanking) = fromDomain(
+                rank = userRanking.rank,
+                userStat = userRanking.userStat,
+            )
         }
     }
 

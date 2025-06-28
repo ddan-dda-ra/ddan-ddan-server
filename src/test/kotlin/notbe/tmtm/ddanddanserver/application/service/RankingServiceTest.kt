@@ -3,10 +3,12 @@ package notbe.tmtm.ddanddanserver.application.service
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.RankingBoardRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
@@ -21,6 +23,15 @@ class RankingServiceTest {
     private lateinit var rankingBoardRepository: RankingBoardRepository
     private lateinit var rankingService: RankingService
 
+    private val user = createUser("user")
+    private val pet = createPet(user.id)
+    private val user1 = createUser("user1")
+    private val pet1 = createPet(user1.id)
+    private val user2 = createUser("user2")
+    private val pet2 = createPet(user2.id)
+    private val user3 = createUser("user3")
+    private val pet3 = createPet(user3.id)
+
     @BeforeEach
     fun setUp() {
         userStatRepository = mockk()
@@ -31,15 +42,11 @@ class RankingServiceTest {
     @Test
     fun `총 칼로리 기준으로 랭킹을 조회해야 한다`() {
         // given
-        val userId1 = ObjectId()
-        val userId2 = ObjectId()
-        val userId3 = ObjectId()
-
         val userStatEntities =
             listOf(
-                createUserStatEntity(userId1, "사용자1", 1000, 10),
-                createUserStatEntity(userId2, "사용자2", 800, 15),
-                createUserStatEntity(userId3, "사용자3", 600, 20),
+                createUserStatEntity(user1, pet1, 1000, 10),
+                createUserStatEntity(user2, pet2, 800, 15),
+                createUserStatEntity(user3, pet3, 600, 20),
             )
 
         every {
@@ -47,7 +54,7 @@ class RankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = rankingService.getRanking(userId2, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+        val result = rankingService.getRanking(user2.id, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
         verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
@@ -57,34 +64,30 @@ class RankingServiceTest {
 
         // 랭킹 순서 확인 (칼로리 높은 순)
         assertEquals(1, result.rankings[0].rank)
-        assertEquals(userId1, result.rankings[0].userStat.userId)
+        assertEquals(user1, result.rankings[0].userStat.user)
         assertEquals(1000, result.rankings[0].userStat.totalCalories)
 
         assertEquals(2, result.rankings[1].rank)
-        assertEquals(userId2, result.rankings[1].userStat.userId)
+        assertEquals(user2, result.rankings[1].userStat.user)
         assertEquals(800, result.rankings[1].userStat.totalCalories)
 
         assertEquals(3, result.rankings[2].rank)
-        assertEquals(userId3, result.rankings[2].userStat.userId)
+        assertEquals(user3, result.rankings[2].userStat.user)
         assertEquals(600, result.rankings[2].userStat.totalCalories)
 
         // 내 랭킹 확인
         assertEquals(2, result.myRanking.rank)
-        assertEquals(userId2, result.myRanking.userStat.userId)
+        assertEquals(user2, result.myRanking.userStat.user)
     }
 
     @Test
     fun `총 성공일 기준으로 랭킹을 조회해야 한다`() {
         // given
-        val userId1 = ObjectId()
-        val userId2 = ObjectId()
-        val userId3 = ObjectId()
-
         val userStatEntities =
             listOf(
-                createUserStatEntity(userId1, "사용자1", 500, 25), // 가장 많은 성공일
-                createUserStatEntity(userId2, "사용자2", 1000, 20),
-                createUserStatEntity(userId3, "사용자3", 800, 15),
+                createUserStatEntity(user1, pet1, 500, 25), // 가장 많은 성공일
+                createUserStatEntity(user2, pet2, 1000, 20),
+                createUserStatEntity(user3, pet3, 800, 15),
             )
 
         every {
@@ -92,7 +95,7 @@ class RankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = rankingService.getRanking(userId3, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY)
+        val result = rankingService.getRanking(user3.id, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY)
 
         // then
         verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.MONTHLY) }
@@ -102,29 +105,28 @@ class RankingServiceTest {
 
         // 랭킹 순서 확인 (성공일 높은 순)
         assertEquals(1, result.rankings[0].rank)
-        assertEquals(userId1, result.rankings[0].userStat.userId)
+        assertEquals(user1, result.rankings[0].userStat.user)
         assertEquals(25, result.rankings[0].userStat.totalSucceededDays)
 
         assertEquals(2, result.rankings[1].rank)
-        assertEquals(userId2, result.rankings[1].userStat.userId)
+        assertEquals(user2, result.rankings[1].userStat.user)
         assertEquals(20, result.rankings[1].userStat.totalSucceededDays)
 
         assertEquals(3, result.rankings[2].rank)
-        assertEquals(userId3, result.rankings[2].userStat.userId)
+        assertEquals(user3, result.rankings[2].userStat.user)
         assertEquals(15, result.rankings[2].userStat.totalSucceededDays)
 
         // 내 랭킹 확인
         assertEquals(3, result.myRanking.rank)
-        assertEquals(userId3, result.myRanking.userStat.userId)
+        assertEquals(user3, result.myRanking.userStat.user)
     }
 
     @Test
     fun `일간 기간 타입을 처리해야 한다`() {
         // given
-        val userId = ObjectId()
         val userStatEntities =
             listOf(
-                createUserStatEntity(userId, "사용자1", 100, 1),
+                createUserStatEntity(user, pet1, 100, 1),
             )
 
         every {
@@ -132,7 +134,7 @@ class RankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = rankingService.getRanking(userId, RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY)
+        val result = rankingService.getRanking(user.id, RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY)
 
         // then
         verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.DAILY) }
@@ -144,10 +146,9 @@ class RankingServiceTest {
     @Test
     fun `연간 기간 타입을 처리해야 한다`() {
         // given
-        val userId = ObjectId()
         val userStatEntities =
             listOf(
-                createUserStatEntity(userId, "사용자1", 10000, 365),
+                createUserStatEntity(user, pet1, 10000, 365),
             )
 
         every {
@@ -155,7 +156,7 @@ class RankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = rankingService.getRanking(userId, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY)
+        val result = rankingService.getRanking(user.id, RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY)
 
         // then
         verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_SUCCEEDED_DAYS, PeriodType.YEARLY) }
@@ -167,11 +168,13 @@ class RankingServiceTest {
     @Test
     fun `대용량 데이터셋을 올바르게 처리해야 한다`() {
         // given
-        val targetUserId = ObjectId()
+        val targetUser = createUser("targetUser")
+        val targetPet = createPet(targetUser.id)
+
         val userStatEntities =
             (1..200).map { index ->
-                val userId = if (index == 150) targetUserId else ObjectId()
-                createUserStatEntity(userId, "사용자$index", 2000 - index, index)
+                val user = if (index == 150) targetUser else createUser("useruser")
+                createUserStatEntity(user, pet, 2000 - index, index)
             }
 
         every {
@@ -179,7 +182,7 @@ class RankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = rankingService.getRanking(targetUserId, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+        val result = rankingService.getRanking(targetUser.id, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
         verify { userStatRepository.findAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY) }
@@ -187,9 +190,9 @@ class RankingServiceTest {
         assertNotNull(result)
         assertEquals(200, result.rankings.size)
 
-        // 내 랭킹 확인 (150번째 사용자는 150위여야 함)
+        // 내 랭킹 확인 (pet째사용자는 150위여야 함)
         assertEquals(150, result.myRanking.rank)
-        assertEquals(targetUserId, result.myRanking.userStat.userId)
+        assertEquals(targetUser.id, result.myRanking.userStat.user.id)
 
         // 상위 랭킹 제한 기능 확인
         val top10 = result.getTopRankings(10)
@@ -201,15 +204,11 @@ class RankingServiceTest {
     @Test
     fun `서비스를 통해 동점 랭킹을 처리해야 한다`() {
         // given
-        val userId1 = ObjectId()
-        val userId2 = ObjectId()
-        val userId3 = ObjectId()
-
         val userStatEntities =
             listOf(
-                createUserStatEntity(userId1, "사용자1", 1000, 10),
-                createUserStatEntity(userId2, "사용자2", 800, 15), // 사용자3과 동점
-                createUserStatEntity(userId3, "사용자3", 800, 20), // 사용자2와 동점
+                createUserStatEntity(user1, pet1, 1000, 10),
+                createUserStatEntity(user2, pet2, 800, 15), // 사용자3과 동점
+                createUserStatEntity(user3, pet3, 800, 20), // 사용자2와 동점
             )
 
         every {
@@ -217,7 +216,7 @@ class RankingServiceTest {
         } returns userStatEntities
 
         // when
-        val result = rankingService.getRanking(userId2, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
+        val result = rankingService.getRanking(user2.id, RankingCriteria.TOTAL_CALORIES, PeriodType.WEEKLY)
 
         // then
         assertEquals(3, result.rankings.size)
@@ -226,21 +225,24 @@ class RankingServiceTest {
         assertEquals(2, result.rankings[2].rank) // 사용자3도 2위 (동점)
 
         assertEquals(2, result.myRanking.rank)
-        assertEquals(userId2, result.myRanking.userStat.userId)
+        assertEquals(user2.id, result.myRanking.userStat.user.id)
     }
 
+    private fun createUser(name: String): User = User.register("deviceToken-${name.lowercase()}", name)
+
+    private fun createPet(ownerId: ObjectId): Pet = Pet.register(PetType.getRandom(), ownerId)
+
     private fun createUserStatEntity(
-        userId: ObjectId,
-        userName: String,
+        user: User,
+        mainPet: Pet,
         totalCalories: Int,
         totalSucceededDays: Int,
     ): UserStatEntity {
         val entity = mockk<UserStatEntity>()
         every { entity.toDomain() } returns
                 UserStat(
-                    userId = userId,
-                    userName = userName,
-                    mainPetType = PetType.DOG,
+                    user = user,
+                    mainPet = mainPet,
                     totalCalories = totalCalories,
                     totalSucceededDays = totalSucceededDays,
                 )

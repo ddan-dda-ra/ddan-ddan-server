@@ -1,12 +1,11 @@
 package notbe.tmtm.ddanddanserver.domain.model.ranking
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
-import org.bson.types.ObjectId
+import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 
 data class UserStat(
-    val userId: ObjectId,
-    val userName: String,
-    val mainPetType: PetType,
+    val user: User,
+    val mainPet: Pet,
     val totalCalories: Int,
     val totalSucceededDays: Int,
 )
