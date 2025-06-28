@@ -1,17 +1,21 @@
 package notbe.tmtm.ddanddanserver.domain.model.ranking
 
+import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 class UserRankingTest {
+    private val user = createUser("user")
+    private val pet = createPet(user.id)
+
     @Test
     fun `UserRanking을 올바른 속성으로 생성해야 한다`() {
         // given
-        val userId = ObjectId()
-        val userStat = createUserStat(userId, "테스트사용자", 1000, 10)
+        val userStat = createUserStat(user, pet, 1000, 10)
         val rank = 5
 
         // when
@@ -20,8 +24,8 @@ class UserRankingTest {
         // then
         assertEquals(userStat, userRanking.userStat)
         assertEquals(rank, userRanking.rank)
-        assertEquals(userId, userRanking.userStat.userId)
-        assertEquals("테스트사용자", userRanking.userStat.userName)
+        assertEquals(user, userRanking.userStat.user)
+        assertEquals("user", userRanking.userStat.user.name)
         assertEquals(1000, userRanking.userStat.totalCalories)
         assertEquals(10, userRanking.userStat.totalSucceededDays)
     }
@@ -29,8 +33,7 @@ class UserRankingTest {
     @Test
     fun `데이터 클래스 동등성을 지원해야 한다`() {
         // given
-        val userId = ObjectId()
-        val userStat = createUserStat(userId, "테스트사용자", 1000, 10)
+        val userStat = createUserStat(user, pet, 1000, 10)
         val rank = 3
 
         val userRanking1 = UserRanking(userStat, rank)
@@ -46,8 +49,7 @@ class UserRankingTest {
     @Test
     fun `데이터 클래스 복사를 지원해야 한다`() {
         // given
-        val userId = ObjectId()
-        val userStat = createUserStat(userId, "테스트사용자", 1000, 10)
+        val userStat = createUserStat(user, pet, 1000, 10)
         val originalRanking = UserRanking(userStat, 3)
 
         // when
@@ -62,8 +64,7 @@ class UserRankingTest {
     @Test
     fun `데이터 클래스 toString을 지원해야 한다`() {
         // given
-        val userId = ObjectId()
-        val userStat = createUserStat(userId, "테스트사용자", 1000, 10)
+        val userStat = createUserStat(user, pet, 1000, 10)
         val userRanking = UserRanking(userStat, 1)
 
         // when
@@ -78,8 +79,7 @@ class UserRankingTest {
     @Test
     fun `다양한 순위 값을 올바르게 처리해야 한다`() {
         // given
-        val userId = ObjectId()
-        val userStat = createUserStat(userId, "테스트사용자", 1000, 10)
+        val userStat = createUserStat(user, pet, 1000, 10)
 
         // when
         val firstPlace = UserRanking(userStat, 1)
@@ -98,38 +98,45 @@ class UserRankingTest {
     @Test
     fun `다양한 펫 타입과 함께 작동해야 한다`() {
         // given
-        val userId = ObjectId()
+        val dogUser = createUser("강아지주인")
+        val dogPet = Pet.register(PetType.DOG, dogUser.id)
+        val catUser = createUser("고양이주인")
+        val catPet = Pet.register(PetType.CAT, catUser.id)
 
         // when
         val dogRanking =
             UserRanking(
-                createUserStat(userId, "강아지주인", 1000, 10, PetType.DOG),
+                createUserStat(dogUser, dogPet, 1000, 10),
                 1,
             )
         val catRanking =
             UserRanking(
-                createUserStat(userId, "고양이주인", 800, 8, PetType.CAT),
+                createUserStat(catUser, catPet, 800, 8),
                 2,
             )
 
         // then
-        assertEquals(PetType.DOG, dogRanking.userStat.mainPetType)
-        assertEquals(PetType.CAT, catRanking.userStat.mainPetType)
+        assertEquals(dogPet.type, dogRanking.userStat.mainPet.type)
+        assertEquals(catPet.type, catRanking.userStat.mainPet.type)
         assertEquals(1, dogRanking.rank)
         assertEquals(2, catRanking.rank)
     }
 
+    private fun createUser(name: String): User = User.register("deviceToken-${name.lowercase()}", name)
+
+    private fun createPet(ownerId: ObjectId): Pet = Pet.register(PetType.getRandom(), ownerId)
+
     private fun createUserStat(
-        userId: ObjectId,
-        userName: String,
+        user: User,
+        mainPet: Pet,
         totalCalories: Int,
         totalSucceededDays: Int,
-        petType: PetType = PetType.DOG,
-    ) = UserStat(
-        userId = userId,
-        userName = userName,
-        mainPetType = petType,
-        totalCalories = totalCalories,
-        totalSucceededDays = totalSucceededDays,
-    )
+    ): UserStat {
+        return UserStat(
+            user = user,
+            mainPet = mainPet,
+            totalCalories = totalCalories,
+            totalSucceededDays = totalSucceededDays,
+        )
+    }
 }
