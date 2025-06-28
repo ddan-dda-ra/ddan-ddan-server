@@ -20,7 +20,7 @@ class KakaoProcessor(
                 OAuth(
                     id = response.id,
                     type = this.getProviderType(),
-                    nickName = response.properties?.nickname ?: "",
+                    nickName = response.properties?.nickname ?: response.id,
                 )
             }
 }
