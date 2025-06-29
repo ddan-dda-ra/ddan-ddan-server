@@ -68,4 +68,14 @@ enum class ErrorCode(
      * @see notbe.tmtm.ddanddanserver.domain.exception.RankingException
      */
     NOT_FOUND_USER_STAT("RA001", "유저의 랭킹 정보를 찾을 수 없습니다."),
+
+    /**
+     * 친구 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.FriendException
+     */
+    FRIEND_NOT_FOUND("FR001", "친구를 찾을 수 없습니다."),
+    FRIEND_ALREADY_EXISTS("FR002", "이미 친구 관계입니다."),
+    FRIEND_SELF_ADD("FR003", "자기 자신을 친구로 추가할 수 없습니다."),
+    FRIEND_REQUEST_NOT_FOUND("FR004", "친구 요청을 찾을 수 없습니다."),
+    FRIEND_REQUEST_ALREADY_PROCESSED("FR005", "이미 친구 신청을 보낸 상태입니다."),
 }
