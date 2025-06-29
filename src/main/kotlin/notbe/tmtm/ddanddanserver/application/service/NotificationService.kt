@@ -1,14 +1,13 @@
 package notbe.tmtm.ddanddanserver.application.service
 
-import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.Message
-import com.google.firebase.messaging.Notification
 import notbe.tmtm.ddanddanserver.domain.model.notification.PushMessage
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingBoard
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
+import notbe.tmtm.ddanddanserver.domain.model.user.User
+import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.getAllRankingBy
@@ -22,28 +21,20 @@ class NotificationService(
     private val userRepository: UserRepository,
     private val userStatRepository: UserStatRepository,
     private val rankingService: RankingService,
-    private val fcmClient: FirebaseMessaging,
+    private val pushClient: PushClient,
 ) {
     @Transactional(readOnly = true)
     fun notifyCheckCalorie() {
-        val allUsers = userRepository.findAll()
-            .filter { it.setting.isAppPushOn }
-            .filter { it.deviceToken.isNullOrEmpty().not() }
+        val validDeviceTokens = getValidDeviceTokens(userRepository.findAll())
 
-        sendPushToAllUsers(allUsers.map { it.deviceToken!! }, PushMessage.CHECK_CALORIE.content, RoutingView.MAIN)
+        pushClient.sendToMultiple(validDeviceTokens, PushMessage.CHECK_CALORIE, RoutingView.MAIN)
     }
 
     @Transactional(readOnly = true)
     fun notifyWeeklyRanking(totalCalories: Int) {
-        val allUsers = userRepository.findAll()
-            .filter { it.setting.isAppPushOn }
-            .filter { it.deviceToken.isNullOrEmpty().not() }
+        val validDeviceTokens = getValidDeviceTokens(userRepository.findAll())
 
-        sendPushToAllUsers(
-            allUsers.map { it.deviceToken!! },
-            "${PushMessage.WEEKLY_RANKING.content} $totalCalories 칼로리를 소모했대요.",
-            RoutingView.MAIN
-        )
+        pushClient.sendToMultiple(validDeviceTokens, PushMessage.weeklyRanking(totalCalories), RoutingView.MAIN)
     }
 
     @Transactional(readOnly = true)
@@ -76,42 +67,19 @@ class NotificationService(
             // 현재 랭킹에 없거나 순위가 떨어진경우
             if (isRankingDown(currentUserStat, previousRank)) {
                 userRepository
-                    .findByIdOrNull(currentUserStat!!.second.user.id)!!
-                    .takeIf { it.setting.isAppPushOn && it.deviceToken != null }
-                    ?.let { sendPushToUser(it.deviceToken!!, "\uD83D\uDCC9  순위가 떨어졌어요!", RoutingView.MAIN) }
+                    .findByIdOrNull(currentUserStat!!.second.user.id)
+                    ?.takeIf { it.setting.isAppPushOn }
+                    ?.deviceToken?.takeIf { it.isValid() }
+                    ?.let { pushClient.sendToUser(it.value, PushMessage.RANKING_DOWN, RoutingView.MAIN) }
             }
         }
         rankingService.updateRankingBoard(currentRankingBoard)
     }
 
-    private fun sendPushToAllUsers(deviceTokens: List<String>, message: String, routingView: RoutingView) {
-        if (deviceTokens.isEmpty()) return
-
-        val requests = deviceTokens
-            .filter { it != "deviceToken" }
-            .map { token ->
-                Message
-                    .builder()
-                    .setToken(token)
-                    .setNotification(Notification.builder().setBody(message).build())
-                    .putData("routingView", routingView.name)
-                    .build()
-            }
-
-        fcmClient.sendEach(requests)
-    }
-
-    private fun sendPushToUser(deviceToken: String, message: String, routingView: RoutingView) {
-        if (deviceToken == "deviceToken") return
-
-        val request = Message
-            .builder()
-            .setToken(deviceToken)
-            .setNotification(Notification.builder().setBody(message).build())
-            .putData("routingView", routingView.name)
-            .build()
-
-        fcmClient.send(request)
+    private fun getValidDeviceTokens(users: List<User>): List<String> {
+        return users
+            .filter { it.setting.isAppPushOn }
+            .mapNotNull { user -> user.deviceToken?.takeIf { it.isValid() }?.value }
     }
 
     private fun isRankingDown(
