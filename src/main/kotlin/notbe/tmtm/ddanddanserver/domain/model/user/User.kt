@@ -9,7 +9,7 @@ import java.time.LocalDate
 @Document("users")
 class User(
     val id: ObjectId,
-    var deviceToken: String?,
+    var deviceToken: DeviceToken?,
     var name: String?,
     var mainPetId: ObjectId? = null,
     var purposeCalorie: Int = 100,
@@ -47,7 +47,7 @@ class User(
     }
 
     fun updateDeviceToken(deviceToken: String) {
-        this.deviceToken = deviceToken
+        this.deviceToken = deviceToken.toDeviceToken()
     }
 
     fun setMainPet(petId: ObjectId) {
@@ -60,6 +60,6 @@ class User(
         fun register(
             deviceToken: String?,
             name: String? = null,
-        ): User = User(id = ObjectId(), deviceToken = deviceToken, name = name)
+        ): User = User(id = ObjectId(), deviceToken = deviceToken.toDeviceToken(), name = name)
     }
 }

@@ -90,7 +90,7 @@ class AuthService(
         deviceToken: String,
         user: User,
     ) {
-        if (user.deviceToken != deviceToken) {
+        if (user.deviceToken?.value != deviceToken) {
             user.updateDeviceToken(deviceToken)
             userRepository.save(user)
         }
