@@ -1,28 +1,29 @@
 spring:
-  data:
-    mongodb:
-      host: ${MONGO_HOST}
-      port: ${MONGO_PORT}
-      database: ${MONGO_DB}
-      username: ${MONGO_USER}
-      password: ${MONGO_PASSWORD}
-      field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
+    data:
+        mongodb:
+            host: ${MONGO_HOST}
+            port: ${MONGO_PORT}
+            database: ${MONGO_DB}
+            username: ${MONGO_USER}
+            password: ${MONGO_PASSWORD}
+            field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
+            auto-index-creation: true
 app:
-  jwt:
-    secret: ${JWT_SECRET}
-    expiration:
-      access-token: 300000
-      refresh-token: 180
+    jwt:
+        secret: ${JWT_SECRET}
+        expiration:
+            access-token: 300000
+            refresh-token: 180
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health, info, metrics, loggers, mappings, prometheus
+    endpoints:
+        web:
+            exposure:
+                include: health, info, metrics, loggers, mappings, prometheus
 
 slack:
-  hook-url: ${SLACK_WEBHOOK_URL}
+    hook-url: ${SLACK_WEBHOOK_URL}
 
 fcm:
-  project-id: ${FCM_PROJECT_ID}
-  key: ${FCM_KEY}
+    project-id: ${FCM_PROJECT_ID}
+    key: ${FCM_KEY}

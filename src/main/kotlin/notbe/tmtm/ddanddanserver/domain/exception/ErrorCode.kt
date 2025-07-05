@@ -68,4 +68,21 @@ enum class ErrorCode(
      * @see notbe.tmtm.ddanddanserver.domain.exception.RankingException
      */
     NOT_FOUND_USER_STAT("RA001", "유저의 랭킹 정보를 찾을 수 없습니다."),
+
+    /**
+     * 초대코드 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.InviteCodeException
+     */
+    INVITE_CODE_NOT_FOUND("IC001", "초대코드를 찾을 수 없습니다."),
+    INVITE_CODE_EXPIRED("IC002", "만료된 초대코드입니다."),
+    INVITE_CODE_INVALID("IC003", "유효하지 않은 초대코드입니다."),
+    INVITE_CODE_SELF_USE("IC004", "자신의 초대코드는 사용할 수 없습니다."),
+
+    /**
+     * 친구 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.FriendshipException
+     */
+    FRIEND_NOT_FOUND("FR001", "친구를 찾을 수 없습니다."),
+    FRIEND_ALREADY_EXISTS("FR002", "이미 친구입니다."),
+    FRIEND_SELF_ADD("FR003", "자기 자신을 친구로 추가할 수 없습니다."),
 }

@@ -3,7 +3,11 @@ package notbe.tmtm.ddanddanserver.application.service
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
-import notbe.tmtm.ddanddanserver.infrastructure.database.repository.*
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.data.repository.findByIdOrNull
@@ -20,6 +24,8 @@ class UserService(
     private val petRepository: PetRepository,
 ) {
     fun getAll(): List<User> = userRepository.findAll()
+
+    fun getAllByIds(ids: List<ObjectId>): List<User> = userRepository.findAllById(ids)
 
     fun getByIdOrThrow(id: ObjectId): User = userRepository.findByIdOrThrow(id)
 
@@ -40,9 +46,10 @@ class UserService(
         isAppPushOn: Boolean?,
     ): UserSetting {
         val user = getByIdOrThrow(userId)
-        user.setting = user.setting.copy(
-            isAppPushOn = isAppPushOn ?: user.setting.isAppPushOn,
-        )
+        user.setting =
+            user.setting.copy(
+                isAppPushOn = isAppPushOn ?: user.setting.isAppPushOn,
+            )
         return update(user).setting
     }
 
@@ -61,7 +68,11 @@ class UserService(
     )
 
     @Transactional
-    fun updateCalorieAndRewardFood(userId: ObjectId, calorie: Int, today: LocalDate): CalorieUpdateResult {
+    fun updateCalorieAndRewardFood(
+        userId: ObjectId,
+        calorie: Int,
+        today: LocalDate,
+    ): CalorieUpdateResult {
         val user = getByIdOrThrow(userId)
         val calorieDailyInfo = getOrCreateDailyInfo(user, today)
         val rewardFood = getRewardFood(calorieDailyInfo.calorie, calorie)
@@ -85,11 +96,14 @@ class UserService(
             update(user),
             dailyInfoRepository.save(calorieDailyInfo),
             rewardFood,
-            rewardedToyQuantity
+            rewardedToyQuantity,
         )
     }
 
-    private fun getOrCreateDailyInfo(user: User, today: LocalDate): DailyInfo {
+    private fun getOrCreateDailyInfo(
+        user: User,
+        today: LocalDate,
+    ): DailyInfo {
         dailyInfoRepository.findByUserIdAndDate(user.id, today)?.let { return it }
 
         val mainPetType = user.mainPetId?.let { petRepository.findByIdOrNull(it)?.type }
@@ -105,11 +119,16 @@ class UserService(
 
     private fun validateToyGiven(purposeStrict: Int): Boolean = purposeStrict != 0 && purposeStrict % 3 == 0
 
-    private fun isDailyPurposeAchieve(calorieDailyInfo: DailyInfo, user: User, currentCalorie: Int) =
-        calorieDailyInfo.calorie < user.purposeCalorie && currentCalorie >= user.purposeCalorie
+    private fun isDailyPurposeAchieve(
+        calorieDailyInfo: DailyInfo,
+        user: User,
+        currentCalorie: Int,
+    ) = calorieDailyInfo.calorie < user.purposeCalorie && currentCalorie >= user.purposeCalorie
 
-    private fun getRewardFood(previousCalorie: Int, currentCalorie: Int): Int =
-        max(currentCalorie / CALORIE_REWARD_UNIT - previousCalorie / CALORIE_REWARD_UNIT, 0)
+    private fun getRewardFood(
+        previousCalorie: Int,
+        currentCalorie: Int,
+    ): Int = max(currentCalorie / CALORIE_REWARD_UNIT - previousCalorie / CALORIE_REWARD_UNIT, 0)
 
     companion object {
         private const val CALORIE_REWARD_UNIT = 100
