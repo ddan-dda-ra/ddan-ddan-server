@@ -5,7 +5,14 @@ import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
-import notbe.tmtm.ddanddanserver.infrastructure.database.repository.*
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.InviteCodeRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.deleteAllBy
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -18,6 +25,8 @@ class UserServiceTest {
     private lateinit var dailyInfoRepository: DailyInfoRepository
     private lateinit var petRepository: PetRepository
     private lateinit var userService: UserService
+    private lateinit var inviteCodeRepository: InviteCodeRepository
+    private lateinit var friendshipRepository: FriendshipRepository
 
     @BeforeEach
     fun setUp() {
@@ -25,7 +34,17 @@ class UserServiceTest {
         authRepository = mockk()
         dailyInfoRepository = mockk()
         petRepository = mockk()
-        userService = UserService(userRepository, authRepository, dailyInfoRepository, petRepository)
+        inviteCodeRepository = mockk()
+        friendshipRepository = mockk()
+        userService =
+            UserService(
+                userRepository,
+                authRepository,
+                dailyInfoRepository,
+                petRepository,
+                inviteCodeRepository,
+                friendshipRepository,
+            )
     }
 
     @Test
@@ -85,12 +104,14 @@ class UserServiceTest {
         val userId = ObjectId()
         val oldSetting = UserSetting(isAppPushOn = false)
         val newSetting = UserSetting(isAppPushOn = true)
-        val user = mockk<User>(relaxed = true) {
-            every { setting } returnsMany listOf(oldSetting, newSetting)
-        }
-        val updatedUser = mockk<User> {
-            every { setting } returns newSetting
-        }
+        val user =
+            mockk<User>(relaxed = true) {
+                every { setting } returnsMany listOf(oldSetting, newSetting)
+            }
+        val updatedUser =
+            mockk<User> {
+                every { setting } returns newSetting
+            }
 
         every { userRepository.findByIdOrThrow(userId) } returns user
         every { userRepository.save(user) } returns updatedUser
@@ -120,6 +141,9 @@ class UserServiceTest {
         verify { authRepository.deleteAllByUserId(userId) }
         verify { petRepository.deleteAllByOwnerUserId(userId) }
         verify { dailyInfoRepository.deleteAllByUserId(userId) }
+        verify { inviteCodeRepository.deleteAllByInviterId(userId) }
+        verify { friendshipRepository.deleteAllBy(userId) }
+
         verify { userRepository.deleteById(userId) }
     }
 
