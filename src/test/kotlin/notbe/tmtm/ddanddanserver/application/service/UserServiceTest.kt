@@ -132,6 +132,8 @@ class UserServiceTest {
         every { authRepository.deleteAllByUserId(userId) } returns Unit
         every { petRepository.deleteAllByOwnerUserId(userId) } returns Unit
         every { dailyInfoRepository.deleteAllByUserId(userId) } returns Unit
+        every { inviteCodeRepository.deleteAllByInviterId(userId) } returns Unit
+        every { friendshipRepository.deleteAllBy(userId) } returns Unit
         every { userRepository.deleteById(userId) } returns Unit
 
         // when
