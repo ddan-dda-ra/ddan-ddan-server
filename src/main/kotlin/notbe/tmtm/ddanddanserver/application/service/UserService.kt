@@ -5,8 +5,11 @@ import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.InviteCodeRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.deleteAllBy
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.springframework.dao.DuplicateKeyException
@@ -22,6 +25,8 @@ class UserService(
     private val authRepository: AuthRepository,
     private val dailyInfoRepository: DailyInfoRepository,
     private val petRepository: PetRepository,
+    private val inviteCodeRepository: InviteCodeRepository,
+    private val friendshipRepository: FriendshipRepository,
 ) {
     fun getAll(): List<User> = userRepository.findAll()
 
@@ -55,8 +60,11 @@ class UserService(
 
     fun withdraw(userId: ObjectId) {
         authRepository.deleteAllByUserId(userId)
-        petRepository.deleteAllByOwnerUserId(userId)
         dailyInfoRepository.deleteAllByUserId(userId)
+        friendshipRepository.deleteAllBy(userId)
+        inviteCodeRepository.deleteAllByInviterId(userId)
+        petRepository.deleteAllByOwnerUserId(userId)
+
         userRepository.deleteById(userId)
     }
 

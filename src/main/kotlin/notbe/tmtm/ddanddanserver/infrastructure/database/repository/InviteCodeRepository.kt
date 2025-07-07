@@ -8,6 +8,8 @@ import org.springframework.data.repository.findByIdOrNull
 
 interface InviteCodeRepository : MongoRepository<InviteCode, ObjectId> {
     fun findByCode(code: String): InviteCode?
+
+    fun deleteAllByInviterId(inviterId: ObjectId)
 }
 
 fun InviteCodeRepository.findByIdOrThrow(inviteCodeId: ObjectId): InviteCode =

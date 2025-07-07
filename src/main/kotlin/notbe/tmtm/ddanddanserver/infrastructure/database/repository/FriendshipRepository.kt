@@ -19,6 +19,10 @@ interface FriendshipRepository : MongoRepository<Friendship, ObjectId> {
         userId: ObjectId,
         status: FriendStatus,
     ): List<Friendship>
+
+    fun deleteAllByInviterId(inviterId: ObjectId)
+
+    fun deleteAllByInviteeId(inviteeId: ObjectId)
 }
 
 fun FriendshipRepository.findByIdOrThrow(friendId: ObjectId): Friendship =
@@ -41,4 +45,9 @@ fun FriendshipRepository.areFriends(
 ): Boolean {
     val friendship = findFriendshipBetween(userId1, userId2)
     return friendship?.isAccepted() == true
+}
+
+fun FriendshipRepository.deleteAllBy(userId: ObjectId) {
+    deleteAllByInviterId(userId)
+    deleteAllByInviteeId(userId)
 }
