@@ -15,7 +15,3 @@ interface InviteCodeRepository : MongoRepository<InviteCode, ObjectId> {
 fun InviteCodeRepository.findByIdOrThrow(inviteCodeId: ObjectId): InviteCode =
     findByIdOrNull(inviteCodeId)
         ?: throw InviteCodeNotFoundException()
-
-fun InviteCodeRepository.findByCodeOrThrow(code: String): InviteCode =
-    findByCode(code)
-        ?: throw InviteCodeNotFoundException()
