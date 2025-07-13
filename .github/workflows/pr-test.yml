@@ -40,7 +40,6 @@ jobs:
 
       - name: Run tests
         run: ./gradlew test --continue --info
-        continue-on-error: true
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
