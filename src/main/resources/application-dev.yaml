@@ -8,6 +8,10 @@ spring:
             password: ${MONGO_PASSWORD}
             field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
             auto-index-creation: true
+        redis:
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            password: ${REDIS_PASSWORD:}
 app:
     jwt:
         secret: ${JWT_SECRET}
