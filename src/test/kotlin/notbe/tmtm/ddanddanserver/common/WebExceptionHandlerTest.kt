@@ -158,4 +158,22 @@ class WebExceptionHandlerTest {
         assertEquals(ErrorCode.PERMISSION_DENIED.code, response.body?.code)
         assertEquals(ErrorCode.PERMISSION_DENIED.message, response.body?.message)
     }
+
+    @Test
+    fun `AppVersionException은 426 Upgrade Required로 처리되어야 한다`() {
+        // given
+        val exception = AppVersionUpgradeRequiredException(
+            platform = "android",
+            currentVersion = "1.0.0",
+            minimumVersion = "2.0.0"
+        )
+
+        // when
+        val response = webExceptionHandler.handleAppVersionException(exception, httpServletRequest)
+
+        // then
+        assertEquals(HttpStatus.UPGRADE_REQUIRED, response.statusCode)
+        assertEquals(ErrorCode.APP_VERSION_UPGRADE_REQUIRED.code, response.body?.code)
+        assertEquals(ErrorCode.APP_VERSION_UPGRADE_REQUIRED.message, response.body?.message)
+    }
 }
