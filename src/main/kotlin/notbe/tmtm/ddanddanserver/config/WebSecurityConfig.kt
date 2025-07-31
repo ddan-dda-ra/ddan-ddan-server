@@ -3,6 +3,7 @@ package notbe.tmtm.ddanddanserver.config
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.domain.exception.UnauthorizedException
+import notbe.tmtm.ddanddanserver.presentation.filter.AppVersionFilter
 import notbe.tmtm.ddanddanserver.presentation.filter.JWTAuthFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -35,8 +36,11 @@ class WebSecurityConfig(
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }.addFilterBefore(
-                JWTAuthFilter(jwtTokenProvider, handlerExceptionResolver),
+                AppVersionFilter(handlerExceptionResolver),
                 UsernamePasswordAuthenticationFilter::class.java,
+            ).addFilterAfter(
+                JWTAuthFilter(jwtTokenProvider, handlerExceptionResolver),
+                AppVersionFilter::class.java,
             ).exceptionHandling {
                 it
                     .accessDeniedHandler { request, response, exception ->

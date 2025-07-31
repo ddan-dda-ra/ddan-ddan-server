@@ -148,4 +148,18 @@ class WebExceptionHandler {
                     errorCode = ErrorCode.PERMISSION_DENIED,
                 ),
             )
+
+    @ExceptionHandler(value = [AppVersionException::class])
+    fun handleAppVersionException(
+        exception: AppVersionException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(HttpStatus.UPGRADE_REQUIRED)
+            .body(
+                ErrorResponse.fromErrorCode(
+                    errorCode = exception.errorCode,
+                    data = exception.data,
+                ),
+            )
 }

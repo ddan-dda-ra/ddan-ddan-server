@@ -85,4 +85,10 @@ enum class ErrorCode(
     FRIEND_NOT_FOUND("FR001", "친구를 찾을 수 없습니다."),
     FRIEND_ALREADY_EXISTS("FR002", "이미 친구입니다."),
     FRIEND_SELF_ADD("FR003", "자기 자신을 친구로 추가할 수 없습니다."),
+
+    /**
+     * 앱 버전 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.AppVersionException
+     */
+    APP_VERSION_UPGRADE_REQUIRED("AV001", "앱 업데이트가 필요합니다."),
 }
