@@ -1,9 +1,8 @@
 package notbe.tmtm.ddanddanserver.domain.model.pet
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.Pet.Level.Companion.MAX_EXP
 import org.bson.types.ObjectId
 import org.springframework.data.mongodb.core.mapping.Document
-import kotlin.math.min
+import kotlin.math.pow
 
 @Document("pets")
 class Pet(
@@ -18,39 +17,53 @@ class Pet(
 
     fun play(quantity: Int = 1) {
         exp += quantity * 500
-        exp = min(exp, MAX_EXP)
     }
 
     fun isOwner(userId: ObjectId): Boolean = ownerUserId == userId
 
-    fun isMaxLevel(): Boolean = exp >= Level.MAX_EXP
+    fun isMaxLevel(): Boolean = false
 
-    fun getLevel(): Level = Level.entries.first { exp in it.expRange }
+    fun getLevel(): Int {
+        var remainingExp = exp
+        var level = 1
+        var requiredExp = BASE_EXP
+
+        while (remainingExp >= requiredExp) {
+            remainingExp -= requiredExp
+            level++
+            if (level > 2) requiredExp *= 2
+        }
+
+        return level
+    }
 
     fun getExpPercent(): Double {
         val currentLevel = getLevel()
-        val currentLevelExp = exp - currentLevel.expRange.first
-        return currentLevelExp.toDouble() / currentLevel.requestExp * 100
+        val levelStartExp = getLevelStartExp(currentLevel)
+        val levelRequiredExp = getLevelRequiredExp(currentLevel)
+        val currentLevelExp = exp - levelStartExp
+        return currentLevelExp.toDouble() / levelRequiredExp * 100
     }
 
-    enum class Level(
-        val level: Int,
-        val expRange: IntRange,
-        val requestExp: Int,
-    ) {
-        ONE(1, 0..299, 300),
-        TWO(2, 300..899, 600),
-        THREE(3, 900..1599, 700),
-        FOUR(4, 1600..3499, 1900),
-        FIVE(5, 3500..7000, 3500),
-        ;
+    private fun getLevelStartExp(level: Int): Int {
+        var totalExp = 0
+        var requiredExp = BASE_EXP
 
-        companion object {
-            val MAX_EXP = entries.last().expRange.last
+        for (i in 1 until level) {
+            totalExp += requiredExp
+            if (i >= 2) requiredExp *= 2
         }
+
+        return totalExp
+    }
+
+    private fun getLevelRequiredExp(level: Int): Int {
+        return if (level <= 2) BASE_EXP else (BASE_EXP * 2.0.pow(level - 2)).toInt()
     }
 
     companion object {
+        private const val BASE_EXP = 500
+
         fun register(
             type: PetType,
             ownerUserId: ObjectId,

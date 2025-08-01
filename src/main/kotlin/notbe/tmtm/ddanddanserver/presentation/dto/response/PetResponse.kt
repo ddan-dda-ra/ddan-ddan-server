@@ -21,7 +21,7 @@ data class PetResponse(
                 PetResponse(
                     id = id.toHexString(),
                     type = type,
-                    level = getLevel().level,
+                    level = getLevel(),
                     expPercent = getExpPercent(),
                 )
             }

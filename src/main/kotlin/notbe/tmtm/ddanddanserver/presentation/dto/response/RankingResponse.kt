@@ -41,7 +41,7 @@ data class RankingResponse(
                 userId = userStat.user.id.toHexString(),
                 userName = userStat.user.name!!,
                 mainPetType = userStat.mainPet.type,
-                petLevel = userStat.mainPet.getLevel().level,
+                petLevel = userStat.mainPet.getLevel(),
                 totalCalories = userStat.totalCalories,
                 totalSucceededDays = userStat.totalSucceededDays,
             )

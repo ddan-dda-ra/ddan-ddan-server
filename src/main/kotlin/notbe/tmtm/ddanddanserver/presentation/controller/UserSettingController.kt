@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/v1/users/me/settings")
-@Tag(name = "유저 설정")
+@Tag(name = "유저")
 class UserSettingController(
     private val userService: UserService,
 ) {

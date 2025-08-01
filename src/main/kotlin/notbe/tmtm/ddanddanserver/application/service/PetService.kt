@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.application.service
 
-import notbe.tmtm.ddanddanserver.domain.exception.PetMaxLevelException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
@@ -36,8 +35,6 @@ class PetService(
         val user = userRepository.findByIdOrThrow(ownerUserId)
         val pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId)
 
-        validatePetNotMaxLevel(pet)
-
         pet.eat()
         user.feed()
 
@@ -51,8 +48,6 @@ class PetService(
     fun playPet(ownerUserId: ObjectId, petId: ObjectId): PlayPetResult {
         val user = userRepository.findByIdOrThrow(ownerUserId)
         val pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId)
-
-        validatePetNotMaxLevel(pet)
 
         pet.play()
         user.play()
@@ -81,11 +76,6 @@ class PetService(
         ),
     )
 
-    private fun validatePetNotMaxLevel(pet: Pet) {
-        if (pet.isMaxLevel()) {
-            throw PetMaxLevelException("펫이 최대 레벨입니다.")
-        }
-    }
 
     data class FeedPetResult(
         val user: User,
