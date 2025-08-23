@@ -6,9 +6,7 @@ import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.data.repository.findByIdOrNull
 
-interface UserRepository : MongoRepository<User, ObjectId>
+interface UserRepository : MongoRepository<User, ObjectId>, UserRepositoryCustom
 
-fun UserRepository.findByIdOrThrow(userId: ObjectId): User {
-    return findByIdOrNull(userId)
-        ?: throw UserNotFoundException("User not found with id: $userId")
-}
+fun UserRepository.findByIdOrThrow(userId: ObjectId): User =
+    findByIdOrNull(userId) ?: throw UserNotFoundException("User not found with id: $userId")

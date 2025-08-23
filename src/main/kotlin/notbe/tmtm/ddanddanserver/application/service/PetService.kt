@@ -66,15 +66,22 @@ class PetService(
         return petRepository.findAllByOwnerUserId(ownerUserId)
     }
 
+    @Transactional
+    fun gachaPet(userId: ObjectId): Pet {
+        val existingPetTypes = petRepository.findAllByOwnerUserId(userId)
+            .map { it.type }
+            .distinct()
+
+        val addedPet = addPet(PetType.getRandomWithout(existingPetTypes), userId)
+        userRepository.decreaseTickets(userId, 1)
+
+        return addedPet
+    }
+
     private fun addPet(
         petType: PetType,
         ownerUserId: ObjectId
-    ) = petRepository.save(
-        Pet.register(
-            type = petType,
-            ownerUserId = ownerUserId,
-        ),
-    )
+    ) = petRepository.save(Pet.register(type = petType, ownerUserId = ownerUserId))
 
 
     data class FeedPetResult(

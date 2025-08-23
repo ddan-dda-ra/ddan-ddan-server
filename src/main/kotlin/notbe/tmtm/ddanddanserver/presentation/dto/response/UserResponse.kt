@@ -15,6 +15,8 @@ data class UserResponse(
     val foodQuantity: Int,
     @Schema(description = "User 장난감 수량", example = "2")
     val toyQuantity: Int,
+    @Schema(description = "User 티켓 수량", example = "0")
+    val tickets: Int = 0,
     @Schema(description = "User 설정 정보")
     val setting: UserSettingResponse,
 ) {
@@ -27,6 +29,7 @@ data class UserResponse(
                     purposeCalorie = purposeCalorie,
                     foodQuantity = foodQuantity,
                     toyQuantity = toyQuantity,
+                    tickets = tickets,
                     setting = UserSettingResponse.fromDomain(setting),
                 )
             }

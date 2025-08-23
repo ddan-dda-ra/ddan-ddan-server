@@ -16,3 +16,7 @@ class UserFoodQuantityLackException(
 class UserToyQuantityLackException(
     data: Any? = null,
 ) : UserException(ErrorCode.USER_TOY_QUANTITY_LACK, data)
+
+class UserTicketLackException(
+    data: Any? = null,
+) : UserException(ErrorCode.USER_TICKET_LACK, data)
