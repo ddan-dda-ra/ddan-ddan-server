@@ -5,6 +5,7 @@ enum class PetType {
     HAMSTER,
     PENGUIN,
     DOG,
+    MOLE,
     ;
 
     companion object {
