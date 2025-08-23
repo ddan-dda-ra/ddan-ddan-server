@@ -44,6 +44,13 @@ class PetController(
         return PetResponse.fromDomain(pet)
     }
 
+    @PostMapping("/me/gacha")
+    @Operation(summary = "티켓 랜덤 펫 뽑기", description = "티켓 하나를 소모하여, 랜덤으로 펫을 추가합니다.")
+    fun gachaRandomPet(authentication: Authentication): PetResponse {
+        val pet = petService.gachaPet(ObjectId(authentication.name))
+        return PetResponse.fromDomain(pet)
+    }
+
     @PostMapping("/{petId}/food")
     @Operation(summary = "펫 먹이 지급", description = "펫에게 먹이를 지급해 성장시킵니다.")
     fun feedPet(

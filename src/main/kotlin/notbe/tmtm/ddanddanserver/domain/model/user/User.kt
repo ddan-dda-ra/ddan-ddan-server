@@ -16,6 +16,7 @@ class User(
     var foodQuantity: Int = 0,
     var toyQuantity: Int = 0,
     var purposeStrict: Int = 0,
+    var tickets: Int = 0,
     var setting: UserSetting = UserSetting(),
     var lastLoginAt: LocalDate = LocalDate.now(),
 ) {

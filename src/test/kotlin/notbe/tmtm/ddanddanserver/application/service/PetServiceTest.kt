@@ -8,6 +8,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
+import notbe.tmtm.ddanddanserver.domain.exception.UserTicketLackException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
@@ -222,6 +223,64 @@ class PetServiceTest : FunSpec({
 
         shouldThrow<PetNotFoundException> {
             petService.getMyPet(userId, petId)
+        }
+    }
+
+    context("gachaPet") {
+        test("가챠 펫: 티켓이 충분할 때 펫을 성공적으로 추가해야 한다") {
+            val userId = ObjectId()
+            val existingPet = mockk<Pet>()
+            val savedPet = mockk<Pet>()
+
+            every { existingPet.type } returns PetType.DOG
+            every { petRepository.findAllByOwnerUserId(userId) } returns listOf(existingPet)
+            every { petRepository.save(any()) } returns savedPet
+            every { userRepository.decreaseTickets(userId, 1) } returns Unit
+
+            val result = petService.gachaPet(userId)
+
+            verify { petRepository.findAllByOwnerUserId(userId) }
+            verify { petRepository.save(any()) }
+            verify { userRepository.decreaseTickets(userId, 1) }
+            result shouldBe savedPet
+        }
+
+        test("가챠 펫: 티켓이 부족할 때 UserTicketLackException을 발생시켜야 한다") {
+            val userId = ObjectId()
+            val existingPet = mockk<Pet>()
+            val savedPet = mockk<Pet>()
+
+            every { existingPet.type } returns PetType.DOG
+            every { petRepository.findAllByOwnerUserId(userId) } returns listOf(existingPet)
+            every { petRepository.save(any()) } returns savedPet
+            every { userRepository.decreaseTickets(userId, 1) } throws UserTicketLackException("티켓이 부족합니다")
+
+            shouldThrow<UserTicketLackException> {
+                petService.gachaPet(userId)
+            }
+
+            verify { petRepository.findAllByOwnerUserId(userId) }
+            verify { petRepository.save(any()) }
+            verify { userRepository.decreaseTickets(userId, 1) }
+        }
+
+        test("가챠 펫: 티켓 차감 시 사용자가 존재하지 않을 때 UserNotFoundException을 발생시켜야 한다") {
+            val userId = ObjectId()
+            val existingPet = mockk<Pet>()
+            val savedPet = mockk<Pet>()
+
+            every { existingPet.type } returns PetType.DOG
+            every { petRepository.findAllByOwnerUserId(userId) } returns listOf(existingPet)
+            every { petRepository.save(any()) } returns savedPet
+            every { userRepository.decreaseTickets(userId, 1) } throws UserNotFoundException("유저를 찾을 수 없습니다")
+
+            shouldThrow<UserNotFoundException> {
+                petService.gachaPet(userId)
+            }
+
+            verify { petRepository.findAllByOwnerUserId(userId) }
+            verify { petRepository.save(any()) }
+            verify { userRepository.decreaseTickets(userId, 1) }
         }
     }
 })
