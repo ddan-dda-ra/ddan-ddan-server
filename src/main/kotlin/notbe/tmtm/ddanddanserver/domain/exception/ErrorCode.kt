@@ -92,4 +92,12 @@ enum class ErrorCode(
      * @see notbe.tmtm.ddanddanserver.domain.exception.AppVersionException
      */
     APP_VERSION_UPGRADE_REQUIRED("AV001", "앱 업데이트가 필요합니다."),
+
+    /**
+     * 응원 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.CheerException
+     */
+    CHEER_ALREADY_EXISTS("CE001", "해당 유저에 대해 이미 응원했습니다."),
+    CHEER_SELF("CE002", "자기 자신을 응원할 수 없습니다."),
+    CHEER_NOT_FRIENDS("CE003", "친구가 아닌 사용자를 응원할 수 없습니다."),
 }

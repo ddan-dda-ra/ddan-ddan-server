@@ -172,10 +172,10 @@ git checkout -b feature/#190-ranking-refactor-to-layered
 # develop 브랜치로 PR 생성
 gh pr create --title "refactor: Ranking 기능 레이어드 아키텍처로 변경 (#190)" --body "$(cat <<'EOF'
 ## 🔎 작업 내용
-- 
+-
 
 ## ➕ 기타
-- 
+-
 
 close #이슈번호
 EOF

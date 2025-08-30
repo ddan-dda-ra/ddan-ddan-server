@@ -43,3 +43,5 @@ out/
 ### environment ###
 /.env
 /src/main/resources/fcm/*
+.mcp.json
+ddan-ddan-server.wiki/
