@@ -60,7 +60,7 @@ class CheerControllerTest : FunSpec({
                     .contentType(MediaType.APPLICATION_JSON)
                     .principal(UsernamePasswordAuthenticationToken(testUserId.toString(), null, emptyList()))
             )
-                .andExpect(status().isCreated)
+                .andExpect(status().isOk)
                 .andExpect(jsonPath("$.cheerId").value(expectedCheer.id.toString()))
                 .andExpect(jsonPath("$.cheereeId").value(testFriendId.toString()))
                 .andExpect(jsonPath("$.date").exists())
