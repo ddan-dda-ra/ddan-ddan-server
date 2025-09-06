@@ -162,4 +162,18 @@ class WebExceptionHandler {
                     data = exception.data,
                 ),
             )
+
+    @ExceptionHandler(value = [CheerAlreadyExistsException::class])
+    fun handleCheerAlreadyExistsException(
+        exception: CheerAlreadyExistsException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(
+                ErrorResponse.fromErrorCode(
+                    errorCode = exception.errorCode,
+                    data = exception.data,
+                ),
+            )
 }
