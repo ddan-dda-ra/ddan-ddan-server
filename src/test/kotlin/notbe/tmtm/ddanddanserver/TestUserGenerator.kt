@@ -2,8 +2,6 @@ package notbe.tmtm.ddanddanserver
 
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
-import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
-import org.bson.types.ObjectId
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,10 +18,12 @@ class TestUserGenerator {
 
     @Test
     fun generateTestUser() {
-        val user = userRepository.findByIdOrThrow(ObjectId("67d6e30294ff6e2781f4f2d5"))
+        val users = userRepository.findAll()
 
-        val accessToken = jwtTokenProvider.createAccessToken(user)
+        val tokens = users.map { user ->
+            "${user.name}: ${jwtTokenProvider.createAccessToken(user)}"
+        }
 
-        println("Test User Access Token: $accessToken")
+        tokens.forEach { println(it) }
     }
 }

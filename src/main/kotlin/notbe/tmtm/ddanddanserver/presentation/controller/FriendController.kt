@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import notbe.tmtm.ddanddanserver.application.service.FriendshipService
 import notbe.tmtm.ddanddanserver.application.service.InviteCodeService
-import notbe.tmtm.ddanddanserver.application.service.UserService
+import notbe.tmtm.ddanddanserver.application.service.UserPetService
 import notbe.tmtm.ddanddanserver.presentation.dto.response.FriendListResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.FriendshipResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.InviteCodeResponse
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class FriendController(
     private val friendshipService: FriendshipService,
     private val inviteCodeService: InviteCodeService,
-    private val userService: UserService,
+    private val userPetService: UserPetService,
 ) {
     @PostMapping("/invite-codes")
     @Operation(summary = "초대코드 생성", description = "새로운 초대코드를 생성합니다.")
@@ -43,7 +43,7 @@ class FriendController(
         val userId = ObjectId(authentication.name)
 
         val friend = friendshipService.addFriendByInviteCode(code, userId)
-        val inviterUser = userService.getByIdOrThrow(friend.getInviterId())
+        val inviterUser = userPetService.getUserMainPet(friend.getInviterId())
 
         return FriendshipResponse.fromDomain(friend, inviterUser)
     }
@@ -53,25 +53,10 @@ class FriendController(
     fun getMyFriends(authentication: Authentication): FriendListResponse {
         val userId = ObjectId(authentication.name)
 
-        val friendshipMap =
-            friendshipService
-                .getFriends(userId)
-                .associateBy { it.id }
+        val friendIds = friendshipService.getFriendIds(userId)
+        val friendMainPets = userPetService.getUserMainPets(friendIds)
 
-        val friends =
-            userService
-                .getAllByIds(
-                    friendshipMap.values.flatMap { listOf(it.getInviterId(), it.getInviteeId()) }.distinct(),
-                ).associateBy { it.id }
-
-        val friendshipResponse =
-            friendshipMap.values.map { friendship ->
-                FriendshipResponse.fromDomain(
-                    friendship,
-                    friends[friendship.getOtherUserId(userId)]!!,
-                )
-            }
-        return FriendListResponse.fromDomain(friendshipResponse)
+        return FriendListResponse.fromDomain(friendMainPets)
     }
 
     @DeleteMapping("/{friendId}")

@@ -2,7 +2,8 @@ package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
 import notbe.tmtm.ddanddanserver.domain.model.friend.Friendship
-import notbe.tmtm.ddanddanserver.domain.model.user.User
+import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+import notbe.tmtm.ddanddanserver.domain.model.user.UserMainPet
 import java.time.LocalDateTime
 
 @Schema(description = "친구 응답 DTO")
@@ -19,7 +20,7 @@ data class FriendshipResponse(
     companion object {
         fun fromDomain(
             friendship: Friendship,
-            friendUser: User,
+            friendUser: UserMainPet,
         ): FriendshipResponse =
             FriendshipResponse(
                 id = friendship.id.toString(),
@@ -36,12 +37,18 @@ data class FriendUserInfo(
     val id: String,
     @Schema(description = "사용자 이름", example = "홍길동")
     val name: String?,
+    @Schema(description = "주 펫 종류", example = "DOG", nullable = true)
+    val mainPetType: PetType?,
+    @Schema(description = "펫 레벨", example = "1", nullable = true)
+    val petLevel: Int?,
 ) {
     companion object {
-        fun fromDomain(user: User): FriendUserInfo =
+        fun fromDomain(userMainPet: UserMainPet): FriendUserInfo =
             FriendUserInfo(
-                id = user.id.toString(),
-                name = user.name,
+                id = userMainPet.user.id.toString(),
+                name = userMainPet.user.name,
+                mainPetType = userMainPet.mainPet?.type,
+                petLevel = userMainPet.mainPet?.getLevel(),
             )
     }
 }
@@ -49,15 +56,18 @@ data class FriendUserInfo(
 @Schema(description = "친구 목록 응답 DTO")
 data class FriendListResponse(
     @Schema(description = "친구 목록")
-    val friendships: List<FriendshipResponse>,
+    val friends: List<FriendUserInfo>,
     @Schema(description = "총 친구 수", example = "5")
     val totalCount: Int,
 ) {
     companion object {
-        fun fromDomain(friends: List<FriendshipResponse>): FriendListResponse =
-            FriendListResponse(
-                friendships = friends,
+        fun fromDomain(friends: List<UserMainPet>): FriendListResponse {
+            val friendInfos = friends.map { FriendUserInfo.fromDomain(it) }
+
+            return FriendListResponse(
+                friends = friendInfos,
                 totalCount = friends.size,
             )
+        }
     }
 }
