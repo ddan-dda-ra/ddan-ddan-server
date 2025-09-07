@@ -73,12 +73,32 @@ class PetServiceTest : FunSpec({
 
         val result = petService.feedPet(ownerUserId, petId)
 
-        verify { pet.eat() }
-        verify { user.feed() }
+        verify { user.feed(pet) }
         verify { userRepository.save(user) }
         verify { petRepository.save(pet) }
         result.user shouldBe savedUser
         result.pet shouldBe savedPet
+    }
+
+    test("펫 먹이주기: 레벨업 시 티켓을 받아야 한다") {
+        val ownerUserId = ObjectId()
+        val petId = ObjectId()
+        val user = User.register("testToken", "testUser")
+        val pet = Pet.register(PetType.DOG, ownerUserId)
+        pet.exp = 3900 // 레벨 4, 레벨 5까지 100 경험치 필요
+        user.foodQuantity = 5
+        
+        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
+        every { userRepository.save(user) } returns user
+        every { petRepository.save(pet) } returns pet
+
+        val result = petService.feedPet(ownerUserId, petId)
+
+        pet.exp shouldBe 4000 // 3900 + 100
+        pet.getLevel() shouldBe 5
+        user.tickets shouldBe 1
+        user.foodQuantity shouldBe 4
     }
 
     test("펫 놀아주기: 펫과 성공적으로 놀아주어야 한다") {
@@ -96,12 +116,32 @@ class PetServiceTest : FunSpec({
 
         val result = petService.playPet(ownerUserId, petId)
 
-        verify { pet.play() }
-        verify { user.play() }
+        verify { user.play(pet) }
         verify { userRepository.save(user) }
         verify { petRepository.save(pet) }
         result.user shouldBe savedUser
         result.pet shouldBe savedPet
+    }
+
+    test("펫 놀아주기: 레벨업 시 티켓을 받아야 한다") {
+        val ownerUserId = ObjectId()
+        val petId = ObjectId()
+        val user = User.register("testToken", "testUser")
+        val pet = Pet.register(PetType.DOG, ownerUserId)
+        pet.exp = 3600 // 레벨 4, 레벨 5까지 400 경험치 필요
+        user.toyQuantity = 3
+        
+        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
+        every { userRepository.save(user) } returns user
+        every { petRepository.save(pet) } returns pet
+
+        val result = petService.playPet(ownerUserId, petId)
+
+        pet.exp shouldBe 4100 // 3600 + 500
+        pet.getLevel() shouldBe 5
+        user.tickets shouldBe 1
+        user.toyQuantity shouldBe 2
     }
 
     test("펫 조회: 내 펫을 성공적으로 조회해야 한다") {

@@ -35,8 +35,7 @@ class PetService(
         val user = userRepository.findByIdOrThrow(ownerUserId)
         val pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId)
 
-        pet.eat()
-        user.feed()
+        user.feed(pet)
 
         return FeedPetResult(
             user = userRepository.save(user),
@@ -49,8 +48,7 @@ class PetService(
         val user = userRepository.findByIdOrThrow(ownerUserId)
         val pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId)
 
-        pet.play()
-        user.play()
+        user.play(pet)
 
         return PlayPetResult(
             user = userRepository.save(user),

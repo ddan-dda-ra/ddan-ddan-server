@@ -11,12 +11,26 @@ class Pet(
     val ownerUserId: ObjectId,
     var exp: Int,
 ) {
-    fun eat(quantity: Int = 1) {
+    fun eat(quantity: Int = 1): LevelUpResult {
+        val previousLevel = getLevel()
         exp += quantity * 100
+        val currentLevel = getLevel()
+
+        return LevelUpResult(
+            previousLevel = previousLevel,
+            currentLevel = currentLevel,
+        )
     }
 
-    fun play(quantity: Int = 1) {
+    fun play(quantity: Int = 1): LevelUpResult {
+        val previousLevel = getLevel()
         exp += quantity * 500
+        val currentLevel = getLevel()
+
+        return LevelUpResult(
+            previousLevel = previousLevel,
+            currentLevel = currentLevel,
+        )
     }
 
     fun isOwner(userId: ObjectId): Boolean = ownerUserId == userId

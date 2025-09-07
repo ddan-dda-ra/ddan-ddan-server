@@ -2,6 +2,7 @@ package notbe.tmtm.ddanddanserver.domain.model.user
 
 import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
+import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import org.bson.types.ObjectId
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate
@@ -20,18 +21,30 @@ class User(
     var setting: UserSetting = UserSetting(),
     var lastLoginAt: LocalDate = LocalDate.now(),
 ) {
-    fun feed(quantity: Int = 1) {
+    fun feed(pet: Pet, quantity: Int = 1) {
         if (this.foodQuantity < quantity) {
             throw UserFoodQuantityLackException()
         }
         this.foodQuantity -= quantity
+
+        pet.eat(quantity).also {
+            if (it.shouldReceiveTicket()) {
+                this.tickets += 1
+            }
+        }
     }
 
-    fun play(quantity: Int = 1) {
+    fun play(pet: Pet, quantity: Int = 1) {
         if (this.toyQuantity < quantity) {
             throw UserToyQuantityLackException()
         }
         this.toyQuantity -= quantity
+
+        pet.play(quantity).also {
+            if (it.shouldReceiveTicket()) {
+                this.tickets += 1
+            }
+        }
     }
 
     fun addPurposeStrict() {
