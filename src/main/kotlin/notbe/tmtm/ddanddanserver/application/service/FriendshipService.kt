@@ -49,7 +49,8 @@ class FriendshipService(
     }
 
     @Transactional(readOnly = true)
-    fun getFriends(userId: ObjectId): List<Friendship> = friendshipRepository.findAcceptedFriends(userId)
+    fun getFriendIds(userId: ObjectId): List<ObjectId> =
+        friendshipRepository.findAcceptedFriends(userId).map { it.getOtherUserId(userId) }
 
     @Transactional
     fun removeFriend(

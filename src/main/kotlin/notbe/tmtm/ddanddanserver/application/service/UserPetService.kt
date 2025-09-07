@@ -2,7 +2,12 @@ package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.user.User
-import notbe.tmtm.ddanddanserver.infrastructure.database.repository.*
+import notbe.tmtm.ddanddanserver.domain.model.user.UserMainPet
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdAndOwnerUserIdOrThrow
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,6 +24,29 @@ class UserPetService(
         val mainPetId = userRepository.findByIdOrThrow(userId).mainPetId ?: return null
 
         return petRepository.findByIdAndOwnerUserIdOrThrow(mainPetId, userId)
+    }
+
+    @Transactional(readOnly = true)
+    fun getUserMainPets(userIds: List<ObjectId>): List<UserMainPet> {
+        val users = userRepository.findAllById(userIds)
+        val pets = petRepository.findAllById(users.mapNotNull { it.mainPetId })
+
+        return users.map { user ->
+            UserMainPet(
+                user = user,
+                mainPet = pets.find { it.id == user.mainPetId }
+            )
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getUserMainPet(userId: ObjectId): UserMainPet {
+        val user = userRepository.findByIdOrThrow(userId)
+        val petId = user.mainPetId ?: return UserMainPet(user, null)
+        return UserMainPet(
+            user = user,
+            mainPet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId)
+        )
     }
 
     @Transactional
