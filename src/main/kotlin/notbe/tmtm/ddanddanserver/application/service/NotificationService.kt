@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingBoard
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
+import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
@@ -70,16 +71,16 @@ class NotificationService(
                     .findByIdOrNull(currentUserStat!!.second.user.id)
                     ?.takeIf { it.setting.isAppPushOn }
                     ?.deviceToken?.takeIf { it.isValid() }
-                    ?.let { pushClient.sendToUser(it.value, PushMessage.RANKING_DOWN, RoutingView.MAIN) }
+                    ?.let { pushClient.sendToUser(it, PushMessage.RANKING_DOWN, RoutingView.MAIN) }
             }
         }
         rankingService.updateRankingBoard(currentRankingBoard)
     }
 
-    private fun getValidDeviceTokens(users: List<User>): List<String> {
+    private fun getValidDeviceTokens(users: List<User>): List<DeviceToken?> {
         return users
             .filter { it.setting.isAppPushOn }
-            .mapNotNull { user -> user.deviceToken?.takeIf { it.isValid() }?.value }
+            .map { user -> user.deviceToken }
     }
 
     private fun isRankingDown(

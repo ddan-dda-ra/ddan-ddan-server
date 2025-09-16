@@ -4,6 +4,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.Message
 import com.google.firebase.messaging.Notification
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
+import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import org.springframework.stereotype.Component
 
 private const val ROUTING_VIEW = "routingView"
@@ -13,15 +14,16 @@ class FirebasePushClient(
     private val fcmClient: FirebaseMessaging,
 ) : PushClient {
 
-    override fun sendToMultiple(deviceTokens: List<String>, message: String, routingView: RoutingView) {
+    override fun sendToMultiple(deviceTokens: List<DeviceToken?>, message: String, routingView: RoutingView) {
         if (deviceTokens.isEmpty()) return
 
         val requests = deviceTokens
-            .filter { isValidDeviceToken(it) }
+            .filterNotNull()
+            .filter { it.isValid() }
             .map { token ->
                 Message
                     .builder()
-                    .setToken(token)
+                    .setToken(token.value)
                     .setNotification(Notification.builder().setBody(message).build())
                     .putData(ROUTING_VIEW, routingView.name)
                     .build()
@@ -30,18 +32,16 @@ class FirebasePushClient(
         fcmClient.sendEach(requests)
     }
 
-    override fun sendToUser(deviceToken: String, message: String, routingView: RoutingView) {
-        if (isValidDeviceToken(deviceToken).not()) return
+    override fun sendToUser(deviceToken: DeviceToken?, message: String, routingView: RoutingView) {
+        if (deviceToken?.isValid() != true) return
 
         val request = Message
             .builder()
-            .setToken(deviceToken)
+            .setToken(deviceToken.value)
             .setNotification(Notification.builder().setBody(message).build())
             .putData(ROUTING_VIEW, routingView.name)
             .build()
 
         fcmClient.send(request)
     }
-
-    private fun isValidDeviceToken(deviceToken: String) = deviceToken.isNotBlank() && deviceToken != "deviceToken"
 }
