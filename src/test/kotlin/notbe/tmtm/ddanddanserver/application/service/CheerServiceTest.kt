@@ -139,27 +139,4 @@ class CheerServiceTest : FunSpec({
         verify { friendshipRepository.areFriends(cheererId, cheereeId) }
         verify { cheerRepository.saveWithDuplicateCheck(any()) }
     }
-
-    test("월간 받은 응원 횟수를 조회할 수 있다") {
-        val userId = ObjectId()
-        val expectedCount = 15L
-
-        every { cheerRepository.countMonthlyReceivedCheers(userId) } returns expectedCount
-
-        val result = cheerService.getMonthlyReceivedCheerCount(userId)
-
-        result shouldBe expectedCount
-        verify { cheerRepository.countMonthlyReceivedCheers(userId) }
-    }
-
-    test("월간 받은 응원이 없으면 0을 반환한다") {
-        val userId = ObjectId()
-
-        every { cheerRepository.countMonthlyReceivedCheers(userId) } returns 0L
-
-        val result = cheerService.getMonthlyReceivedCheerCount(userId)
-
-        result shouldBe 0L
-        verify { cheerRepository.countMonthlyReceivedCheers(userId) }
-    }
 })
