@@ -56,9 +56,9 @@ class NotificationServiceTest {
         notificationService.notifyCheckCalorie()
 
         // then
-        verify { 
+        verify {
             pushClient.sendToMultiple(
-                listOf("valid-token-1", "valid-token-4"),
+                listOf(DeviceToken("valid-token-1"), DeviceToken("deviceToken"), null, DeviceToken("valid-token-4")),
                 PushMessage.CHECK_CALORIE,
                 RoutingView.MAIN
             )
@@ -86,7 +86,7 @@ class NotificationServiceTest {
         // then
         verify {
             pushClient.sendToMultiple(
-                listOf("ranking-token"),
+                listOf(DeviceToken("ranking-token")),
                 PushMessage.weeklyRanking(testCalories),
                 RoutingView.MAIN
             )
@@ -100,7 +100,7 @@ class NotificationServiceTest {
     @Disabled("실제 푸시 전송 로직 테스트용 - 필요시 활성화")
     fun `PushClient를 통해 단일 유저에게 푸시를 전송할 수 있다`() {
         // given
-        val deviceToken = "test-device-token"
+        val deviceToken = DeviceToken("test-device-token")
         val message = "테스트 메시지"
 
         // when
@@ -108,7 +108,7 @@ class NotificationServiceTest {
 
         // then
         verify { pushClient.sendToUser(deviceToken, message, RoutingView.MAIN) }
-        
+
         println("✅ 단일 푸시 전송 테스트 완료")
         println("📱 대상: $deviceToken")
         println("💬 메시지: $message")
