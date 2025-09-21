@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.model.user
 
+import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
@@ -69,6 +70,8 @@ class User(
     }
 
     fun hasMainPet(): Boolean = this.mainPetId != null
+
+    fun getMainPetIdOrThrow(): ObjectId = this.mainPetId ?: throw PetNotFoundException("Main pet is not set")
 
     companion object {
         fun register(

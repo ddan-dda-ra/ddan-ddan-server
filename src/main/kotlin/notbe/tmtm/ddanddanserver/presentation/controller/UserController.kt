@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import notbe.tmtm.ddanddanserver.application.service.DailyInfoService
 import notbe.tmtm.ddanddanserver.application.service.UserPetService
+import notbe.tmtm.ddanddanserver.application.service.UserProfileService
 import notbe.tmtm.ddanddanserver.application.service.UserService
 import notbe.tmtm.ddanddanserver.presentation.dto.request.CalorieRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.SetMainPetRequest
@@ -11,11 +12,20 @@ import notbe.tmtm.ddanddanserver.presentation.dto.request.UserRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.request.WithDrawRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserDailyInfoResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserMainPetResponse
+import notbe.tmtm.ddanddanserver.presentation.dto.response.UserProfileResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.UserResponse
 import org.bson.types.ObjectId
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 
 @RestController
@@ -25,7 +35,16 @@ class UserController(
     private val userService: UserService,
     private val userPetService: UserPetService,
     private val dailyInfoService: DailyInfoService,
+    private val userProfileService: UserProfileService,
 ) {
+    @GetMapping("/{userId}")
+    @Operation(summary = "유저 조회", description = "특정 유저의 정보를 조회합니다.")
+    fun getUser(authentication: Authentication, @PathVariable userId: ObjectId): UserProfileResponse {
+        val myId = ObjectId(authentication.name)
+        val userProfile = userProfileService.getUserProfile(userId, myId)
+        return UserProfileResponse.fromDomain(userProfile, myId)
+    }
+
     @GetMapping("/me")
     @Operation(summary = "내 정보 조회", description = "내 정보를 조회합니다.")
     fun getMyInfo(authentication: Authentication): UserResponse {

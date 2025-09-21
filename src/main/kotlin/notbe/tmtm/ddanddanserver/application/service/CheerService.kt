@@ -40,10 +40,6 @@ class CheerService(
         return result
     }
 
-    fun getMonthlyReceivedCheerCount(userId: ObjectId): Long {
-        return cheerRepository.countMonthlyReceivedCheers(userId)
-    }
-
     private fun validateFriendship(
         userId1: ObjectId,
         userId2: ObjectId,
