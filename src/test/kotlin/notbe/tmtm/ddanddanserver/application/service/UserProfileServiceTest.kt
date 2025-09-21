@@ -17,6 +17,7 @@ import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRep
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.areFriends
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdAndOwnerUserIdOrThrow
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
@@ -81,6 +82,7 @@ class UserProfileServiceTest : FunSpec({
         every { petRepository.findByIdAndOwnerUserIdOrThrow(mainPetId, userId) } returns mainPet
         every { dailyInfoRepository.findByUserIdAndDate(userId, today) } returns dailyInfo
         every { cheerRepository.findAllByCheereeIdAndThisMonth(userId) } returns cheers
+        every { friendshipRepository.areFriends(userId, myId) } returns true
 
         val result = userProfileService.getUserProfile(userId, myId)
 
@@ -88,11 +90,13 @@ class UserProfileServiceTest : FunSpec({
         result.mainPet shouldBe mainPet
         result.todayDailyInfo shouldBe dailyInfo
         result.receivedCheers shouldBe cheers
+        result.isFriend shouldBe true
 
         verify { userRepository.findByIdOrThrow(userId) }
         verify { petRepository.findByIdAndOwnerUserIdOrThrow(mainPetId, userId) }
         verify { dailyInfoRepository.findByUserIdAndDate(userId, today) }
         verify { cheerRepository.findAllByCheereeIdAndThisMonth(userId) }
+        verify { friendshipRepository.areFriends(userId, myId) }
     }
 
     test("오늘의 DailyInfo가 없으면 기본값을 생성한다") {
@@ -122,6 +126,7 @@ class UserProfileServiceTest : FunSpec({
         every { petRepository.findByIdAndOwnerUserIdOrThrow(mainPetId, userId) } returns mainPet
         every { dailyInfoRepository.findByUserIdAndDate(userId, today) } returns null
         every { cheerRepository.findAllByCheereeIdAndThisMonth(userId) } returns cheers
+        every { friendshipRepository.areFriends(userId, myId) } returns false
 
         val result = userProfileService.getUserProfile(userId, myId)
 
@@ -133,11 +138,13 @@ class UserProfileServiceTest : FunSpec({
         result.todayDailyInfo.date shouldBe today
         result.todayDailyInfo.calorie shouldBe 0
         result.receivedCheers shouldBe cheers
+        result.isFriend shouldBe false
 
         verify { userRepository.findByIdOrThrow(userId) }
         verify { petRepository.findByIdAndOwnerUserIdOrThrow(mainPetId, userId) }
         verify { dailyInfoRepository.findByUserIdAndDate(userId, today) }
         verify { cheerRepository.findAllByCheereeIdAndThisMonth(userId) }
+        verify { friendshipRepository.areFriends(userId, myId) }
     }
 
     test("받은 응원 목록이 비어있을 수 있다") {
@@ -172,6 +179,7 @@ class UserProfileServiceTest : FunSpec({
         every { petRepository.findByIdAndOwnerUserIdOrThrow(mainPetId, userId) } returns mainPet
         every { dailyInfoRepository.findByUserIdAndDate(userId, today) } returns dailyInfo
         every { cheerRepository.findAllByCheereeIdAndThisMonth(userId) } returns emptyList()
+        every { friendshipRepository.areFriends(userId, myId) } returns true
 
         val result = userProfileService.getUserProfile(userId, myId)
 
@@ -179,10 +187,12 @@ class UserProfileServiceTest : FunSpec({
         result.mainPet shouldBe mainPet
         result.todayDailyInfo shouldBe dailyInfo
         result.receivedCheers shouldBe emptyList()
+        result.isFriend shouldBe true
 
         verify { userRepository.findByIdOrThrow(userId) }
         verify { petRepository.findByIdAndOwnerUserIdOrThrow(mainPetId, userId) }
         verify { dailyInfoRepository.findByUserIdAndDate(userId, today) }
         verify { cheerRepository.findAllByCheereeIdAndThisMonth(userId) }
+        verify { friendshipRepository.areFriends(userId, myId) }
     }
 })
