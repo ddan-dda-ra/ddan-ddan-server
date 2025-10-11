@@ -11,8 +11,6 @@ springdoc:
   model-and-view-allowed: true
 
 logging:
-  file:
-    name: /var/log/ddan-ddan-server/application.log
   logback:
     rollingpolicy:
       max-file-size: 10MB
