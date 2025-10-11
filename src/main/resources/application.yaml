@@ -9,3 +9,12 @@ springdoc:
     operations-sorter: alpha
     display-request-duration: true
   model-and-view-allowed: true
+
+logging:
+  file:
+    name: /var/log/ddan-ddan-server/application.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 1GB

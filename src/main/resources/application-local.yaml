@@ -30,9 +30,9 @@ fcm:
 
 logging:
   level:
-    root: DEBUG
+    root: INFO
     notbe.tmtm.ddanddanserver: DEBUG
-    org.springframework: INFO
-    org.springframework.web: DEBUG
   pattern:
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%thread]){magenta} %clr(%-5level){cyan} %clr(%logger{36}){blue} - %msg%n"
+  file:
+    name:
