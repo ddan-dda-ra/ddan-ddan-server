@@ -106,7 +106,7 @@ class JWTTokenProvider(
             else -> throw AuthenticationInvalidTokenException()
         }
     } catch (e: Exception) {
-        logger.error("토큰 파싱 에러 로그", e)
+        logger.error("토큰 파싱 에러 로그 token: $token", e)
         throw AuthenticationInvalidTokenException()
     }
 
