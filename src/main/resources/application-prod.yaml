@@ -27,3 +27,16 @@ slack:
 fcm:
     project-id: ${FCM_PROJECT_ID}
     key: ${FCM_KEY}
+
+logging:
+  level:
+    root: WARN
+    notbe.tmtm.ddanddanserver: INFO
+    org.springframework: WARN
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 60
+      total-size-cap: 5GB
