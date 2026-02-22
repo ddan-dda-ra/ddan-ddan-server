@@ -33,7 +33,7 @@ class FriendshipService(
     ): Friendship {
         val inviteCode = inviteCodeRepository.findByCode(code) ?: throw InviteCodeNotFoundException()
         val inviterId = inviteCode.getInviterId()
-        val inviter = userRepository.findByIdOrThrow(inviteeId)
+        val inviter = userRepository.findByIdOrThrow(inviterId)
 
         inviteCode.validateUse(inviteeId)
         validateFriendship(inviterId, inviteeId)
