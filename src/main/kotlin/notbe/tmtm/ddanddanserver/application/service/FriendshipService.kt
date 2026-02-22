@@ -5,6 +5,8 @@ import notbe.tmtm.ddanddanserver.domain.exception.FriendshipNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.FriendshipSelfAddException
 import notbe.tmtm.ddanddanserver.domain.exception.InviteCodeNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.friend.Friendship
+import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
+import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.InviteCodeRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
@@ -22,6 +24,7 @@ class FriendshipService(
     private val friendshipRepository: FriendshipRepository,
     private val inviteCodeRepository: InviteCodeRepository,
     private val userRepository: UserRepository,
+    private val pushClient: PushClient
 ) {
     @Transactional
     fun addFriendByInviteCode(
@@ -30,6 +33,7 @@ class FriendshipService(
     ): Friendship {
         val inviteCode = inviteCodeRepository.findByCode(code) ?: throw InviteCodeNotFoundException()
         val inviterId = inviteCode.getInviterId()
+        val inviter = userRepository.findByIdOrThrow(inviteeId)
 
         inviteCode.validateUse(inviteeId)
         validateFriendship(inviterId, inviteeId)
@@ -42,7 +46,10 @@ class FriendshipService(
             )
 
         return try {
-            friendshipRepository.save(friendship)
+            friendshipRepository.save(friendship).also {
+                val message = "${inviter.name}님과 친구가 되었습니다!"
+                pushClient.sendToUser(inviter.deviceToken, message, RoutingView.MAIN)
+            }
         } catch (e: DuplicateKeyException) {
             throw FriendshipAlreadyExistsException()
         }
@@ -72,9 +79,6 @@ class FriendshipService(
         if (inviterId == inviteeId) {
             throw FriendshipSelfAddException()
         }
-
-        userRepository.findByIdOrThrow(inviterId)
-
         if (friendshipRepository.areFriends(inviterId, inviteeId)) {
             throw FriendshipAlreadyExistsException()
         }
