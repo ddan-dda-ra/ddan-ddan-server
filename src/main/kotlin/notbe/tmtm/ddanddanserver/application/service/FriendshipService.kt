@@ -34,6 +34,7 @@ class FriendshipService(
         val inviteCode = inviteCodeRepository.findByCode(code) ?: throw InviteCodeNotFoundException()
         val inviterId = inviteCode.getInviterId()
         val inviter = userRepository.findByIdOrThrow(inviterId)
+        val invitee = userRepository.findByIdOrThrow(inviteeId)
 
         inviteCode.validateUse(inviteeId)
         validateFriendship(inviterId, inviteeId)
@@ -47,7 +48,7 @@ class FriendshipService(
 
         return try {
             friendshipRepository.save(friendship).also {
-                val message = "${inviter.name}님과 친구가 되었습니다!"
+                val message = "${invitee.name}님과 친구가 되었습니다!"
                 pushClient.sendToUser(inviter.deviceToken, message, RoutingView.MAIN)
             }
         } catch (e: DuplicateKeyException) {
