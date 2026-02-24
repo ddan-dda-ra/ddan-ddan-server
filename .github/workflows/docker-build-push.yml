@@ -41,7 +41,7 @@ jobs:
       # Jib 빌드 및 푸시
       - name: Jib Build & Push
         env:
-          GITHUB_SHA: ${{ env.short_commit }}
+          GITHUB_SHA: ${{ env.full_commit }}
           DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
         run: |
           chmod +x ./gradlew
