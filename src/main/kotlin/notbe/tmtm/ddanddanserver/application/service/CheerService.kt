@@ -25,8 +25,6 @@ class CheerService(
         cheererId: ObjectId,
         cheereeId: ObjectId,
     ): Cheer {
-        val cheeree = userRepository.findByIdOrThrow(cheereeId)
-        val cheerer = userRepository.findByIdOrThrow(cheererId)
         validateFriendship(cheererId, cheereeId)
 
         val cheer = Cheer.create(
@@ -36,6 +34,9 @@ class CheerService(
         )
 
         val result = cheerRepository.saveWithDuplicateCheck(cheer)
+
+        val cheeree = userRepository.findByIdOrThrow(cheereeId)
+        val cheerer = userRepository.findByIdOrThrow(cheererId)
         sendCheerMessage(cheeree.deviceToken, cheerer.name)
         return result
     }
