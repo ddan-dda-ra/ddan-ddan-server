@@ -1,14 +1,11 @@
 package notbe.tmtm.ddanddanserver.application.service
 
-import notbe.tmtm.ddanddanserver.domain.exception.CheerNotFriendsException
 import notbe.tmtm.ddanddanserver.domain.model.cheer.Cheer
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.CheerRepository
-import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
-import notbe.tmtm.ddanddanserver.infrastructure.database.repository.areFriends
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.springframework.stereotype.Service
@@ -17,7 +14,6 @@ import java.time.LocalDate
 @Service
 class CheerService(
     private val cheerRepository: CheerRepository,
-    private val friendshipRepository: FriendshipRepository,
     private val userRepository: UserRepository,
     private val pushClient: PushClient,
 ) {
@@ -27,7 +23,6 @@ class CheerService(
     ): Cheer {
         val cheeree = userRepository.findByIdOrThrow(cheereeId)
         val cheerer = userRepository.findByIdOrThrow(cheererId)
-        validateFriendship(cheererId, cheereeId)
 
         val cheer = Cheer.create(
             cheererId = cheererId,
@@ -38,15 +33,6 @@ class CheerService(
         val result = cheerRepository.saveWithDuplicateCheck(cheer)
         sendCheerMessage(cheeree.deviceToken, cheerer.name)
         return result
-    }
-
-    private fun validateFriendship(
-        userId1: ObjectId,
-        userId2: ObjectId,
-    ) {
-        if (friendshipRepository.areFriends(userId1, userId2).not()) {
-            throw CheerNotFriendsException()
-        }
     }
 
     private fun sendCheerMessage(cheereeDeviceToken: DeviceToken?, cheererName: String?) {
