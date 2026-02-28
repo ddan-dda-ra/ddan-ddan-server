@@ -12,7 +12,3 @@ class CheerAlreadyExistsException(
 class CheerSelfException(
     data: Any? = null,
 ) : CheerException(ErrorCode.CHEER_SELF, data)
-
-class CheerNotFriendsException(
-    data: Any? = null,
-) : CheerException(ErrorCode.CHEER_NOT_FRIENDS, data)

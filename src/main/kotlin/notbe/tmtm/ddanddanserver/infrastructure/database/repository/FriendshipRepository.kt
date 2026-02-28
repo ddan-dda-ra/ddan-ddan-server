@@ -23,6 +23,15 @@ interface FriendshipRepository : MongoRepository<Friendship, ObjectId> {
     fun deleteAllByInviterId(inviterId: ObjectId)
 
     fun deleteAllByInviteeId(inviteeId: ObjectId)
+
+    @Query(
+        value = "{ '\$or': [ " +
+            "{ 'inviterId': ?0, 'inviteeId': ?1, 'status': 'ACCEPTED' }, " +
+            "{ 'inviterId': ?1, 'inviteeId': ?0, 'status': 'ACCEPTED' } " +
+            "] }",
+        exists = true,
+    )
+    fun existsAcceptedFriendshipBetween(userId1: ObjectId, userId2: ObjectId): Boolean
 }
 
 fun FriendshipRepository.findByIdOrThrow(friendId: ObjectId): Friendship =
@@ -42,10 +51,7 @@ fun FriendshipRepository.findAcceptedFriends(userId: ObjectId): List<Friendship>
 fun FriendshipRepository.areFriends(
     userId1: ObjectId,
     userId2: ObjectId,
-): Boolean {
-    val friendship = findFriendshipBetween(userId1, userId2)
-    return friendship?.isAccepted() == true
-}
+): Boolean = existsAcceptedFriendshipBetween(userId1, userId2)
 
 fun FriendshipRepository.deleteAllBy(userId: ObjectId) {
     deleteAllByInviterId(userId)
