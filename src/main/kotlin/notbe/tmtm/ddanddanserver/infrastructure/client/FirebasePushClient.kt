@@ -6,16 +6,16 @@ import com.google.firebase.messaging.Notification
 import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
+import org.springframework.retry.support.RetryTemplate
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 
 private const val ROUTING_VIEW = "routingView"
-private const val MAX_RETRY_COUNT = 3
-private const val RETRY_DELAY_MS = 500L
 
 @Component
 class FirebasePushClient(
     private val fcmClient: FirebaseMessaging,
+    private val retryTemplate: RetryTemplate,
 ) : PushClient {
 
     @Async
@@ -27,7 +27,7 @@ class FirebasePushClient(
             .filter { it.isValid() }
             .map { token -> buildMessage(token.value, message, routingView) }
 
-        executeWithRetry("sendToMultiple") {
+        retryTemplate.execute<Unit, Exception> {
             fcmClient.sendEach(requests)
         }
     }
@@ -38,7 +38,7 @@ class FirebasePushClient(
 
         val request = buildMessage(deviceToken.value, message, routingView)
 
-        executeWithRetry("sendToUser") {
+        retryTemplate.execute<Unit, Exception> {
             fcmClient.send(request)
         }
     }
@@ -50,19 +50,4 @@ class FirebasePushClient(
             .setNotification(Notification.builder().setBody(message).build())
             .putData(ROUTING_VIEW, routingView.name)
             .build()
-
-    private fun executeWithRetry(methodName: String, action: () -> Unit) {
-        repeat(MAX_RETRY_COUNT) { attempt ->
-            try {
-                action()
-                return
-            } catch (e: Exception) {
-                logger().warn("FCM $methodName 전송 실패 (시도 ${attempt + 1}/$MAX_RETRY_COUNT)", e)
-                if (attempt < MAX_RETRY_COUNT - 1) {
-                    Thread.sleep(RETRY_DELAY_MS)
-                }
-            }
-        }
-        logger().error("FCM $methodName 전송 최종 실패: ${MAX_RETRY_COUNT}회 재시도 후에도 실패")
-    }
 }

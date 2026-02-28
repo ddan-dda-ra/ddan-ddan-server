@@ -32,6 +32,7 @@ dependencies {
     implementation("org.springframework.security:spring-security-web")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
     implementation("com.google.firebase:firebase-admin:9.4.3")
+    implementation("org.springframework.retry:spring-retry")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("io.mockk:mockk:1.13.11")
