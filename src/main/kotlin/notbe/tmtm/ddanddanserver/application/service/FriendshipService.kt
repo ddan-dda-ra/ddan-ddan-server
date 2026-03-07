@@ -6,6 +6,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.FriendshipSelfAddException
 import notbe.tmtm.ddanddanserver.domain.exception.InviteCodeNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.friend.Friendship
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
+import notbe.tmtm.ddanddanserver.domain.model.user.UserMainPet
 import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.InviteCodeRepository
@@ -24,8 +25,20 @@ class FriendshipService(
     private val friendshipRepository: FriendshipRepository,
     private val inviteCodeRepository: InviteCodeRepository,
     private val userRepository: UserRepository,
+    private val userPetService: UserPetService,
     private val pushClient: PushClient
 ) {
+    @Transactional(readOnly = true)
+    fun getInviterByCode(
+        code: String,
+        userId: ObjectId,
+    ): UserMainPet {
+        val inviteCode = inviteCodeRepository.findByCode(code) ?: throw InviteCodeNotFoundException()
+        inviteCode.validateUse(userId)
+        val inviterId = inviteCode.getInviterId()
+        return userPetService.getUserMainPet(inviterId)
+    }
+
     @Transactional
     fun addFriendByInviteCode(
         code: String,

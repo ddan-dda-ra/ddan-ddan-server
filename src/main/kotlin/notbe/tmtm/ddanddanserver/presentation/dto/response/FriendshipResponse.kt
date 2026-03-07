@@ -53,6 +53,19 @@ data class FriendUserInfo(
     }
 }
 
+@Schema(description = "초대자 정보 응답 DTO")
+data class InviterResponse(
+    @Schema(description = "초대자 사용자 정보")
+    val inviterUser: FriendUserInfo,
+) {
+    companion object {
+        fun fromDomain(userMainPet: UserMainPet): InviterResponse =
+            InviterResponse(
+                inviterUser = FriendUserInfo.fromDomain(userMainPet),
+            )
+    }
+}
+
 @Schema(description = "친구 목록 응답 DTO")
 data class FriendListResponse(
     @Schema(description = "친구 목록")
