@@ -8,6 +8,7 @@ import notbe.tmtm.ddanddanserver.application.service.UserPetService
 import notbe.tmtm.ddanddanserver.presentation.dto.response.FriendListResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.FriendshipResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.response.InviteCodeResponse
+import notbe.tmtm.ddanddanserver.presentation.dto.response.InviterResponse
 import org.bson.types.ObjectId
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -32,6 +33,17 @@ class FriendController(
 
         val inviteCode = inviteCodeService.generateInviteCode(userId)
         return InviteCodeResponse.fromDomain(inviteCode)
+    }
+
+    @GetMapping("/invite-codes/{code}")
+    @Operation(summary = "초대코드로 초대자 정보 조회", description = "초대코드를 사용하여 초대자 정보를 조회합니다. (친구 추가 없음)")
+    fun getInviterByCode(
+        @PathVariable code: String,
+        authentication: Authentication,
+    ): InviterResponse {
+        val userId = ObjectId(authentication.name)
+        val inviterUserMainPet = friendshipService.getInviterByCode(code, userId)
+        return InviterResponse.fromDomain(inviterUserMainPet)
     }
 
     @PostMapping("/by-invite/{code}")
