@@ -23,7 +23,10 @@ reviews:
     - "!.claude/**"
     - "!build/**"
     - "!.gradle/**"
-    - "!**/*.lock"
+    - "!**/gradle.lockfile"
+    - "!**/package-lock.json"
+    - "!**/yarn.lock"
+    - "!**/pnpm-lock.yaml"
     - "!gradle/wrapper/**"
 
   path_instructions:
