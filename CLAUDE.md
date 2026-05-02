@@ -190,3 +190,19 @@ EOF
 - 모든 API는 Swagger UI로 문서화됨 (`/swagger-ui.html`)
 - 로깅은 `LoggingFilter`와 `LoggingUtils`를 활용
 - 파일 끝에는 항상 개행 문자를 추가합니다
+
+# 하네스: ddan-ddan-server 백엔드 개발
+
+**목표:** 이슈 분석 → 설계 → 구현 → 테스트 → 리뷰 → PR 생성을 5개 전문 에이전트로 자동화한다.
+
+**트리거:** 기능 추가, 버그 수정, 리팩토링, 이슈 작업, PR 생성 요청 시 `ddan-ddan-feature-dev` 스킬을 사용하라. 한 줄 수정·단순 코드 질문은 직접 응답.
+
+**구성 위치:**
+- 에이전트: `.claude/agents/` (issue-analyzer, backend-architect, kotlin-spring-implementer, test-engineer, code-reviewer)
+- 스킬: `.claude/skills/` (ddan-ddan-feature-dev 오케스트레이터 + layered-architecture-guide, kotlin-spring-conventions, kotest-testing-patterns, korean-pr-convention)
+
+**변경 이력:**
+
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-02 | 초기 구성 | 전체 | - |
