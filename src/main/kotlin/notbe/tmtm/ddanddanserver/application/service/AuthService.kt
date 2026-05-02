@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.application.service
 
+import notbe.tmtm.ddanddanserver.application.event.UserRegisteredEvent
 import notbe.tmtm.ddanddanserver.application.processor.OAuth
 import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
@@ -9,9 +10,11 @@ import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class AuthService(
@@ -19,6 +22,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val jwtTokenProvider: JWTTokenProvider,
     private val oauthProcessorFactory: OAuthProcessorFactory,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun login(
@@ -59,6 +63,14 @@ class AuthService(
             )
         authRepository.save(
             Auth.create(oAuthId = oAuth.id, type = oAuthType, userId = newUser.id),
+        )
+        eventPublisher.publishEvent(
+            UserRegisteredEvent(
+                userId = newUser.id,
+                nickName = oAuth.nickName,
+                oAuthType = oAuthType,
+                registeredAt = Instant.now(),
+            ),
         )
         return AuthResult(
             accessToken = jwtTokenProvider.createAccessToken(newUser),
