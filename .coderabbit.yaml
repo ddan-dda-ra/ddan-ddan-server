@@ -1,0 +1,47 @@
+# CodeRabbit 설정
+# 문서: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+language: ko-KR
+early_access: false
+tone_instructions: "정중하고 명확한 한국어 존댓말로 리뷰합니다. 단정적인 단어는 피하고, 문제 지적 시 가능한 대안을 함께 제안합니다."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - develop
+
+  path_filters:
+    - "!.claude/**"
+    - "!build/**"
+    - "!.gradle/**"
+    - "!**/*.lock"
+    - "!gradle/wrapper/**"
+
+  path_instructions:
+    - path: "src/main/kotlin/**/domain/**"
+      instructions: |
+        domain 레이어는 Spring/MongoDB 어노테이션이 들어가면 안 된다. 풍부 도메인 모델을 권장한다.
+    - path: "src/main/kotlin/**/application/**"
+      instructions: |
+        @Service + 생성자 주입 + val 컨벤션을 따르는지 확인한다. 트랜잭션 경계는 service에 둔다.
+    - path: "src/main/kotlin/**/infrastructure/database/**"
+      instructions: |
+        @Document 엔티티는 반드시 이 레이어에만 존재해야 한다. 도메인 모델 ↔ 엔티티 매핑이 빠지지 않았는지 확인한다.
+    - path: "src/main/kotlin/**/presentation/controller/**"
+      instructions: |
+        OpenAPI 어노테이션(@Operation, @Parameter, @ApiResponse, @Tag)이 누락되지 않았는지 확인한다. 비즈니스 로직은 service로 위임한다.
+    - path: "src/test/kotlin/**"
+      instructions: |
+        Kotest FunSpec + MockK 표준을 따른다. 테스트 이름은 한국어, assertion은 shouldBe/shouldThrow 등 Kotest DSL을 사용해야 한다 (assertEquals 사용 금지).
+
+chat:
+  auto_reply: true
