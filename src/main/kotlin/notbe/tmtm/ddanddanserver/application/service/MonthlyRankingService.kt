@@ -23,29 +23,29 @@ class MonthlyRankingService(
         val previousMonthStart = today.minusMonths(1).withDayOfMonth(1)
         val previousMonthEnd = previousMonthStart.withDayOfMonth(previousMonthStart.lengthOfMonth())
 
-        val caloriesTop = userStatRepository.findRankingByDateRange(
-            RankingCriteria.TOTAL_CALORIES,
-            previousMonthStart,
-            previousMonthEnd,
-            TOP_N,
-        )
-        val succeededDaysTop = userStatRepository.findRankingByDateRange(
-            RankingCriteria.TOTAL_SUCCEEDED_DAYS,
-            previousMonthStart,
-            previousMonthEnd,
-            TOP_N,
-        )
-
-        val embeds = listOf(
-            buildCaloriesEmbed(caloriesTop, previousMonthStart),
-            buildSucceededDaysEmbed(succeededDaysTop, previousMonthStart),
-        )
-
         try {
+            val caloriesTop = userStatRepository.findRankingByDateRange(
+                RankingCriteria.TOTAL_CALORIES,
+                previousMonthStart,
+                previousMonthEnd,
+                TOP_N,
+            )
+            val succeededDaysTop = userStatRepository.findRankingByDateRange(
+                RankingCriteria.TOTAL_SUCCEEDED_DAYS,
+                previousMonthStart,
+                previousMonthEnd,
+                TOP_N,
+            )
+
+            val embeds = listOf(
+                buildCaloriesEmbed(caloriesTop, previousMonthStart),
+                buildSucceededDaysEmbed(succeededDaysTop, previousMonthStart),
+            )
+
             discordHookApi.sendMessage(DiscordHookApi.Request(embeds = embeds))
         } catch (e: Exception) {
             logger().error(
-                "월간 랭킹 디스코드 알림 발송 실패: month={}",
+                "월간 랭킹 발송 실패: month={}",
                 previousMonthStart.month,
                 e,
             )

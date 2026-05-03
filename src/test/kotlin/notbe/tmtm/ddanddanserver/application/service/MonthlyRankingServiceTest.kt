@@ -178,6 +178,18 @@ class MonthlyRankingServiceTest : FunSpec({
         }
     }
 
+    test("Repository 호출이 예외를 던져도 서비스는 예외를 흡수한다") {
+        every {
+            userStatRepository.findRankingByDateRange(any(), any(), any(), any())
+        } throws RuntimeException("mongo aggregation failed")
+
+        shouldNotThrow<Throwable> {
+            service.sendPreviousMonthRanking()
+        }
+
+        verify(exactly = 0) { discordHookApi.sendMessage(any()) }
+    }
+
     test("두 카테고리에 대해 직전 달 1일~말일을 조회한다") {
         val startSlot = slot<java.time.LocalDate>()
         val endSlot = slot<java.time.LocalDate>()
