@@ -1,17 +1,22 @@
 package notbe.tmtm.ddanddanserver.application.processor
 
 import notbe.tmtm.ddanddanserver.common.util.logger
+import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoParseError
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoRestClientError
 import notbe.tmtm.ddanddanserver.domain.exception.KakaoUnauthorizedError
 import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import org.springframework.web.client.HttpClientErrorException
 
 @Component
+@ConditionalOnProperty(prefix = "mock-oauth", name = ["enabled"], havingValue = "false", matchIfMissing = true)
 class KakaoProcessor(
     private val kakaoAuthApi: KakaoAuthApi,
 ) : OAuthProcessor {
+    override fun getProviderType(): OAuthType = OAuthType.KAKAO
+
     override fun getOAuth(accessToken: String): OAuth =
         try {
             kakaoAuthApi

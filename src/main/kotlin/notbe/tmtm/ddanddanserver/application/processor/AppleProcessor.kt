@@ -9,7 +9,9 @@ import notbe.tmtm.ddanddanserver.domain.exception.AppleKeyGenerationError
 import notbe.tmtm.ddanddanserver.domain.exception.AppleRestClientError
 import notbe.tmtm.ddanddanserver.domain.exception.AppleTokenParseError
 import notbe.tmtm.ddanddanserver.domain.exception.AppleTokenValidationError
+import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.math.BigInteger
 import java.security.KeyFactory
@@ -18,10 +20,13 @@ import java.security.spec.RSAPublicKeySpec
 import java.util.*
 
 @Component
+@ConditionalOnProperty(prefix = "mock-oauth", name = ["enabled"], havingValue = "false", matchIfMissing = true)
 class AppleProcessor(
     private val appleAuthApi: AppleAuthApi,
     private val objectMapper: ObjectMapper,
 ) : OAuthProcessor {
+    override fun getProviderType(): OAuthType = OAuthType.APPLE
+
     override fun getOAuth(accessToken: String): OAuth {
         val headers = parseHeaders(accessToken)
         val appleKeys = getAppleKeys()

@@ -4,6 +4,9 @@ spring:
   profiles:
     active: dev
 
+mock-oauth:
+  enabled: false
+
 springdoc:
   swagger-ui:
     operations-sorter: alpha
