@@ -12,7 +12,7 @@ app:
     jwt:
         secret: ${JWT_SECRET}
         expiration:
-            access-token: 216000
+            access-token: 604800
             refresh-token: 2592000
 
 management:
@@ -36,7 +36,7 @@ fcm:
 
 logging:
   level:
-    root: WARN
+    root: INFO
     notbe.tmtm.ddanddanserver: INFO
     org.springframework: WARN
   pattern:
