@@ -27,6 +27,9 @@ slack:
 discord:
     hook-url: ${DISCORD_WEBHOOK_URL}
 
+mock-oauth:
+    enabled: true
+
 fcm:
     project-id: ${FCM_PROJECT_ID}
     key: ${FCM_KEY}
