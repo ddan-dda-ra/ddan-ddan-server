@@ -36,6 +36,8 @@ tools: Read, Grep, Glob, Bash
 - test-engineer가 정상 + 예외 케이스를 모두 커버했는가
 - mock 누락된 외부 의존
 - ./gradlew test가 통과하는가
+- **Spring 어노테이션이 동작 핵심인 코드(@Transactional, @TransactionalEventListener, @Async, @Scheduled, @EventListener, @Cacheable, AOP 어드바이스)에 통합 테스트가 같이 작성되었는가** — 단위 테스트만 있으면 어노테이션 동작이 0% 검증된다. PR #277 참조.
+- **`@TransactionalEventListener` 사용 시 트랜잭션 매니저 등록 여부 / `fallbackExecution` 설정 확인** — 단일 MongoDB 환경처럼 트랜잭션 매니저가 자동 등록되지 않는 경우 listener가 silent하게 dropping된다. 트랜잭션 매니저가 없거나 불확실하면 `fallbackExecution = true` 권장.
 
 ### 4. 보안
 - 인증이 필요한 엔드포인트에 JWT 필터가 적용되는가

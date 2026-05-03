@@ -123,6 +123,70 @@ class FooIntegrationTest(
 - Repository 통합 테스트는 `@DataMongoTest` 활용 (이 레포의 기존 `*RepositoryImplTest` 참조)
 - Spring 컨텍스트 띄우는 통합 테스트는 비싸므로 신중히
 
+## Spring 어노테이션 핵심 코드는 통합 테스트 필수
+
+다음 어노테이션이 **동작의 핵심**인 코드는 **단위 테스트만으로는 절대 검증 불가** — 반드시 통합 테스트를 함께 작성한다:
+
+- `@Transactional`, `@TransactionalEventListener`
+- `@Async`, `@Scheduled`
+- `@EventListener`, `@Cacheable`
+- 그 외 Spring AOP가 처리하는 모든 어드바이스
+
+### 왜 단위 테스트로 안 되는가
+
+위 어노테이션들은 모두 **Spring AOP 프록시**가 처리한다. 테스트에서 `MyListener()`로 인스턴스를 직접 만들고 `listener.handle(event)`로 메서드를 직접 호출하면 프록시를 우회하므로 **어노테이션이 모두 무시되어 일반 함수 호출이 된다.** 메서드 본문 로직만 검증되고 어노테이션 동작(트랜잭션 경계, 비동기 실행, 이벤트 phase, fallbackExecution 등)은 0% 검증된다.
+
+### 실패 사례 (PR #277)
+
+`@TransactionalEventListener(phase = AFTER_COMMIT)`을 썼는데 단일 MongoDB 환경(`MongoTransactionManager` 미등록)에서 `@Transactional`이 NO-OP이 되어 listener가 silent하게 dropping. 단위 테스트는 listener를 직접 호출했기에 통과했고, 통합 테스트가 부재해 dev 배포 후에야 발견. `fallbackExecution = true` 추가로 핫픽스. (참조: `_workspace/05_review.md` 또는 git log)
+
+### 통합 테스트 패턴 — `@SpringJUnitConfig` 슬라이스
+
+`@SpringBootTest` 풀로 컨텍스트 띄우는 비용이 부담스러우면, 필요한 빈만 등록하는 좁은 슬라이스를 쓴다:
+
+```kotlin
+@SpringJUnitConfig(
+    classes = [
+        UserRegisteredEventListener::class,
+        UserRegisteredEventListenerIntegrationTest.TestConfig::class,
+    ]
+)
+@TestPropertySource(properties = ["spring.profiles.active=test"])
+class UserRegisteredEventListenerIntegrationTest {
+
+    @TestConfiguration
+    class TestConfig {
+        @Bean fun userRepository(): UserRepository = mockk()
+        @Bean fun discordHookApi(): DiscordHookApi = mockk(relaxed = true)
+    }
+
+    @Autowired lateinit var publisher: ApplicationEventPublisher
+    @Autowired lateinit var discordHookApi: DiscordHookApi
+
+    @Test
+    fun `이벤트 발행 시 listener가 실제로 호출된다`() {
+        every { /* ... */ } returns /* ... */
+        publisher.publishEvent(SomeEvent(...))
+        verify { discordHookApi.sendMessage(any()) }
+    }
+}
+```
+
+핵심:
+- **`@SpringJUnitConfig`**(JUnit5)로 좁은 컨텍스트, classes에 필요한 빈만 명시
+- 외부 의존(MongoDB, FCM, OAuth API 등)은 `@TestConfiguration` 안에서 `mockk()`로 빈 등록
+- `ApplicationEventPublisher` 주입 → `publishEvent` 호출 → mock이 호출됐는지 `verify`
+- **Kotest FunSpec이 아닌 JUnit5 형태 사용 OK** — 이 프로젝트는 Kotest Spring extension 의존성이 없음. 통합 테스트 한 케이스를 위해 의존성 추가하기보다 JUnit5로 작성하는 게 가벼움.
+
+### 단위 테스트 + 통합 테스트 분담
+
+| 테스트 유형 | 검증 대상 |
+|---|---|
+| 단위 테스트 (FunSpec, listener 직접 호출) | 메서드 본문 로직 (메시지 포맷, 분기, 예외 흡수) |
+| 통합 테스트 (@SpringJUnitConfig, publisher 호출) | 어노테이션 동작 (이벤트 wiring, fallbackExecution, 비동기 dispatch) |
+
+둘 다 작성한다. 단위만 있으면 함정에 빠진다.
+
 ## 테스트 위치
 
 production 코드의 패키지 구조를 그대로 미러링한다:

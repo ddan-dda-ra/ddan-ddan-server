@@ -206,3 +206,5 @@ EOF
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-02 | 초기 구성 | 전체 | - |
+| 2026-05-03 | Spring 어노테이션 핵심 코드 통합 테스트 가이드 추가 | skills/kotest-testing-patterns | PR #277 사고 — `@TransactionalEventListener`가 단일 MongoDB 환경에서 silent dropping. 단위 테스트가 listener 직접 호출이라 잡지 못함. |
+| 2026-05-03 | 체크리스트 보강 (통합 테스트 누락 + `@TransactionalEventListener` + 트랜잭션 매니저 페어 점검) | agents/code-reviewer | 동일 사고 재발 방지 |
