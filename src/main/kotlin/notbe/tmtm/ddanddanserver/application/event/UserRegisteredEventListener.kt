@@ -1,6 +1,7 @@
 package notbe.tmtm.ddanddanserver.application.event
 
 import notbe.tmtm.ddanddanserver.common.util.logger
+import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.infrastructure.api.DiscordHookApi
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import org.springframework.beans.factory.annotation.Value
@@ -23,13 +24,8 @@ class UserRegisteredEventListener(
         try {
             val count = userRepository.count()
             val phase = activeProfile.uppercase()
-            val registeredAtKst = "${KST_FORMATTER.format(event.registeredAt)} KST"
-            val body =
-                "[$phase] 신규 가입 | 닉네임=${event.nickName} | provider=${event.oAuthType} | " +
-                    "userId=${event.userId} | 가입시각=$registeredAtKst | " +
-                    "누적 가입자=${String.format("%,d", count)}명"
-
-            discordHookApi.sendMessage(DiscordHookApi.Request(content = body))
+            val embed = buildEmbed(event, count, phase)
+            discordHookApi.sendMessage(DiscordHookApi.Request(embeds = listOf(embed)))
         } catch (e: Exception) {
             logger().error(
                 "Discord 신규 가입 알림 발송 실패: userId={}, provider={}",
@@ -39,6 +35,62 @@ class UserRegisteredEventListener(
             )
         }
     }
+
+    private fun buildEmbed(
+        event: UserRegisteredEvent,
+        count: Long,
+        phase: String,
+    ): DiscordHookApi.Embed {
+        val providerEmoji = providerEmoji(event.oAuthType)
+        val color = providerColor(event.oAuthType)
+        val phaseEmoji = phaseEmoji(phase)
+        val registeredAtKst = "${KST_FORMATTER.format(event.registeredAt)} KST"
+        val countFormatted = "%,d".format(count)
+
+        return DiscordHookApi.Embed(
+            title = "$providerEmoji 신규 가입",
+            description = milestoneText(count),
+            color = color,
+            fields =
+                listOf(
+                    DiscordHookApi.Field(name = "닉네임", value = event.nickName, inline = true),
+                    DiscordHookApi.Field(name = "Provider", value = event.oAuthType.name, inline = true),
+                    DiscordHookApi.Field(name = "User ID", value = "`${event.userId}`", inline = false),
+                    DiscordHookApi.Field(name = "가입 시각", value = registeredAtKst, inline = true),
+                    DiscordHookApi.Field(name = "누적 가입자", value = "${countFormatted}명", inline = true),
+                ),
+            footer = DiscordHookApi.Footer(text = "$phaseEmoji $phase · ddan-ddan-server"),
+            timestamp = event.registeredAt.toString(),
+        )
+    }
+
+    private fun providerEmoji(type: OAuthType): String =
+        when (type) {
+            OAuthType.KAKAO -> "🍫"
+            OAuthType.APPLE -> "🍎"
+        }
+
+    private fun providerColor(type: OAuthType): Int =
+        when (type) {
+            OAuthType.KAKAO -> 0xFEE500
+            OAuthType.APPLE -> 0x1C1C1E
+        }
+
+    private fun phaseEmoji(phase: String): String =
+        when (phase) {
+            "PROD" -> "🚀"
+            "DEV" -> "🧪"
+            else -> "💻"
+        }
+
+    private fun milestoneText(count: Long): String? =
+        when {
+            count <= 0L -> null
+            count % 1000L == 0L -> "🎉 ${"%,d".format(count)}명 달성!"
+            count % 500L == 0L -> "✨ ${"%,d".format(count)}명 달성!"
+            count % 100L == 0L -> "🎯 ${"%,d".format(count)}명 달성!"
+            else -> null
+        }
 
     companion object {
         private val KST_FORMATTER: DateTimeFormatter =
