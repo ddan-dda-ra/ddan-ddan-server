@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation
 import org.springframework.data.mongodb.core.aggregation.ConditionalOperators.Cond
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.stereotype.Repository
+import java.time.LocalDate
 import kotlin.reflect.KProperty
 
 @Repository
@@ -34,6 +35,32 @@ class UserStatRepositoryImpl(
             lookupPet,
             Aggregation.unwind("main_pet", false),
             sort,
+        )
+        return mongoTemplate.aggregate(agg, DailyInfo::class.java, UserStatEntity::class.java)
+            .mappedResults
+    }
+
+    override fun findRankingByDateRange(
+        criteria: RankingCriteria,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        limit: Int,
+    ): List<UserStatEntity> {
+        val matchCriteria = Aggregation.match(
+            Criteria
+                .where(DailyInfo::date.name)
+                .gte(startDate)
+                .lte(endDate),
+        )
+        val agg = Aggregation.newAggregation(
+            matchCriteria,
+            getGroupStage(),
+            getLookupUser(),
+            Aggregation.unwind("user", false),
+            getLookupPet(),
+            Aggregation.unwind("main_pet", false),
+            getSort(criteria),
+            Aggregation.limit(limit.toLong()),
         )
         return mongoTemplate.aggregate(agg, DailyInfo::class.java, UserStatEntity::class.java)
             .mappedResults
