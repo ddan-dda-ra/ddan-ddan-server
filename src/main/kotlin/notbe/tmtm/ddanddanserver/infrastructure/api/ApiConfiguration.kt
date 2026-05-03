@@ -19,6 +19,15 @@ class ApiConfiguration {
     }
 
     @Bean
+    fun discordHookApi(
+        @Value("\${discord.hook-url}") hookUrl: String,
+    ): DiscordHookApi {
+        val factory = HttpServiceProxyFactory.builderFor(restClientAdapter(hookUrl)).build()
+
+        return factory.createClient(DiscordHookApi::class.java)
+    }
+
+    @Bean
     fun kakaoAuthApi(): KakaoAuthApi {
         val factory = HttpServiceProxyFactory.builderFor(restClientAdapter()).build()
 
