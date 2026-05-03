@@ -18,7 +18,7 @@ class UserRegisteredEventListener(
     @Value("\${spring.profiles.active:local}") private val activeProfile: String,
 ) {
     @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     fun handle(event: UserRegisteredEvent) {
         try {
             val count = userRepository.count()
