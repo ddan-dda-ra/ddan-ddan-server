@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig
 import java.time.Instant
-import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 /**
  * 회귀 방지 통합 테스트.
@@ -70,8 +70,10 @@ class UserRegisteredEventListenerIntegrationTest {
         )
 
         verify(exactly = 1) { discordHookApi.sendMessage(any()) }
-        assertTrue(captured.captured.content.contains("[TEST] 신규 가입"))
-        assertTrue(captured.captured.content.contains("provider=KAKAO"))
-        assertTrue(captured.captured.content.contains("누적 가입자=42명"))
+        val embed = captured.captured.embeds!!.first()
+        assertEquals("🍫 신규 가입", embed.title)
+        assertEquals("💻 TEST · ddan-ddan-server", embed.footer!!.text)
+        assertEquals("KAKAO", embed.fields!!.find { it.name == "Provider" }!!.value)
+        assertEquals("42명", embed.fields.find { it.name == "누적 가입자" }!!.value)
     }
 }
