@@ -41,9 +41,9 @@ class PetCatalogSeeder(
     private fun buildLevels(species: String): Map<Int, PetCatalogLevelEntity> =
         (1..MAX_LEVEL).associateWith { level ->
             PetCatalogLevelEntity(
-                imageUrl = "$CDN_BASE/${species}_level$level.png",
-                lottieDefaultUrl = "$CDN_BASE/${species}_level${level}_default.json",
-                lottiePlayEatUrl = "$CDN_BASE/${species}_level${level}_play_eat.json",
+                imageUrl = "$CDN_BASE/$species/level$level.png",
+                lottieDefaultUrl = "$CDN_BASE/$species/level${level}_default.json",
+                lottiePlayEatUrl = "$CDN_BASE/$species/level${level}_play_eat.json",
             )
         }
 
