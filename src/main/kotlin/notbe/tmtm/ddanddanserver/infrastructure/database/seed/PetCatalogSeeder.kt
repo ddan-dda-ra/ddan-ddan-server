@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Component
 import java.time.Instant
 
@@ -28,8 +29,13 @@ class PetCatalogSeeder(
                     updatedAt = now,
                 )
             }
-        repository.saveAll(entities)
-        logger().info("PetCatalog seeded with {} default pets", entities.size)
+        try {
+            repository.saveAll(entities)
+            logger().info("PetCatalog seeded with {} default pets", entities.size)
+        } catch (e: DuplicateKeyException) {
+            // 다중 인스턴스 동시 startup 시 다른 인스턴스가 먼저 seed한 경우
+            logger().info("PetCatalog seed skipped: 이미 다른 인스턴스가 시드 데이터를 등록했습니다", e)
+        }
     }
 
     private fun buildLevels(species: String): Map<Int, PetCatalogLevelEntity> =

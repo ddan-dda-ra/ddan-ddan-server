@@ -33,4 +33,23 @@ class PetCatalogVersionFilterTest : FunSpec({
 
         response.getHeader("X-Pet-Catalog-Version") shouldBe Instant.EPOCH.toString()
     }
+
+    test("currentVersion 호출이 예외를 던져도 filterChain은 호출되어 본 요청 처리는 계속된다") {
+        val service = mockk<PetCatalogService>()
+        val filter = PetCatalogVersionFilter(service)
+        every { service.currentVersion() } throws RuntimeException("DB unreachable")
+
+        val request = MockHttpServletRequest()
+        val response = MockHttpServletResponse()
+        val chain = MockFilterChain()
+
+        io.kotest.assertions.throwables.shouldNotThrow<Throwable> {
+            filter.doFilter(request, response, chain)
+        }
+
+        // 헤더는 누락되지만 chain은 정상 진행
+        response.getHeader("X-Pet-Catalog-Version") shouldBe null
+        chain.request shouldBe request
+        chain.response shouldBe response
+    }
 })

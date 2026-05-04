@@ -49,26 +49,34 @@ class PetCatalogServiceTest : FunSpec({
                 entity("DOG", order = 1),
             )
         every { repository.findAllByIsActiveTrueOrderByDisplayOrderAsc() } returns entities
+        every { repository.findAll() } returns entities
 
         val result = service.getActiveCatalog()
 
         result.pets.map { it.key } shouldBe listOf("CAT", "DOG")
     }
 
-    test("getActiveCatalog의 version은 모든 펫 중 max(updatedAt)이다") {
-        val older = Instant.parse("2026-05-01T00:00:00Z")
-        val newer = Instant.parse("2026-05-04T12:00:00Z")
+    test("getActiveCatalog의 version은 currentVersion과 동일하다 (헤더와 응답 body 버전 일치 보장)") {
+        val activeOldUpdatedAt = Instant.parse("2026-05-01T00:00:00Z")
+        val inactiveNewUpdatedAt = Instant.parse("2026-05-04T12:00:00Z")
         every { repository.findAllByIsActiveTrueOrderByDisplayOrderAsc() } returns
+            listOf(entity("CAT", order = 0, updatedAt = activeOldUpdatedAt))
+        every { repository.findAll() } returns
             listOf(
-                entity("CAT", order = 0, updatedAt = older),
-                entity("DOG", order = 1, updatedAt = newer),
+                entity("CAT", order = 0, updatedAt = activeOldUpdatedAt),
+                entity("HIDDEN", order = 99, isActive = false, updatedAt = inactiveNewUpdatedAt),
             )
 
-        service.getActiveCatalog().version shouldBe newer
+        val catalog = service.getActiveCatalog()
+
+        // 비활성 펫이 가장 최신 updatedAt이라도 헤더(currentVersion)와 응답 body version이 일치
+        catalog.version shouldBe service.currentVersion()
+        catalog.version shouldBe inactiveNewUpdatedAt
     }
 
     test("데이터가 비어있으면 catalog version은 Instant EPOCH이다") {
         every { repository.findAllByIsActiveTrueOrderByDisplayOrderAsc() } returns emptyList()
+        every { repository.findAll() } returns emptyList()
 
         service.getActiveCatalog().version shouldBe Instant.EPOCH
     }

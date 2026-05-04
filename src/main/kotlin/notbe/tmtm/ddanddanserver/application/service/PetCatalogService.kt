@@ -1,7 +1,7 @@
 package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.toDomain
+import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
 import org.springframework.stereotype.Service
 import java.time.Duration
@@ -15,8 +15,11 @@ class PetCatalogService(
     private val versionCache = AtomicReference<CachedVersion?>()
 
     fun getActiveCatalog(): PetCatalog {
-        val entities = repository.findAllByIsActiveTrueOrderByDisplayOrderAsc()
-        return entities.toDomain()
+        val entities: List<PetCatalogEntity> = repository.findAllByIsActiveTrueOrderByDisplayOrderAsc()
+        return PetCatalog(
+            version = currentVersion(),
+            pets = entities.map { it.toDomain() },
+        )
     }
 
     fun currentVersion(): Instant {
@@ -28,7 +31,11 @@ class PetCatalogService(
         val fresh =
             repository.findAll().maxOfOrNull { it.updatedAt }
                 ?: Instant.EPOCH
-        versionCache.set(CachedVersion(version = fresh, cachedAt = now))
+        // CAS — TTL 만료 직후 다수 스레드가 동시에 fresh를 쓰는 race를 줄여 한 번만 갱신
+        if (!versionCache.compareAndSet(cached, CachedVersion(version = fresh, cachedAt = now))) {
+            // 다른 스레드가 먼저 갱신 — 그 결과를 사용
+            return versionCache.get()?.version ?: fresh
+        }
         return fresh
     }
 
