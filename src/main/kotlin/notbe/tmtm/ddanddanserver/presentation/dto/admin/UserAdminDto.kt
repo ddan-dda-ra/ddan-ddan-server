@@ -9,6 +9,7 @@ data class UserAdminSummaryResponse(
     val mainPetId: String?,
     val tickets: Int,
     val purposeCalorie: Int,
+    val lastLoginAt: String,
 ) {
     companion object {
         fun from(user: User): UserAdminSummaryResponse =
@@ -18,6 +19,7 @@ data class UserAdminSummaryResponse(
                 mainPetId = user.mainPetId?.toHexString(),
                 tickets = user.tickets,
                 purposeCalorie = user.purposeCalorie,
+                lastLoginAt = user.lastLoginAt.toString(),
             )
     }
 }
