@@ -40,7 +40,7 @@ class WebSecurityConfig(
         val configuration = CorsConfiguration().apply {
             allowedOrigins =
                 listOf(
-                    "https://admin.ddmz.org",
+                    "https://admin-ddan-ddan.ddmz.org",
                     "http://localhost:3000",
                     "http://localhost:3001",
                 )
