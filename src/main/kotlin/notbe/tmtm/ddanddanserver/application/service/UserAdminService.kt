@@ -5,7 +5,7 @@ import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserReposito
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
 import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 
 @Service
@@ -14,13 +14,18 @@ class UserAdminService(
 ) {
     fun searchUsers(
         keyword: String?,
-        pageable: Pageable,
-    ): Page<User> =
-        if (keyword.isNullOrBlank()) {
+        sortType: UserAdminSortType,
+        page: Int,
+        size: Int,
+    ): Page<User> {
+        val pageable = PageRequest.of(page, size, sortType.sort)
+        val trimmed = keyword?.trim()
+        return if (trimmed.isNullOrBlank()) {
             userRepository.findAll(pageable)
         } else {
-            userRepository.findByNameContainingIgnoreCase(keyword, pageable)
+            userRepository.findByNameContainingIgnoreCase(trimmed, pageable)
         }
+    }
 
     fun getUser(userId: ObjectId): User = userRepository.findByIdOrThrow(userId)
 }

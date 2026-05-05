@@ -136,21 +136,35 @@ class PetCatalogServiceTest : FunSpec({
         )
 
     test("create는 신규 펫을 저장하고 versionCache를 invalidate한다") {
-        every { repository.existsByKey("QUOKKA") } returns false
+        // Given — cache를 미리 채움
+        val initialVersion = Instant.parse("2026-05-01T00:00:00Z")
+        every { repository.findAll() } returns listOf(entity("CAT", order = 0, updatedAt = initialVersion))
+        service.currentVersion() shouldBe initialVersion
+
+        // When — create
         val saved = slot<PetCatalogEntity>()
         every { repository.save(capture(saved)) } answers { saved.captured }
-        every { repository.findAll() } returns listOf(entity("QUOKKA", order = 5))
+        val newVersion = Instant.parse("2026-05-04T12:00:00Z")
+        every { repository.findAll() } answers {
+            listOf(
+                entity("CAT", order = 0, updatedAt = initialVersion),
+                entity("QUOKKA", order = 5, updatedAt = newVersion),
+            )
+        }
 
         val result = service.create("QUOKKA", "쿼카", true, 5, sampleLevels())
 
+        // Then — save + cache invalidate(다음 currentVersion이 새 값으로 조회)
         result.key shouldBe "QUOKKA"
         result.name shouldBe "쿼카"
         saved.captured.key shouldBe "QUOKKA"
-        verify { repository.save(any()) }
+        service.currentVersion() shouldBe newVersion
     }
 
-    test("create 시 중복 키이면 PetCatalogDuplicateKeyException") {
-        every { repository.existsByKey("CAT") } returns true
+    test("create 시 DB unique index 충돌(DuplicateKeyException)을 PetCatalogDuplicateKeyException으로 변환한다") {
+        every {
+            repository.save(any())
+        } throws org.springframework.dao.DuplicateKeyException("E11000 duplicate key error")
 
         shouldThrow<PetCatalogDuplicateKeyException> {
             service.create("CAT", "고양이2", true, 0, sampleLevels())

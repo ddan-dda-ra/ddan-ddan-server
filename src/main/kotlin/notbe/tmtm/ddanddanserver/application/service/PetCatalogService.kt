@@ -8,6 +8,7 @@ import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
@@ -53,22 +54,24 @@ class PetCatalogService(
         displayOrder: Int,
         levels: Map<Int, PetCatalogLevel>,
     ): PetCatalogItem {
-        if (repository.existsByKey(key)) {
-            throw PetCatalogDuplicateKeyException(key)
-        }
         val now = Instant.now()
         val saved =
-            repository.save(
-                PetCatalogEntity(
-                    key = key,
-                    name = name,
-                    isActive = isActive,
-                    displayOrder = displayOrder,
-                    levels = levels.mapValues { PetCatalogLevelEntity.fromDomain(it.value) },
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            try {
+                repository.save(
+                    PetCatalogEntity(
+                        key = key,
+                        name = name,
+                        isActive = isActive,
+                        displayOrder = displayOrder,
+                        levels = levels.mapValues { PetCatalogLevelEntity.fromDomain(it.value) },
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            } catch (e: DuplicateKeyException) {
+                // DB의 unique index가 race를 차단 — 이를 도메인 예외로 변환
+                throw PetCatalogDuplicateKeyException(key)
+            }
         invalidateVersionCache()
         return saved.toDomain()
     }

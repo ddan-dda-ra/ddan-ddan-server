@@ -5,6 +5,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.domain.exception.UnauthorizedException
 import notbe.tmtm.ddanddanserver.presentation.filter.AppVersionFilter
 import notbe.tmtm.ddanddanserver.presentation.filter.JWTAuthFilter
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -26,6 +27,7 @@ class WebSecurityConfig(
 ) {
     @Bean
     @Order(0)
+    @ConditionalOnProperty(prefix = "admin", name = ["enabled"], havingValue = "true")
     fun adminFilterChain(http: HttpSecurity): SecurityFilterChain =
         http
             .securityMatcher("/v1/admin/**")

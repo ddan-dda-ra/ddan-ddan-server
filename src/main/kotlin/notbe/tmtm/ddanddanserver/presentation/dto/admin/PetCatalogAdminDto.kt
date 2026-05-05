@@ -1,30 +1,46 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.admin
 
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotEmpty
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 
 data class PetCatalogAdminCreateRequest(
+    @field:NotBlank
     val key: String,
+    @field:NotBlank
     val name: String,
     val isActive: Boolean = true,
+    @field:Min(0)
     val displayOrder: Int = 0,
+    @field:NotEmpty
+    @field:Valid
     val levels: Map<Int, PetCatalogLevelRequest>,
 ) {
     fun levelsToDomain(): Map<Int, PetCatalogLevel> = levels.mapValues { it.value.toDomain() }
 }
 
 data class PetCatalogAdminUpdateRequest(
+    @field:NotBlank
     val name: String,
     val isActive: Boolean,
+    @field:Min(0)
     val displayOrder: Int,
+    @field:NotEmpty
+    @field:Valid
     val levels: Map<Int, PetCatalogLevelRequest>,
 ) {
     fun levelsToDomain(): Map<Int, PetCatalogLevel> = levels.mapValues { it.value.toDomain() }
 }
 
 data class PetCatalogLevelRequest(
+    @field:NotBlank
     val imageUrl: String,
+    @field:NotBlank
     val lottieDefaultUrl: String,
+    @field:NotBlank
     val lottiePlayEatUrl: String,
 ) {
     fun toDomain(): PetCatalogLevel =
