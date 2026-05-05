@@ -6,4 +6,10 @@ import org.springframework.data.mongodb.repository.MongoRepository
 
 interface PetCatalogRepository : MongoRepository<PetCatalogEntity, ObjectId> {
     fun findAllByIsActiveTrueOrderByDisplayOrderAsc(): List<PetCatalogEntity>
+
+    fun findAllByOrderByDisplayOrderAsc(): List<PetCatalogEntity>
+
+    fun findByKey(key: String): PetCatalogEntity?
+
+    fun existsByKey(key: String): Boolean
 }
