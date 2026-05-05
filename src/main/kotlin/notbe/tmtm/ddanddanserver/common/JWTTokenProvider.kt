@@ -5,6 +5,8 @@ import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.Jwe
 import io.jsonwebtoken.Jwts
 import notbe.tmtm.ddanddanserver.common.util.logger
+import notbe.tmtm.ddanddanserver.domain.exception.AdminExpiredTokenException
+import notbe.tmtm.ddanddanserver.domain.exception.AdminInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredAccessTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationExpiredRefreshTokenException
 import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
@@ -13,6 +15,7 @@ import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.stereotype.Component
 import java.util.Date
 import javax.crypto.SecretKey
@@ -23,6 +26,7 @@ class JWTTokenProvider(
     @Value("\${app.jwt.secret}") private val secret: String,
     @Value("\${app.jwt.expiration.access-token}") private val accessTokenExpiration: Long,
     @Value("\${app.jwt.expiration.refresh-token}") private val refreshTokenExpiration: Long,
+    @Value("\${app.jwt.expiration.admin-access-token:86400}") private val adminAccessTokenExpiration: Long,
 ) {
     val logger = logger()
 
@@ -30,6 +34,8 @@ class JWTTokenProvider(
         private const val TOKEN_TYPE = "token_type"
         private const val ACCESS = "access"
         private const val REFRESH = "refresh"
+        private const val ADMIN_ACCESS = "admin_access"
+        const val ROLE_ADMIN = "ROLE_ADMIN"
     }
 
     private final val secretKey: SecretKey = SecretKeySpec(secret.toByteArray(), "AES")
@@ -93,6 +99,48 @@ class JWTTokenProvider(
 
         return UsernamePasswordAuthenticationToken(getUserId(claims), null, emptyList())
     }
+
+    fun createAdminAccessToken(username: String): String =
+        Jwts
+            .builder()
+            .header()
+            .add(TOKEN_TYPE, ADMIN_ACCESS)
+            .and()
+            .claims()
+            .add("username", username)
+            .and()
+            .expiration(Date(System.currentTimeMillis() + adminAccessTokenExpiration * 1000))
+            .encryptWith(secretKey, Jwts.ENC.A128CBC_HS256)
+            .compact()
+
+    fun parseAdminToken(accessToken: String): Authentication {
+        val claims = getAdminClaims(accessToken)
+
+        if (getTokenType(claims) != ADMIN_ACCESS) {
+            throw AdminInvalidTokenException()
+        }
+
+        val username = getAdminUsername(claims)
+        return UsernamePasswordAuthenticationToken(
+            username,
+            null,
+            listOf(SimpleGrantedAuthority(ROLE_ADMIN)),
+        )
+    }
+
+    private fun getAdminClaims(token: String) =
+        try {
+            jwtParser.parseEncryptedClaims(token)
+        } catch (e: ExpiredJwtException) {
+            throw AdminExpiredTokenException()
+        } catch (e: Exception) {
+            logger.error("어드민 토큰 파싱 에러", e)
+            throw AdminInvalidTokenException()
+        }
+
+    private fun getAdminUsername(claims: Jwe<Claims>): String =
+        runCatching { claims.payload["username"] as? String ?: throw AdminInvalidTokenException() }
+            .getOrElse { throw AdminInvalidTokenException() }
 
     private fun getClaims(
         token: String,

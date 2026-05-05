@@ -106,4 +106,13 @@ enum class ErrorCode(
      */
     PET_CATALOG_NOT_FOUND("PC001", "펫 카탈로그 항목을 찾을 수 없습니다."),
     PET_CATALOG_DUPLICATE_KEY("PC002", "이미 존재하는 펫 카탈로그 키입니다."),
+
+    /**
+     * 어드민 인증 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.AdminAuthException
+     */
+    ADMIN_INVALID_CREDENTIALS("AA001", "어드민 자격 증명이 올바르지 않습니다."),
+    ADMIN_UNAUTHORIZED("AA002", "어드민 인증이 필요합니다."),
+    ADMIN_INVALID_TOKEN("AA003", "유효하지 않은 어드민 토큰입니다."),
+    ADMIN_EXPIRED_TOKEN("AA004", "만료된 어드민 토큰입니다."),
 }
