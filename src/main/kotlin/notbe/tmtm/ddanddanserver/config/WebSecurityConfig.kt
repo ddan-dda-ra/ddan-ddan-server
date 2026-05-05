@@ -14,6 +14,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.servlet.HandlerExceptionResolver
 
 @Configuration
@@ -21,6 +24,36 @@ import org.springframework.web.servlet.HandlerExceptionResolver
 class WebSecurityConfig(
     private val environment: Environment,
 ) {
+    @Bean
+    @Order(0)
+    fun adminFilterChain(http: HttpSecurity): SecurityFilterChain =
+        http
+            .securityMatcher("/v1/admin/**")
+            .csrf { it.disable() }
+            .cors { it.configurationSource(adminCorsConfigurationSource()) }
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            // ⚠️ Phase 1: 인증 없이 노출. Phase 2에서 admin JWT 보호 추가 예정.
+            .authorizeHttpRequests { it.anyRequest().permitAll() }
+            .build()
+
+    private fun adminCorsConfigurationSource(): CorsConfigurationSource {
+        val configuration = CorsConfiguration().apply {
+            allowedOrigins =
+                listOf(
+                    "https://admin.ddmz.org",
+                    "http://localhost:3000",
+                    "http://localhost:3001",
+                )
+            allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            allowedHeaders = listOf("*")
+            allowCredentials = true
+            maxAge = 3600L
+        }
+        return UrlBasedCorsConfigurationSource().apply {
+            registerCorsConfiguration("/**", configuration)
+        }
+    }
+
     @Bean
     @Order(1)
     fun apiFilterChain(
@@ -51,7 +84,7 @@ class WebSecurityConfig(
             }.build()
 
     @Bean
-    @Order(0)
+    @Order(2)
     fun loginFilterChain(httpSecurity: HttpSecurity): SecurityFilterChain =
         httpSecurity
             .securityMatcher("/v1/auth/**", "/swagger-ui/index.html")

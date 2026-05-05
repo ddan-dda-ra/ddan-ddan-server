@@ -99,4 +99,11 @@ enum class ErrorCode(
      */
     CHEER_ALREADY_EXISTS("CE001", "해당 유저에 대해 이미 응원했습니다."),
     CHEER_SELF("CE002", "자기 자신을 응원할 수 없습니다."),
+
+    /**
+     * 펫 카탈로그 오류
+     * @see notbe.tmtm.ddanddanserver.domain.exception.PetCatalogException
+     */
+    PET_CATALOG_NOT_FOUND("PC001", "펫 카탈로그 항목을 찾을 수 없습니다."),
+    PET_CATALOG_DUPLICATE_KEY("PC002", "이미 존재하는 펫 카탈로그 키입니다."),
 }
