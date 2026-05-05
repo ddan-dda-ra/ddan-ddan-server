@@ -9,7 +9,6 @@ import notbe.tmtm.ddanddanserver.application.service.UserAdminSortType
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.UserAdminDetailResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.UserAdminListResponse
 import org.bson.types.ObjectId
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/v1/admin/users")
 @Validated
 @Tag(name = "Admin · 유저", description = "운영자용 유저 조회")
-@ConditionalOnProperty(prefix = "admin", name = ["enabled"], havingValue = "true")
 class UserAdminController(
     private val userAdminService: UserAdminService,
 ) {

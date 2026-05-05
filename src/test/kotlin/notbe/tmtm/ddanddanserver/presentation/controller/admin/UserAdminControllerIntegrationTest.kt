@@ -16,7 +16,6 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageImpl
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -27,7 +26,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
     excludeAutoConfiguration = [SecurityAutoConfiguration::class],
 )
 @Import(UserAdminControllerIntegrationTest.TestConfig::class)
-@TestPropertySource(properties = ["admin.enabled=true"])
 class UserAdminControllerIntegrationTest {
     @TestConfiguration
     class TestConfig {

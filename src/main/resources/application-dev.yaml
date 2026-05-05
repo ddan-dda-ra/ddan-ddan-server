@@ -30,9 +30,6 @@ discord:
 mock-oauth:
     enabled: true
 
-admin:
-    enabled: true
-
 fcm:
     project-id: ${FCM_PROJECT_ID}
     key: ${FCM_KEY}

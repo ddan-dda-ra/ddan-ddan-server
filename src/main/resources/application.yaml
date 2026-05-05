@@ -7,9 +7,6 @@ spring:
 mock-oauth:
   enabled: false
 
-admin:
-  enabled: false
-
 springdoc:
   swagger-ui:
     operations-sorter: alpha

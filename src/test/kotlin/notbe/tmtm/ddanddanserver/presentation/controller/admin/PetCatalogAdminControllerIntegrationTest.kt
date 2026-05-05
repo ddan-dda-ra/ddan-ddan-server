@@ -18,7 +18,6 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -32,7 +31,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
     excludeAutoConfiguration = [SecurityAutoConfiguration::class],
 )
 @Import(PetCatalogAdminControllerIntegrationTest.TestConfig::class)
-@TestPropertySource(properties = ["admin.enabled=true"])
 class PetCatalogAdminControllerIntegrationTest {
     @TestConfiguration
     class TestConfig {
