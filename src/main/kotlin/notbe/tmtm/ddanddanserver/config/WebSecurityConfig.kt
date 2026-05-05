@@ -1,8 +1,10 @@
 package notbe.tmtm.ddanddanserver.config
 
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
+import notbe.tmtm.ddanddanserver.domain.exception.AdminUnauthorizedException
 import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.domain.exception.UnauthorizedException
+import notbe.tmtm.ddanddanserver.presentation.filter.AdminJWTAuthFilter
 import notbe.tmtm.ddanddanserver.presentation.filter.AppVersionFilter
 import notbe.tmtm.ddanddanserver.presentation.filter.JWTAuthFilter
 import org.springframework.context.annotation.Bean
@@ -26,15 +28,33 @@ class WebSecurityConfig(
 ) {
     @Bean
     @Order(0)
-    fun adminFilterChain(http: HttpSecurity): SecurityFilterChain =
+    fun adminFilterChain(
+        http: HttpSecurity,
+        jwtTokenProvider: JWTTokenProvider,
+        handlerExceptionResolver: HandlerExceptionResolver,
+    ): SecurityFilterChain =
         http
             .securityMatcher("/v1/admin/**")
             .csrf { it.disable() }
             .cors { it.configurationSource(adminCorsConfigurationSource()) }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-            // ⚠️ Phase 1: 인증 없이 노출. Phase 2에서 admin JWT 보호 추가 예정.
-            .authorizeHttpRequests { it.anyRequest().permitAll() }
-            .build()
+            .authorizeHttpRequests {
+                it
+                    .requestMatchers("/v1/admin/auth/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated()
+            }.addFilterBefore(
+                AdminJWTAuthFilter(jwtTokenProvider, handlerExceptionResolver),
+                UsernamePasswordAuthenticationFilter::class.java,
+            ).exceptionHandling {
+                it
+                    .accessDeniedHandler { request, response, _ ->
+                        handlerExceptionResolver.resolveException(request, response, null, AdminUnauthorizedException())
+                    }.authenticationEntryPoint { request, response, _ ->
+                        handlerExceptionResolver.resolveException(request, response, null, AdminUnauthorizedException())
+                    }
+            }.build()
 
     private fun adminCorsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
