@@ -43,6 +43,7 @@ tools: Read, Grep, Glob, Bash
 - 인증이 필요한 엔드포인트에 JWT 필터가 적용되는가
 - 민감 정보(토큰, PII) 로깅
 - 사용자 입력 검증
+- **SecurityFilterChain 변경 시 (Order, securityMatcher) 매트릭스 점검** — 새 chain 추가/Order 변경/매처 수정 시 모든 등록된 chain의 정합성을 표로 그려 확인. Spring Security는 **Order가 작은 chain이 우선** 매치되어 그 chain만 적용된다. 광범위 매처(`/v1/**`)는 좁은 매처(`/v1/auth/**`)보다 **Order가 더 커야** 한다. 이런 wiring 회귀는 단위 테스트로 못 잡으므로 핵심 경로에 최소한 reflection 기반 Order 단위 테스트(예: `WebSecurityConfigOrderTest`)가 있어야 한다. PR #302 참조.
 
 ### 5. PR 컨벤션
 - 변경 단위가 적절한가 (한 PR에 너무 많은 무관한 변경)
