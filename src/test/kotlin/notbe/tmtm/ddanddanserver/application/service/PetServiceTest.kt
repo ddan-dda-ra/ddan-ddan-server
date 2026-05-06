@@ -10,7 +10,6 @@ import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.UserTicketLackException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
@@ -21,23 +20,27 @@ import org.bson.types.ObjectId
 class PetServiceTest : FunSpec({
     lateinit var petRepository: PetRepository
     lateinit var userRepository: UserRepository
+    lateinit var petCatalogService: PetCatalogService
     lateinit var petService: PetService
 
     beforeEach {
         petRepository = mockk()
         userRepository = mockk()
-        petService = PetService(petRepository, userRepository)
+        petCatalogService = mockk(relaxed = true)
+        petService = PetService(petRepository, userRepository, petCatalogService)
     }
 
     test("펫 추가: 펫을 성공적으로 추가해야 한다") {
         val ownerUserId = ObjectId()
-        val petType = PetType.DOG
+        val petType = "DOG"
         val savedPet = mockk<Pet>()
 
+        every { petCatalogService.requireActive(petType) } returns Unit
         every { petRepository.save(any()) } returns savedPet
 
         val result = petService.addPet(ownerUserId, petType)
 
+        verify { petCatalogService.requireActive(petType) }
         verify { petRepository.save(any()) }
         result shouldBe savedPet
     }
@@ -47,13 +50,15 @@ class PetServiceTest : FunSpec({
         val existingPet = mockk<Pet>()
         val savedPet = mockk<Pet>()
 
-        every { existingPet.type } returns PetType.DOG
+        every { existingPet.type } returns "DOG"
         every { petRepository.findAllByOwnerUserId(ownerUserId) } returns listOf(existingPet)
+        every { petCatalogService.pickRandomActiveExcluding(listOf("DOG")) } returns "CAT"
         every { petRepository.save(any()) } returns savedPet
 
         val result = petService.addRandomPet(ownerUserId)
 
         verify { petRepository.findAllByOwnerUserId(ownerUserId) }
+        verify { petCatalogService.pickRandomActiveExcluding(listOf("DOG")) }
         verify { petRepository.save(any()) }
         result shouldBe savedPet
     }
@@ -84,10 +89,10 @@ class PetServiceTest : FunSpec({
         val ownerUserId = ObjectId()
         val petId = ObjectId()
         val user = User.register("testToken", "testUser")
-        val pet = Pet.register(PetType.DOG, ownerUserId)
+        val pet = Pet.register("DOG", ownerUserId)
         pet.exp = 3900 // 레벨 4, 레벨 5까지 100 경험치 필요
         user.foodQuantity = 5
-        
+
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
         every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
         every { userRepository.save(user) } returns user
@@ -127,10 +132,10 @@ class PetServiceTest : FunSpec({
         val ownerUserId = ObjectId()
         val petId = ObjectId()
         val user = User.register("testToken", "testUser")
-        val pet = Pet.register(PetType.DOG, ownerUserId)
+        val pet = Pet.register("DOG", ownerUserId)
         pet.exp = 3600 // 레벨 4, 레벨 5까지 400 경험치 필요
         user.toyQuantity = 3
-        
+
         every { userRepository.findByIdOrThrow(ownerUserId) } returns user
         every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
         every { userRepository.save(user) } returns user
@@ -272,8 +277,9 @@ class PetServiceTest : FunSpec({
             val existingPet = mockk<Pet>()
             val savedPet = mockk<Pet>()
 
-            every { existingPet.type } returns PetType.DOG
+            every { existingPet.type } returns "DOG"
             every { petRepository.findAllByOwnerUserId(userId) } returns listOf(existingPet)
+            every { petCatalogService.pickRandomActiveExcluding(listOf("DOG")) } returns "CAT"
             every { petRepository.save(any()) } returns savedPet
             every { userRepository.decreaseTickets(userId, 1) } returns Unit
 
@@ -290,8 +296,9 @@ class PetServiceTest : FunSpec({
             val existingPet = mockk<Pet>()
             val savedPet = mockk<Pet>()
 
-            every { existingPet.type } returns PetType.DOG
+            every { existingPet.type } returns "DOG"
             every { petRepository.findAllByOwnerUserId(userId) } returns listOf(existingPet)
+            every { petCatalogService.pickRandomActiveExcluding(listOf("DOG")) } returns "CAT"
             every { petRepository.save(any()) } returns savedPet
             every { userRepository.decreaseTickets(userId, 1) } throws UserTicketLackException("티켓이 부족합니다")
 
@@ -309,8 +316,9 @@ class PetServiceTest : FunSpec({
             val existingPet = mockk<Pet>()
             val savedPet = mockk<Pet>()
 
-            every { existingPet.type } returns PetType.DOG
+            every { existingPet.type } returns "DOG"
             every { petRepository.findAllByOwnerUserId(userId) } returns listOf(existingPet)
+            every { petCatalogService.pickRandomActiveExcluding(listOf("DOG")) } returns "CAT"
             every { petRepository.save(any()) } returns savedPet
             every { userRepository.decreaseTickets(userId, 1) } throws UserNotFoundException("유저를 찾을 수 없습니다")
 

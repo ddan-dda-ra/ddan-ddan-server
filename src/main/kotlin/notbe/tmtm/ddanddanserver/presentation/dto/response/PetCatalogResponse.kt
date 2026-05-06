@@ -18,7 +18,7 @@ data class PetCatalogResponse(
 }
 
 data class PetCatalogItemResponse(
-    val key: String,
+    val type: String,
     val name: String,
     val isActive: Boolean,
     val displayOrder: Int,
@@ -27,7 +27,7 @@ data class PetCatalogItemResponse(
     companion object {
         fun from(item: PetCatalogItem): PetCatalogItemResponse =
             PetCatalogItemResponse(
-                key = item.key,
+                type = item.type,
                 name = item.name,
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,

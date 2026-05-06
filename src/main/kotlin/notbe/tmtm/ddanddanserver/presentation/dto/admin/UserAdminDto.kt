@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.admin
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.bson.types.ObjectId
 import org.springframework.data.domain.Page
@@ -9,7 +8,7 @@ data class UserAdminSummaryResponse(
     val id: String,
     val name: String?,
     val mainPetId: String?,
-    val mainPetType: PetType?,
+    val mainPetType: String?,
     val tickets: Int,
     val purposeCalorie: Int,
     val lastLoginAt: String,
@@ -17,7 +16,7 @@ data class UserAdminSummaryResponse(
     companion object {
         fun from(
             user: User,
-            mainPetType: PetType? = null,
+            mainPetType: String? = null,
         ): UserAdminSummaryResponse =
             UserAdminSummaryResponse(
                 id = user.id.toHexString(),
@@ -35,7 +34,7 @@ data class UserAdminDetailResponse(
     val id: String,
     val name: String?,
     val mainPetId: String?,
-    val mainPetType: PetType?,
+    val mainPetType: String?,
     val purposeCalorie: Int,
     val foodQuantity: Int,
     val toyQuantity: Int,
@@ -47,7 +46,7 @@ data class UserAdminDetailResponse(
     companion object {
         fun from(
             user: User,
-            mainPetType: PetType? = null,
+            mainPetType: String? = null,
         ): UserAdminDetailResponse =
             UserAdminDetailResponse(
                 id = user.id.toHexString(),
@@ -72,7 +71,7 @@ data class UserAdminListResponse(
     companion object {
         fun from(
             page: Page<User>,
-            mainPetTypes: Map<ObjectId, PetType> = emptyMap(),
+            mainPetTypes: Map<ObjectId, String> = emptyMap(),
         ): UserAdminListResponse =
             UserAdminListResponse(
                 users =

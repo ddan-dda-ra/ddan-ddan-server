@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
@@ -15,10 +14,12 @@ import org.springframework.transaction.annotation.Transactional
 class PetService(
     private val petRepository: PetRepository,
     private val userRepository: UserRepository,
+    private val petCatalogService: PetCatalogService,
 ) {
     @Transactional
-    fun addPet(ownerUserId: ObjectId, petType: PetType): Pet {
-        return addPet(petType, ownerUserId)
+    fun addPet(ownerUserId: ObjectId, petType: String): Pet {
+        petCatalogService.requireActive(petType)
+        return addPetInternal(petType, ownerUserId)
     }
 
     @Transactional
@@ -27,7 +28,8 @@ class PetService(
             .map { it.type }
             .distinct()
 
-        return addPet(PetType.getRandomWithout(existingPetTypes), ownerUserId)
+        val picked = petCatalogService.pickRandomActiveExcluding(existingPetTypes)
+        return addPetInternal(picked, ownerUserId)
     }
 
     @Transactional
@@ -70,14 +72,15 @@ class PetService(
             .map { it.type }
             .distinct()
 
-        val addedPet = addPet(PetType.getRandomWithout(existingPetTypes), userId)
+        val picked = petCatalogService.pickRandomActiveExcluding(existingPetTypes)
+        val addedPet = addPetInternal(picked, userId)
         userRepository.decreaseTickets(userId, 1)
 
         return addedPet
     }
 
-    private fun addPet(
-        petType: PetType,
+    private fun addPetInternal(
+        petType: String,
         ownerUserId: ObjectId
     ) = petRepository.save(Pet.register(type = petType, ownerUserId = ownerUserId))
 

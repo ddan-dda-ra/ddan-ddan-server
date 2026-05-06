@@ -58,7 +58,7 @@ class PetCatalogControllerIntegrationTest {
                 pets =
                     listOf(
                         PetCatalogItem(
-                            key = "CAT",
+                            type = "CAT",
                             name = "고양이",
                             isActive = true,
                             displayOrder = 0,
@@ -80,7 +80,7 @@ class PetCatalogControllerIntegrationTest {
             .perform(get("/v1/pets/catalog"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.version").value("2026-05-04T12:00:00Z"))
-            .andExpect(jsonPath("$.pets[0].key").value("CAT"))
+            .andExpect(jsonPath("$.pets[0].type").value("CAT"))
             .andExpect(jsonPath("$.pets[0].name").value("고양이"))
             .andExpect(jsonPath("$.pets[0].levels.1.imageUrl").value("https://cdn/cat_level1.png"))
             .andExpect(header().string("X-Pet-Catalog-Version", "2026-05-04T12:00:00Z"))

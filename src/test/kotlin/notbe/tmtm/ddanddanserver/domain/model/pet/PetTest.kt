@@ -9,7 +9,7 @@ class PetTest : FunSpec({
     test("레벨 1: 경험치 0-499는 레벨 1이어야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 0
         )
@@ -26,7 +26,7 @@ class PetTest : FunSpec({
     test("레벨 2: 경험치 500-999는 레벨 2여야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 500
         )
@@ -43,7 +43,7 @@ class PetTest : FunSpec({
     test("레벨 3: 경험치 1000-1999는 레벨 3이어야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 1000
         )
@@ -60,7 +60,7 @@ class PetTest : FunSpec({
     test("레벨 4: 경험치 2000-3999는 레벨 4여야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 2000
         )
@@ -77,7 +77,7 @@ class PetTest : FunSpec({
     test("높은 레벨: 높은 경험치에서도 올바른 레벨을 반환해야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 4000
         )
@@ -94,7 +94,7 @@ class PetTest : FunSpec({
     test("경험치 퍼센트 계산: 레벨 1에서 올바르게 계산해야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 250
         )
@@ -107,7 +107,7 @@ class PetTest : FunSpec({
     test("경험치 퍼센트 계산: 레벨 2에서 올바르게 계산해야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 750
         )
@@ -120,7 +120,7 @@ class PetTest : FunSpec({
     test("최대 레벨 확인: isMaxLevel은 항상 false를 반환해야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 999999
         )
@@ -131,7 +131,7 @@ class PetTest : FunSpec({
     test("먹이주기: 먹이를 주면 경험치가 100 증가해야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 0
         )
@@ -145,7 +145,7 @@ class PetTest : FunSpec({
     test("놀아주기: 놀아주면 경험치가 500 증가해야 한다") {
         val pet = Pet(
             id = ObjectId(),
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = ObjectId(),
             exp = 0
         )

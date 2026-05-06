@@ -1,6 +1,7 @@
 package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogDuplicateKeyException
+import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogInactiveException
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
@@ -48,7 +49,7 @@ class PetCatalogService(
     fun getAllForAdmin(): List<PetCatalogItem> = repository.findAllByOrderByDisplayOrderAsc().map { it.toDomain() }
 
     fun create(
-        key: String,
+        type: String,
         name: String,
         isActive: Boolean,
         displayOrder: Int,
@@ -59,7 +60,7 @@ class PetCatalogService(
             try {
                 repository.save(
                     PetCatalogEntity(
-                        key = key,
+                        type = type,
                         name = name,
                         isActive = isActive,
                         displayOrder = displayOrder,
@@ -70,20 +71,20 @@ class PetCatalogService(
                 )
             } catch (e: DuplicateKeyException) {
                 // DB의 unique index가 race를 차단 — 이를 도메인 예외로 변환
-                throw PetCatalogDuplicateKeyException(key)
+                throw PetCatalogDuplicateKeyException(type)
             }
         invalidateVersionCache()
         return saved.toDomain()
     }
 
     fun update(
-        key: String,
+        type: String,
         name: String,
         isActive: Boolean,
         displayOrder: Int,
         levels: Map<Int, PetCatalogLevel>,
     ): PetCatalogItem {
-        val existing = repository.findByKey(key) ?: throw PetCatalogNotFoundException(key)
+        val existing = repository.findByType(type) ?: throw PetCatalogNotFoundException(type)
         val updated =
             repository.save(
                 existing.copy(
@@ -98,8 +99,22 @@ class PetCatalogService(
         return updated.toDomain()
     }
 
-    fun softDelete(key: String): PetCatalogItem {
-        val existing = repository.findByKey(key) ?: throw PetCatalogNotFoundException(key)
+    fun pickRandomActiveExcluding(excludedTypes: List<String>): String {
+        val active = repository.findAllByIsActiveTrueOrderByDisplayOrderAsc().map { it.type }
+        require(active.isNotEmpty()) { "no active pet species" }
+        val candidates = active.filterNot { it in excludedTypes }.ifEmpty { active }
+        return candidates.random()
+    }
+
+    fun getName(type: String): String? = repository.findByType(type)?.name
+
+    fun requireActive(type: String) {
+        val entity = repository.findByType(type) ?: throw PetCatalogNotFoundException(type)
+        if (!entity.isActive) throw PetCatalogInactiveException(type)
+    }
+
+    fun softDelete(type: String): PetCatalogItem {
+        val existing = repository.findByType(type) ?: throw PetCatalogNotFoundException(type)
         if (!existing.isActive) {
             return existing.toDomain()
         }

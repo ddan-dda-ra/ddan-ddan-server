@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.bson.Document
 import org.bson.types.ObjectId
@@ -111,8 +110,7 @@ class StatsAdminRepositoryImpl(
     ) {
         fun toDomainOrNull(): StatsPetTypeCount? {
             val typeName = id ?: return null
-            val type = runCatching { PetType.valueOf(typeName) }.getOrNull() ?: return null
-            return StatsPetTypeCount(type = type, count = count)
+            return StatsPetTypeCount(type = typeName, count = count)
         }
     }
 

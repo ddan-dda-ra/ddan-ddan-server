@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.application.service
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
@@ -47,17 +46,17 @@ class UserAdminService(
     }
 
     /**
-     * 여러 유저의 mainPet `PetType`을 한 번의 쿼리로 조회한다.
+     * 여러 유저의 mainPet 종류 키를 한 번의 쿼리로 조회한다.
      * 목록 응답에서 N+1을 피하기 위해 사용. mainPetId가 없거나 펫이 삭제된 유저는 결과 맵에 포함되지 않는다.
      */
-    fun getMainPetTypes(users: List<User>): Map<ObjectId, PetType> {
+    fun getMainPetTypes(users: List<User>): Map<ObjectId, String> {
         val mainPetIds = users.mapNotNull { it.mainPetId }
         if (mainPetIds.isEmpty()) return emptyMap()
         return petRepository.findAllById(mainPetIds).associate { it.id to it.type }
     }
 
-    /** 단일 유저의 mainPet `PetType`. mainPetId가 없거나 펫이 삭제된 경우 null. */
-    fun getMainPetType(user: User): PetType? {
+    /** 단일 유저의 mainPet 종류 키. mainPetId가 없거나 펫이 삭제된 경우 null. */
+    fun getMainPetType(user: User): String? {
         val petId = user.mainPetId ?: return null
         return petRepository.findById(petId).orElse(null)?.type
     }

@@ -5,6 +5,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.application.service.MonthlyRankingService
+import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.infrastructure.api.DiscordHookApi
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
@@ -45,6 +46,9 @@ class MonthlyRankingSchedulerIntegrationTest {
 
         @Bean
         fun discordHookApi(): DiscordHookApi = mockk(relaxed = true)
+
+        @Bean
+        fun petCatalogService(): PetCatalogService = mockk(relaxed = true)
     }
 
     @Autowired

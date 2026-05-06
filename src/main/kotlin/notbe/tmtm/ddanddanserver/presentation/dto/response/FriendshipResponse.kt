@@ -2,7 +2,6 @@ package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
 import notbe.tmtm.ddanddanserver.domain.model.friend.Friendship
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.UserMainPet
 import java.time.LocalDateTime
 
@@ -37,8 +36,8 @@ data class FriendUserInfo(
     val id: String,
     @Schema(description = "사용자 이름", example = "홍길동")
     val name: String?,
-    @Schema(description = "주 펫 종류", example = "DOG", nullable = true)
-    val mainPetType: PetType?,
+    @Schema(description = "주 펫 종류 (PetCatalog.type)", example = "DOG", nullable = true)
+    val mainPetType: String?,
     @Schema(description = "펫 레벨", example = "1", nullable = true)
     val petLevel: Int?,
 ) {

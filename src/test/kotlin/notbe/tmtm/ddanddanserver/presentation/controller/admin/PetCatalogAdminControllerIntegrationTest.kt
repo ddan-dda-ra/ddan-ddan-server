@@ -57,7 +57,7 @@ class PetCatalogAdminControllerIntegrationTest {
         isActive: Boolean = true,
     ): PetCatalogItem =
         PetCatalogItem(
-            key = key,
+            type = key,
             name = "이름-$key",
             isActive = isActive,
             displayOrder = order,
@@ -80,9 +80,9 @@ class PetCatalogAdminControllerIntegrationTest {
         mockMvc
             .perform(get("/v1/admin/pet-catalog"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.pets[0].key").value("CAT"))
+            .andExpect(jsonPath("$.pets[0].type").value("CAT"))
             .andExpect(jsonPath("$.pets[0].isActive").value(true))
-            .andExpect(jsonPath("$.pets[1].key").value("HIDDEN"))
+            .andExpect(jsonPath("$.pets[1].type").value("HIDDEN"))
             .andExpect(jsonPath("$.pets[1].isActive").value(false))
     }
 
@@ -91,7 +91,7 @@ class PetCatalogAdminControllerIntegrationTest {
         every { petCatalogService.create(any(), any(), any(), any(), any()) } returns item("QUOKKA", 5)
         val request =
             PetCatalogAdminCreateRequest(
-                key = "QUOKKA",
+                type = "QUOKKA",
                 name = "쿼카",
                 isActive = true,
                 displayOrder = 5,
@@ -107,7 +107,7 @@ class PetCatalogAdminControllerIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.key").value("QUOKKA"))
+            .andExpect(jsonPath("$.type").value("QUOKKA"))
 
         verify { petCatalogService.create("QUOKKA", "쿼카", true, 5, any()) }
     }

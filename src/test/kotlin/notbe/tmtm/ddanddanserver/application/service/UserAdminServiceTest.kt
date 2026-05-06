@@ -9,7 +9,7 @@ import io.mockk.slot
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
@@ -38,7 +38,7 @@ class UserAdminServiceTest : FunSpec({
             setting = UserSetting(),
         )
 
-    fun pet(type: PetType): Pet =
+    fun pet(type: String): Pet =
         Pet(
             id = ObjectId(),
             type = type,
@@ -55,7 +55,7 @@ class UserAdminServiceTest : FunSpec({
             id = ObjectId(),
             userId = userId,
             userName = "테스터",
-            petType = PetType.CAT,
+            petType = "CAT",
             calorie = calorie,
             purposeAchieved = calorie >= 100,
             toyGiven = false,
@@ -180,8 +180,8 @@ class UserAdminServiceTest : FunSpec({
     }
 
     test("getMainPetTypes는 mainPetId가 있는 유저들만 모아 한 번에 조회한다") {
-        val cat = pet(PetType.CAT)
-        val penguin = pet(PetType.PENGUIN)
+        val cat = pet("CAT")
+        val penguin = pet("PENGUIN")
         val u1 = user("a", mainPetId = cat.id)
         val u2 = user("b", mainPetId = null)
         val u3 = user("c", mainPetId = penguin.id)
@@ -192,7 +192,7 @@ class UserAdminServiceTest : FunSpec({
         val result = service.getMainPetTypes(listOf(u1, u2, u3))
 
         ids.captured.toList() shouldBe listOf(cat.id, penguin.id)
-        result shouldBe mapOf(cat.id to PetType.CAT, penguin.id to PetType.PENGUIN)
+        result shouldBe mapOf(cat.id to "CAT", penguin.id to "PENGUIN")
     }
 
     test("getMainPetTypes는 모든 유저가 mainPetId 없으면 펫 repository를 호출하지 않는다") {
@@ -213,11 +213,11 @@ class UserAdminServiceTest : FunSpec({
     }
 
     test("getMainPetType는 mainPetId가 있으면 펫의 type을 반환한다") {
-        val hamster = pet(PetType.HAMSTER)
+        val hamster = pet("HAMSTER")
         val u = user("hasPet", mainPetId = hamster.id)
         every { petRepository.findById(hamster.id) } returns Optional.of(hamster)
 
-        service.getMainPetType(u) shouldBe PetType.HAMSTER
+        service.getMainPetType(u) shouldBe "HAMSTER"
     }
 
     test("getMainPetType는 mainPetId가 있어도 펫이 미존재하면 null") {

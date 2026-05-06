@@ -34,7 +34,7 @@ class PetCatalogAdminController(
     ): PetCatalogAdminItemResponse =
         PetCatalogAdminItemResponse.from(
             petCatalogService.create(
-                key = request.key,
+                type = request.type,
                 name = request.name,
                 isActive = request.isActive,
                 displayOrder = request.displayOrder,
@@ -43,14 +43,14 @@ class PetCatalogAdminController(
         )
 
     @Operation(summary = "펫 카탈로그 수정")
-    @PutMapping("/{key}")
+    @PutMapping("/{type}")
     fun update(
-        @PathVariable key: String,
+        @PathVariable type: String,
         @RequestBody @Valid request: PetCatalogAdminUpdateRequest,
     ): PetCatalogAdminItemResponse =
         PetCatalogAdminItemResponse.from(
             petCatalogService.update(
-                key = key,
+                type = type,
                 name = request.name,
                 isActive = request.isActive,
                 displayOrder = request.displayOrder,
@@ -59,8 +59,8 @@ class PetCatalogAdminController(
         )
 
     @Operation(summary = "펫 카탈로그 비활성화 (soft delete)")
-    @DeleteMapping("/{key}")
+    @DeleteMapping("/{type}")
     fun softDelete(
-        @PathVariable key: String,
-    ): PetCatalogAdminItemResponse = PetCatalogAdminItemResponse.from(petCatalogService.softDelete(key))
+        @PathVariable type: String,
+    ): PetCatalogAdminItemResponse = PetCatalogAdminItemResponse.from(petCatalogService.softDelete(type))
 }

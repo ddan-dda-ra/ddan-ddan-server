@@ -8,7 +8,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.StatsAdminRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.StatsDailyCount
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.StatsPetTypeCount
@@ -32,9 +32,9 @@ class StatsAdminServiceTest : FunSpec({
             listOf(412L, 893L)
         every { repository.groupPetsByType() } returns
             listOf(
-                StatsPetTypeCount(PetType.CAT, 312),
-                StatsPetTypeCount(PetType.DOG, 280),
-                StatsPetTypeCount(PetType.HAMSTER, 200),
+                StatsPetTypeCount("CAT", 312),
+                StatsPetTypeCount("DOG", 280),
+                StatsPetTypeCount("HAMSTER", 200),
             )
         every { repository.getSignupSeries(any(), any()) } returns
             listOf(
@@ -52,7 +52,7 @@ class StatsAdminServiceTest : FunSpec({
         result.activeUsersToday shouldBe 412L
         result.activeUsersThisWeek shouldBe 893L
         result.petDistribution shouldHaveSize 3
-        result.petDistribution[0].type shouldBe PetType.CAT
+        result.petDistribution[0].type shouldBe "CAT"
         result.petDistribution[0].count shouldBe 312L
         result.signupSeries.map { it.date } shouldContainExactly listOf("2026-04-22", "2026-04-23")
     }
@@ -102,8 +102,8 @@ class StatsAdminServiceTest : FunSpec({
         every { repository.countDistinctActiveUsersBetween(any(), any()) } returns 0L
         every { repository.groupPetsByType() } returns
             listOf(
-                StatsPetTypeCount(PetType.PENGUIN, 100),
-                StatsPetTypeCount(PetType.MOLE, 50),
+                StatsPetTypeCount("PENGUIN", 100),
+                StatsPetTypeCount("MOLE", 50),
             )
         every { repository.getSignupSeries(any(), any()) } returns
             listOf(
@@ -114,7 +114,7 @@ class StatsAdminServiceTest : FunSpec({
 
         val result = service.getDashboard(seriesDays = 3)
 
-        result.petDistribution.map { it.type } shouldContainExactly listOf(PetType.PENGUIN, PetType.MOLE)
+        result.petDistribution.map { it.type } shouldContainExactly listOf("PENGUIN", "MOLE")
         result.signupSeries.map { it.count } shouldContainExactly listOf(0L, 5L, 0L)
 
         verify(exactly = 1) { repository.groupPetsByType() }

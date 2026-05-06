@@ -9,7 +9,7 @@ import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 
 data class PetCatalogAdminCreateRequest(
     @field:NotBlank
-    val key: String,
+    val type: String,
     @field:NotBlank
     val name: String,
     val isActive: Boolean = true,
@@ -52,7 +52,7 @@ data class PetCatalogLevelRequest(
 }
 
 data class PetCatalogAdminItemResponse(
-    val key: String,
+    val type: String,
     val name: String,
     val isActive: Boolean,
     val displayOrder: Int,
@@ -61,7 +61,7 @@ data class PetCatalogAdminItemResponse(
     companion object {
         fun from(item: PetCatalogItem): PetCatalogAdminItemResponse =
             PetCatalogAdminItemResponse(
-                key = item.key,
+                type = item.type,
                 name = item.name,
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,

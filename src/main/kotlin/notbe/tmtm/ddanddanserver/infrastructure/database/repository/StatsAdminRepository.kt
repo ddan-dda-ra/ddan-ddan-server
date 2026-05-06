@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import java.time.LocalDate
 
 interface StatsAdminRepository {
@@ -22,7 +21,7 @@ interface StatsAdminRepository {
 }
 
 data class StatsPetTypeCount(
-    val type: PetType,
+    val type: String,
     val count: Long,
 )
 

@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.domain.model.user
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import org.bson.types.ObjectId
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate
@@ -11,7 +10,7 @@ class DailyInfo(
     val id: ObjectId,
     val userId: ObjectId,
     var userName: String?,
-    var petType: PetType?,
+    var petType: String?,
     var calorie: Int,
     var purposeAchieved: Boolean = false,
     var toyGiven: Boolean = false,
@@ -25,7 +24,7 @@ class DailyInfo(
         fun create(
             userId: ObjectId,
             userName: String?,
-            petType: PetType?,
+            petType: String?,
             date: LocalDate = LocalDate.now(),
             calorie: Int = 0,
         ): DailyInfo =
