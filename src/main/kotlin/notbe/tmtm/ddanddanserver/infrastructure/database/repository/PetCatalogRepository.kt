@@ -9,7 +9,7 @@ interface PetCatalogRepository : MongoRepository<PetCatalogEntity, ObjectId> {
 
     fun findAllByOrderByDisplayOrderAsc(): List<PetCatalogEntity>
 
-    fun findByKey(key: String): PetCatalogEntity?
+    fun findByType(type: String): PetCatalogEntity?
 
-    fun existsByKey(key: String): Boolean
+    fun existsByType(type: String): Boolean
 }

@@ -7,7 +7,7 @@ import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 data class PetResponse(
     @Schema(description = "Pet 식별 ID", example = "ABCDEF1234567")
     val id: String,
-    @Schema(description = "Pet 종류 키 (PetCatalog.key)", example = "DOG")
+    @Schema(description = "Pet 종류 (PetCatalog.type)", example = "DOG")
     val type: String,
     @Schema(description = "Pet 레벨", example = "1")
     val level: Int,

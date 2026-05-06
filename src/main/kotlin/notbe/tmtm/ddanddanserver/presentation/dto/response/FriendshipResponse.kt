@@ -36,7 +36,7 @@ data class FriendUserInfo(
     val id: String,
     @Schema(description = "사용자 이름", example = "홍길동")
     val name: String?,
-    @Schema(description = "주 펫 종류 키 (PetCatalog.key)", example = "DOG", nullable = true)
+    @Schema(description = "주 펫 종류 (PetCatalog.type)", example = "DOG", nullable = true)
     val mainPetType: String?,
     @Schema(description = "펫 레벨", example = "1", nullable = true)
     val petLevel: Int?,

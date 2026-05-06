@@ -22,7 +22,7 @@ data class RankingResponse(
         val userId: String,
         @Schema(description = "유저 이름", example = "홍길동")
         val userName: String,
-        @Schema(description = "주 펫 종류 키 (PetCatalog.key)", example = "DOG")
+        @Schema(description = "주 펫 종류 (PetCatalog.type)", example = "DOG")
         val mainPetType: String,
         @Schema(description = "펫 레벨", example = "1")
         val petLevel: Int = 5,

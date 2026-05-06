@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank
 
 @Schema(description = "펫 추가 요청 DTO")
 data class AddPetRequest(
-    @Schema(description = "펫 종류 키 (PetCatalog.key)", example = "DOG")
+    @Schema(description = "펫 종류 (PetCatalog.type)", example = "DOG")
     @field:NotBlank
     val petType: String,
 )

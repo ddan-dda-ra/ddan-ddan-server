@@ -26,7 +26,7 @@ class PetCatalogServiceTest : FunSpec({
         updatedAt: Instant = Instant.parse("2026-05-04T00:00:00Z"),
     ): PetCatalogEntity =
         PetCatalogEntity(
-            key = key,
+            type = key,
             name = key,
             isActive = isActive,
             displayOrder = order,
@@ -58,7 +58,7 @@ class PetCatalogServiceTest : FunSpec({
 
         val result = service.getActiveCatalog()
 
-        result.pets.map { it.key } shouldBe listOf("CAT", "DOG")
+        result.pets.map { it.type } shouldBe listOf("CAT", "DOG")
     }
 
     test("getActiveCatalog의 version은 currentVersion과 동일하다 (헤더와 응답 body 버전 일치 보장)") {
@@ -122,7 +122,7 @@ class PetCatalogServiceTest : FunSpec({
 
         val result = service.getAllForAdmin()
 
-        result.map { it.key } shouldBe listOf("CAT", "HIDDEN")
+        result.map { it.type } shouldBe listOf("CAT", "HIDDEN")
         result[1].isActive shouldBe false
     }
 
@@ -155,9 +155,9 @@ class PetCatalogServiceTest : FunSpec({
         val result = service.create("QUOKKA", "쿼카", true, 5, sampleLevels())
 
         // Then — save + cache invalidate(다음 currentVersion이 새 값으로 조회)
-        result.key shouldBe "QUOKKA"
+        result.type shouldBe "QUOKKA"
         result.name shouldBe "쿼카"
-        saved.captured.key shouldBe "QUOKKA"
+        saved.captured.type shouldBe "QUOKKA"
         service.currentVersion() shouldBe newVersion
     }
 
@@ -173,14 +173,14 @@ class PetCatalogServiceTest : FunSpec({
 
     test("update는 기존 펫의 필드를 갱신한다") {
         val existing = entity("CAT", order = 0, isActive = true)
-        every { repository.findByKey("CAT") } returns existing
+        every { repository.findByType("CAT") } returns existing
         val saved = slot<PetCatalogEntity>()
         every { repository.save(capture(saved)) } answers { saved.captured }
         every { repository.findAll() } answers { listOf(saved.captured) }
 
         val result =
             service.update(
-                key = "CAT",
+                type = "CAT",
                 name = "갱신된고양이",
                 isActive = false,
                 displayOrder = 99,
@@ -193,7 +193,7 @@ class PetCatalogServiceTest : FunSpec({
     }
 
     test("update 시 존재하지 않는 키이면 PetCatalogNotFoundException") {
-        every { repository.findByKey("UNKNOWN") } returns null
+        every { repository.findByType("UNKNOWN") } returns null
 
         shouldThrow<PetCatalogNotFoundException> {
             service.update("UNKNOWN", "x", true, 0, sampleLevels())
@@ -202,7 +202,7 @@ class PetCatalogServiceTest : FunSpec({
 
     test("softDelete는 isActive=false로 갱신하고 동일 펫을 반환한다") {
         val existing = entity("CAT", order = 0, isActive = true)
-        every { repository.findByKey("CAT") } returns existing
+        every { repository.findByType("CAT") } returns existing
         val saved = slot<PetCatalogEntity>()
         every { repository.save(capture(saved)) } answers { saved.captured }
 
@@ -214,7 +214,7 @@ class PetCatalogServiceTest : FunSpec({
 
     test("softDelete 시 이미 비활성인 펫은 save 호출 없이 그대로 반환한다") {
         val existing = entity("HIDDEN", order = 0, isActive = false)
-        every { repository.findByKey("HIDDEN") } returns existing
+        every { repository.findByType("HIDDEN") } returns existing
 
         val result = service.softDelete("HIDDEN")
 
@@ -229,7 +229,7 @@ class PetCatalogServiceTest : FunSpec({
         service.currentVersion() shouldBe initialVersion
 
         // softDelete 동작
-        every { repository.findByKey("CAT") } returns entity("CAT", order = 0, isActive = true, updatedAt = initialVersion)
+        every { repository.findByType("CAT") } returns entity("CAT", order = 0, isActive = true, updatedAt = initialVersion)
         val newVersion = Instant.parse("2026-05-04T12:00:00Z")
         every { repository.save(any()) } returns entity("CAT", order = 0, isActive = false, updatedAt = newVersion)
         every { repository.findAll() } returns listOf(entity("CAT", order = 0, isActive = false, updatedAt = newVersion))

@@ -8,7 +8,7 @@ data class PetCatalog(
 )
 
 data class PetCatalogItem(
-    val key: String,
+    val type: String,
     val name: String,
     val isActive: Boolean,
     val displayOrder: Int,

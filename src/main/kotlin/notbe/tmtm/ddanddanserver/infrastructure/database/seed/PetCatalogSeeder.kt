@@ -20,7 +20,7 @@ class PetCatalogSeeder(
         val entities =
             DEFAULT_PETS.mapIndexed { index, pet ->
                 PetCatalogEntity(
-                    key = pet.key,
+                    type = pet.type,
                     name = pet.name,
                     isActive = true,
                     displayOrder = index,
@@ -48,7 +48,7 @@ class PetCatalogSeeder(
         }
 
     private data class PetSeed(
-        val key: String,
+        val type: String,
         val name: String,
         val species: String,
     )
@@ -58,11 +58,11 @@ class PetCatalogSeeder(
         private const val MAX_LEVEL = 5
         private val DEFAULT_PETS =
             listOf(
-                PetSeed(key = "CAT", name = "고양이", species = "cat"),
-                PetSeed(key = "HAMSTER", name = "햄스터", species = "hamster"),
-                PetSeed(key = "PENGUIN", name = "펭귄", species = "penguin"),
-                PetSeed(key = "DOG", name = "강아지", species = "dog"),
-                PetSeed(key = "MOLE", name = "두더지", species = "mole"),
+                PetSeed(type = "CAT", name = "고양이", species = "cat"),
+                PetSeed(type = "HAMSTER", name = "햄스터", species = "hamster"),
+                PetSeed(type = "PENGUIN", name = "펭귄", species = "penguin"),
+                PetSeed(type = "DOG", name = "강아지", species = "dog"),
+                PetSeed(type = "MOLE", name = "두더지", species = "mole"),
             )
     }
 }

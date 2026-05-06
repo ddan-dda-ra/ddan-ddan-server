@@ -14,7 +14,7 @@ data class PetCatalogEntity(
     @Id
     val id: ObjectId = ObjectId(),
     @Indexed(unique = true)
-    val key: String,
+    val type: String,
     val name: String,
     val isActive: Boolean = true,
     val displayOrder: Int = 0,
@@ -24,7 +24,7 @@ data class PetCatalogEntity(
 ) {
     fun toDomain(): PetCatalogItem =
         PetCatalogItem(
-            key = key,
+            type = type,
             name = name,
             isActive = isActive,
             displayOrder = displayOrder,
@@ -34,7 +34,7 @@ data class PetCatalogEntity(
     companion object {
         fun fromDomain(item: PetCatalogItem): PetCatalogEntity =
             PetCatalogEntity(
-                key = item.key,
+                type = item.type,
                 name = item.name,
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,
