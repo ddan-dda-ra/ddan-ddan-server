@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.common.util.logger
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.infrastructure.api.DiscordHookApi
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
@@ -16,6 +15,7 @@ import java.time.ZoneId
 class MonthlyRankingService(
     private val userStatRepository: UserStatRepository,
     private val discordHookApi: DiscordHookApi,
+    private val petCatalogService: PetCatalogService,
     @Value("\${spring.profiles.active:local}") private val activeProfile: String,
 ) {
     fun sendPreviousMonthRanking() {
@@ -94,17 +94,11 @@ class MonthlyRankingService(
         }.joinToString("\n")
     }
 
-    private fun petLabel(stat: UserStatEntity): String =
-        "${stat.mainPet.type.toKorean()} Lv.${stat.mainPet.getLevel()}"
-
-    private fun PetType.toKorean(): String =
-        when (this) {
-            PetType.CAT -> "고양이"
-            PetType.HAMSTER -> "햄스터"
-            PetType.PENGUIN -> "펭귄"
-            PetType.DOG -> "강아지"
-            PetType.MOLE -> "두더지"
-        }
+    private fun petLabel(stat: UserStatEntity): String {
+        val key = stat.mainPet.type
+        val label = petCatalogService.getName(key) ?: key
+        return "$label Lv.${stat.mainPet.getLevel()}"
+    }
 
     private fun medal(zeroBasedIndex: Int): String =
         when (zeroBasedIndex) {

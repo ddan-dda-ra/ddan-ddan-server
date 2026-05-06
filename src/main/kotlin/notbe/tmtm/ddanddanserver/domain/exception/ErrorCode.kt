@@ -106,6 +106,7 @@ enum class ErrorCode(
      */
     PET_CATALOG_NOT_FOUND("PC001", "펫 카탈로그 항목을 찾을 수 없습니다."),
     PET_CATALOG_DUPLICATE_KEY("PC002", "이미 존재하는 펫 카탈로그 키입니다."),
+    PET_CATALOG_INACTIVE("PC003", "비활성화된 펫 종류입니다."),
 
     /**
      * 어드민 인증 오류

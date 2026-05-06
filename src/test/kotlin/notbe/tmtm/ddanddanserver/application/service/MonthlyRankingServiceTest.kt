@@ -10,7 +10,6 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
@@ -22,12 +21,14 @@ import org.bson.types.ObjectId
 class MonthlyRankingServiceTest : FunSpec({
     lateinit var userStatRepository: UserStatRepository
     lateinit var discordHookApi: DiscordHookApi
+    lateinit var petCatalogService: PetCatalogService
     lateinit var service: MonthlyRankingService
 
     fun newService(activeProfile: String): MonthlyRankingService =
         MonthlyRankingService(
             userStatRepository = userStatRepository,
             discordHookApi = discordHookApi,
+            petCatalogService = petCatalogService,
             activeProfile = activeProfile,
         )
 
@@ -35,7 +36,7 @@ class MonthlyRankingServiceTest : FunSpec({
         name: String,
         totalCalories: Int,
         totalSucceededDays: Int,
-        petType: PetType,
+        petType: String,
         petExp: Int,
     ): UserStatEntity =
         UserStatEntity(
@@ -58,19 +59,25 @@ class MonthlyRankingServiceTest : FunSpec({
     beforeEach {
         userStatRepository = mockk()
         discordHookApi = mockk(relaxed = true)
+        petCatalogService = mockk()
+        every { petCatalogService.getName("CAT") } returns "고양이"
+        every { petCatalogService.getName("HAMSTER") } returns "햄스터"
+        every { petCatalogService.getName("PENGUIN") } returns "펭귄"
+        every { petCatalogService.getName("DOG") } returns "강아지"
+        every { petCatalogService.getName("MOLE") } returns "두더지"
         service = newService(activeProfile = "prod")
     }
 
     test("두 카테고리 TOP 3을 조회하여 디스코드에 2개 embed로 발송한다") {
         val caloriesTop = listOf(
-            userStat("하드윤", 9172, 2, PetType.MOLE, 2700),
-            userStat("맨정신", 9080, 17, PetType.MOLE, 3900),
-            userStat("성민쓰", 8083, 16, PetType.DOG, 8000),
+            userStat("하드윤", 9172, 2, "MOLE", 2700),
+            userStat("맨정신", 9080, 17, "MOLE", 3900),
+            userStat("성민쓰", 8083, 16, "DOG", 8000),
         )
         val daysTop = listOf(
-            userStat("맨정신", 9080, 17, PetType.MOLE, 3900),
-            userStat("성민쓰", 8083, 16, PetType.DOG, 8000),
-            userStat("아이보리", 4214, 12, PetType.MOLE, 3500),
+            userStat("맨정신", 9080, 17, "MOLE", 3900),
+            userStat("성민쓰", 8083, 16, "DOG", 8000),
+            userStat("아이보리", 4214, 12, "MOLE", 3500),
         )
         every {
             userStatRepository.findRankingByDateRange(RankingCriteria.TOTAL_CALORIES, any(), any(), 3)
@@ -135,11 +142,11 @@ class MonthlyRankingServiceTest : FunSpec({
         captured.captured.embeds!![1].footer!!.text shouldContain "💻 TEST ·"
     }
 
-    test("모든 펫 타입은 한국어로 표기된다") {
+    test("모든 펫 타입은 카탈로그 표시명으로 표기된다") {
         val sample = listOf(
-            userStat("a", 100, 1, PetType.CAT, 0),
-            userStat("b", 100, 1, PetType.HAMSTER, 0),
-            userStat("c", 100, 1, PetType.PENGUIN, 0),
+            userStat("a", 100, 1, "CAT", 0),
+            userStat("b", 100, 1, "HAMSTER", 0),
+            userStat("c", 100, 1, "PENGUIN", 0),
         )
         every {
             userStatRepository.findRankingByDateRange(RankingCriteria.TOTAL_CALORIES, any(), any(), 3)
@@ -156,6 +163,23 @@ class MonthlyRankingServiceTest : FunSpec({
         desc shouldContain "고양이"
         desc shouldContain "햄스터"
         desc shouldContain "펭귄"
+    }
+
+    test("카탈로그에 없는 키는 키 자체를 표시한다 (fallback)") {
+        every { petCatalogService.getName("UNKNOWN") } returns null
+        val sample = listOf(userStat("x", 100, 1, "UNKNOWN", 0))
+        every {
+            userStatRepository.findRankingByDateRange(RankingCriteria.TOTAL_CALORIES, any(), any(), 3)
+        } returns sample
+        every {
+            userStatRepository.findRankingByDateRange(RankingCriteria.TOTAL_SUCCEEDED_DAYS, any(), any(), 3)
+        } returns emptyList()
+        val captured = slot<DiscordHookApi.Request>()
+        every { discordHookApi.sendMessage(capture(captured)) } returns Unit
+
+        service.sendPreviousMonthRanking()
+
+        captured.captured.embeds!![0].description!! shouldContain "UNKNOWN"
     }
 
     test("데이터가 없으면 description에 안내 문구가 들어간다") {

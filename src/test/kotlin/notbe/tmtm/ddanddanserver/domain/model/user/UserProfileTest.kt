@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import notbe.tmtm.ddanddanserver.domain.model.cheer.Cheer
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+
 import org.bson.types.ObjectId
 import java.time.LocalDate
 
@@ -23,7 +23,7 @@ class UserProfileTest : FunSpec({
 
         val mainPet = Pet(
             id = ObjectId(),
-            type = PetType.CAT,
+            type = "CAT",
             ownerUserId = userId,
             exp = 100
         )
@@ -31,7 +31,7 @@ class UserProfileTest : FunSpec({
         val todayDailyInfo = DailyInfo.create(
             userId = userId,
             userName = "테스트유저",
-            petType = PetType.CAT,
+            petType = "CAT",
             date = today
         )
 
@@ -63,7 +63,7 @@ class UserProfileTest : FunSpec({
 
         val mainPet = Pet(
             id = ObjectId(),
-            type = PetType.CAT,
+            type = "CAT",
             ownerUserId = userId,
             exp = 100
         )
@@ -71,7 +71,7 @@ class UserProfileTest : FunSpec({
         val todayDailyInfo = DailyInfo.create(
             userId = userId,
             userName = "테스트유저",
-            petType = PetType.CAT,
+            petType = "CAT",
             date = today
         )
 
@@ -103,7 +103,7 @@ class UserProfileTest : FunSpec({
 
         val mainPet = Pet(
             id = ObjectId(),
-            type = PetType.CAT,
+            type = "CAT",
             ownerUserId = userId,
             exp = 100
         )
@@ -111,7 +111,7 @@ class UserProfileTest : FunSpec({
         val todayDailyInfo = DailyInfo.create(
             userId = userId,
             userName = "테스트유저",
-            petType = PetType.CAT,
+            petType = "CAT",
             date = today
         )
 
@@ -141,7 +141,7 @@ class UserProfileTest : FunSpec({
 
         val mainPet = Pet(
             id = ObjectId(),
-            type = PetType.CAT,
+            type = "CAT",
             ownerUserId = userId,
             exp = 100
         )
@@ -149,7 +149,7 @@ class UserProfileTest : FunSpec({
         val todayDailyInfo = DailyInfo.create(
             userId = userId,
             userName = "테스트유저",
-            petType = PetType.CAT
+            petType = "CAT"
         )
 
         val userProfile = UserProfile(
@@ -175,7 +175,7 @@ class UserProfileTest : FunSpec({
 
         val mainPet = Pet(
             id = ObjectId(),
-            type = PetType.CAT,
+            type = "CAT",
             ownerUserId = userId,
             exp = 100
         )
@@ -183,7 +183,7 @@ class UserProfileTest : FunSpec({
         val todayDailyInfo = DailyInfo.create(
             userId = userId,
             userName = "테스트유저",
-            petType = PetType.CAT
+            petType = "CAT"
         )
 
         val userProfile = UserProfile(

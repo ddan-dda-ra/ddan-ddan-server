@@ -2,7 +2,6 @@ package notbe.tmtm.ddanddanserver.domain.model.ranking
 
 import notbe.tmtm.ddanddanserver.domain.exception.NotFoundUserStatException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.Test
@@ -201,7 +200,7 @@ class RankingResultTest {
 
     private fun createUser(name: String): User = User.register("deviceToken-${name.lowercase()}", name)
 
-    private fun createPet(ownerId: ObjectId): Pet = Pet.register(PetType.getRandom(), ownerId)
+    private fun createPet(ownerId: ObjectId): Pet = Pet.register(listOf("CAT", "DOG", "HAMSTER", "PENGUIN", "MOLE").random(), ownerId)
 
     private fun createUserStat(
         user: User,

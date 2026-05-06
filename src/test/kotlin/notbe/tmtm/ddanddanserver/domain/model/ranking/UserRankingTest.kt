@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.model.ranking
 
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.Test
@@ -99,9 +98,9 @@ class UserRankingTest {
     fun `다양한 펫 타입과 함께 작동해야 한다`() {
         // given
         val dogUser = createUser("강아지주인")
-        val dogPet = Pet.register(PetType.DOG, dogUser.id)
+        val dogPet = Pet.register("DOG", dogUser.id)
         val catUser = createUser("고양이주인")
-        val catPet = Pet.register(PetType.CAT, catUser.id)
+        val catPet = Pet.register("CAT", catUser.id)
 
         // when
         val dogRanking =
@@ -124,7 +123,7 @@ class UserRankingTest {
 
     private fun createUser(name: String): User = User.register("deviceToken-${name.lowercase()}", name)
 
-    private fun createPet(ownerId: ObjectId): Pet = Pet.register(PetType.getRandom(), ownerId)
+    private fun createPet(ownerId: ObjectId): Pet = Pet.register(listOf("CAT", "DOG", "HAMSTER", "PENGUIN", "MOLE").random(), ownerId)
 
     private fun createUserStat(
         user: User,

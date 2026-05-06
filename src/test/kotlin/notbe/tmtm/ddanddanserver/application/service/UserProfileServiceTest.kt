@@ -7,7 +7,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.model.cheer.Cheer
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
@@ -62,7 +62,7 @@ class UserProfileServiceTest : FunSpec({
 
         val mainPet = Pet(
             id = mainPetId,
-            type = PetType.CAT,
+            type = "CAT",
             ownerUserId = userId,
             exp = 100
         )
@@ -70,7 +70,7 @@ class UserProfileServiceTest : FunSpec({
         val dailyInfo = DailyInfo.create(
             userId = userId,
             userName = "테스트유저",
-            petType = PetType.CAT,
+            petType = "CAT",
             date = today
         )
 
@@ -115,7 +115,7 @@ class UserProfileServiceTest : FunSpec({
 
         val mainPet = Pet(
             id = mainPetId,
-            type = PetType.DOG,
+            type = "DOG",
             ownerUserId = userId,
             exp = 200
         )
@@ -134,7 +134,7 @@ class UserProfileServiceTest : FunSpec({
         result.mainPet shouldBe mainPet
         result.todayDailyInfo.userId shouldBe userId
         result.todayDailyInfo.userName shouldBe "테스트유저"
-        result.todayDailyInfo.petType shouldBe PetType.DOG
+        result.todayDailyInfo.petType shouldBe "DOG"
         result.todayDailyInfo.date shouldBe today
         result.todayDailyInfo.calorie shouldBe 0
         result.receivedCheers shouldBe cheers
@@ -163,7 +163,7 @@ class UserProfileServiceTest : FunSpec({
 
         val mainPet = Pet(
             id = mainPetId,
-            type = PetType.MOLE,
+            type = "MOLE",
             ownerUserId = userId,
             exp = 50
         )
@@ -171,7 +171,7 @@ class UserProfileServiceTest : FunSpec({
         val dailyInfo = DailyInfo.create(
             userId = userId,
             userName = "테스트유저",
-            petType = PetType.MOLE,
+            petType = "MOLE",
             date = today
         )
 

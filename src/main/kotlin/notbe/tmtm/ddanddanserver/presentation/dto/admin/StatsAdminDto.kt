@@ -1,7 +1,5 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.admin
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
-
 data class StatsAdminResponse(
     val totalUsers: Long,
     val newUsersToday: Long,
@@ -15,7 +13,7 @@ data class StatsAdminResponse(
 )
 
 data class PetCountResponse(
-    val type: PetType,
+    val type: String,
     val count: Long,
 )
 

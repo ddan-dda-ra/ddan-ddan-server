@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.admin
 
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 
 data class DailyCaloriesAdminListResponse(
@@ -30,7 +29,7 @@ data class DailyCaloriesAdminItemResponse(
     val calorie: Int,
     val purposeAchieved: Boolean,
     val toyGiven: Boolean,
-    val petType: PetType?,
+    val petType: String?,
 ) {
     companion object {
         fun from(info: DailyInfo): DailyCaloriesAdminItemResponse =

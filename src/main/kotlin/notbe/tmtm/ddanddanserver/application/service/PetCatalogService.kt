@@ -1,6 +1,7 @@
 package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogDuplicateKeyException
+import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogInactiveException
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
@@ -96,6 +97,20 @@ class PetCatalogService(
             )
         invalidateVersionCache()
         return updated.toDomain()
+    }
+
+    fun pickRandomActiveExcluding(excludedKeys: List<String>): String {
+        val active = repository.findAllByIsActiveTrueOrderByDisplayOrderAsc().map { it.key }
+        require(active.isNotEmpty()) { "no active pet species" }
+        val candidates = active.filterNot { it in excludedKeys }.ifEmpty { active }
+        return candidates.random()
+    }
+
+    fun getName(key: String): String? = repository.findByKey(key)?.name
+
+    fun requireActive(key: String) {
+        val entity = repository.findByKey(key) ?: throw PetCatalogNotFoundException(key)
+        if (!entity.isActive) throw PetCatalogInactiveException(key)
     }
 
     fun softDelete(key: String): PetCatalogItem {

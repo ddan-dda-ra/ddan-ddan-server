@@ -4,7 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
+
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.*
@@ -88,7 +88,7 @@ class UserPetServiceTest {
         }
         val pet = mockk<Pet> {
             every { id } returns petId
-            every { type } returns PetType.DOG
+            every { type } returns "DOG"
         }
         val savedUser = mockk<User>()
 
@@ -117,7 +117,7 @@ class UserPetServiceTest {
         }
         val pet = mockk<Pet> {
             every { id } returns petId
-            every { type } returns PetType.CAT
+            every { type } returns "CAT"
         }
         val dailyInfo = mockk<DailyInfo>(relaxed = true)
         val savedUser = mockk<User>()
@@ -135,7 +135,7 @@ class UserPetServiceTest {
         // then
         verify { user.setMainPet(petId) }
         verify { userRepository.save(user) }
-        verify { dailyInfo.petType = PetType.CAT }
+        verify { dailyInfo.petType = "CAT" }
         verify { dailyInfoRepository.save(dailyInfo) }
         assertEquals(savedUser, result.first)
         assertEquals(pet, result.second)
@@ -151,7 +151,7 @@ class UserPetServiceTest {
         }
         val pet = mockk<Pet> {
             every { id } returns petId
-            every { type } returns PetType.DOG
+            every { type } returns "DOG"
         }
         val savedUser = mockk<User>()
 

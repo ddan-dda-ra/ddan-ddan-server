@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
@@ -230,7 +229,7 @@ class RankingServiceTest {
 
     private fun createUser(name: String): User = User.register("deviceToken-${name.lowercase()}", name)
 
-    private fun createPet(ownerId: ObjectId): Pet = Pet.register(PetType.getRandom(), ownerId)
+    private fun createPet(ownerId: ObjectId): Pet = Pet.register(listOf("CAT", "DOG", "HAMSTER", "PENGUIN", "MOLE").random(), ownerId)
 
     private fun createUserStatEntity(
         user: User,

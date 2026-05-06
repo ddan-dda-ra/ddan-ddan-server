@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import notbe.tmtm.ddanddanserver.domain.model.pet.PetType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.*
 
 @Schema(description = "랭킹 조회 응답 DTO")
@@ -23,8 +22,8 @@ data class RankingResponse(
         val userId: String,
         @Schema(description = "유저 이름", example = "홍길동")
         val userName: String,
-        @Schema(description = "주 펫 종류", example = "DOG")
-        val mainPetType: PetType,
+        @Schema(description = "주 펫 종류 키 (PetCatalog.key)", example = "DOG")
+        val mainPetType: String,
         @Schema(description = "펫 레벨", example = "1")
         val petLevel: Int = 5,
         @Schema(description = "총 칼로리", example = "1000")

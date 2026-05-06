@@ -7,7 +7,7 @@ import kotlin.math.pow
 @Document("pets")
 class Pet(
     val id: ObjectId,
-    val type: PetType,
+    val type: String,
     val ownerUserId: ObjectId,
     var exp: Int,
 ) {
@@ -79,7 +79,7 @@ class Pet(
         private const val BASE_EXP = 500
 
         fun register(
-            type: PetType,
+            type: String,
             ownerUserId: ObjectId,
         ): Pet =
             Pet(
