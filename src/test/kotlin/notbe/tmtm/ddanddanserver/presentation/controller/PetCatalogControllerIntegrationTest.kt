@@ -63,9 +63,9 @@ class PetCatalogControllerIntegrationTest {
                             name = "고양이",
                             backgrounds =
                                 PetCatalogBackgrounds(
-                                    home = "https://cdn/cat/backgrounds/home.png",
-                                    homeCompact = "https://cdn/cat/backgrounds/home_compact.png",
-                                    friendCard = "https://cdn/cat/backgrounds/friend_card.png",
+                                    homeUrl = "https://cdn/cat/backgrounds/home.png",
+                                    homeCompactUrl = "https://cdn/cat/backgrounds/home_compact.png",
+                                    friendCardUrl = "https://cdn/cat/backgrounds/friend_card.png",
                                 ),
                             isActive = true,
                             displayOrder = 0,

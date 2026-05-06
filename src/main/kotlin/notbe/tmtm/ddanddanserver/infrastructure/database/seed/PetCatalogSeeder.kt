@@ -42,17 +42,17 @@ class PetCatalogSeeder(
 
     private fun buildBackgrounds(species: String): PetCatalogBackgroundsEntity =
         PetCatalogBackgroundsEntity(
-            home = "$CDN_BASE/$species/backgrounds/home.png?v=$INITIAL_VERSION",
-            homeCompact = "$CDN_BASE/$species/backgrounds/home_compact.png?v=$INITIAL_VERSION",
-            friendCard = "$CDN_BASE/$species/backgrounds/friend_card.png?v=$INITIAL_VERSION",
+            homeUrl = "$CDN_BASE/$species/backgrounds/home.png",
+            homeCompactUrl = "$CDN_BASE/$species/backgrounds/home_compact.png",
+            friendCardUrl = "$CDN_BASE/$species/backgrounds/friend_card.png",
         )
 
     private fun buildLevels(species: String): Map<Int, PetCatalogLevelEntity> =
         (1..MAX_LEVEL).associateWith { level ->
             PetCatalogLevelEntity(
-                imageUrl = "$CDN_BASE/$species/level$level.png?v=$INITIAL_VERSION",
-                lottieDefaultUrl = "$CDN_BASE/$species/level${level}_default.json?v=$INITIAL_VERSION",
-                lottiePlayEatUrl = "$CDN_BASE/$species/level${level}_play_eat.json?v=$INITIAL_VERSION",
+                imageUrl = "$CDN_BASE/$species/level$level.png",
+                lottieDefaultUrl = "$CDN_BASE/$species/level${level}_default.json",
+                lottiePlayEatUrl = "$CDN_BASE/$species/level${level}_play_eat.json",
             )
         }
 
@@ -65,9 +65,6 @@ class PetCatalogSeeder(
     companion object {
         private const val CDN_BASE = "https://ddan-ddan-cdn.ddmz.org"
         private const val MAX_LEVEL = 5
-
-        // 자산 캐시 무효화용 버전 쿼리. R2의 자산을 교체할 때마다 어드민에서 URL을 갱신해 v를 증분.
-        private const val INITIAL_VERSION = 1
         private val DEFAULT_PETS =
             listOf(
                 PetSeed(type = "CAT", name = "고양이", species = "cat"),

@@ -42,17 +42,17 @@ data class PetCatalogAdminUpdateRequest(
 
 data class PetCatalogBackgroundsRequest(
     @field:NotBlank
-    val home: String,
+    val homeUrl: String,
     @field:NotBlank
-    val homeCompact: String,
+    val homeCompactUrl: String,
     @field:NotBlank
-    val friendCard: String,
+    val friendCardUrl: String,
 ) {
     fun toDomain(): PetCatalogBackgrounds =
         PetCatalogBackgrounds(
-            home = home,
-            homeCompact = homeCompact,
-            friendCard = friendCard,
+            homeUrl = homeUrl,
+            homeCompactUrl = homeCompactUrl,
+            friendCardUrl = friendCardUrl,
         )
 }
 
@@ -94,16 +94,16 @@ data class PetCatalogAdminItemResponse(
 }
 
 data class PetCatalogBackgroundsResponse(
-    val home: String,
-    val homeCompact: String,
-    val friendCard: String,
+    val homeUrl: String,
+    val homeCompactUrl: String,
+    val friendCardUrl: String,
 ) {
     companion object {
         fun from(backgrounds: PetCatalogBackgrounds): PetCatalogBackgroundsResponse =
             PetCatalogBackgroundsResponse(
-                home = backgrounds.home,
-                homeCompact = backgrounds.homeCompact,
-                friendCard = backgrounds.friendCard,
+                homeUrl = backgrounds.homeUrl,
+                homeCompactUrl = backgrounds.homeCompactUrl,
+                friendCardUrl = backgrounds.friendCardUrl,
             )
     }
 }

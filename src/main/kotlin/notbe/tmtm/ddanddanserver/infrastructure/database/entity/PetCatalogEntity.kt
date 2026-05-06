@@ -48,23 +48,23 @@ data class PetCatalogEntity(
 }
 
 data class PetCatalogBackgroundsEntity(
-    val home: String,
-    val homeCompact: String,
-    val friendCard: String,
+    val homeUrl: String,
+    val homeCompactUrl: String,
+    val friendCardUrl: String,
 ) {
     fun toDomain(): PetCatalogBackgrounds =
         PetCatalogBackgrounds(
-            home = home,
-            homeCompact = homeCompact,
-            friendCard = friendCard,
+            homeUrl = homeUrl,
+            homeCompactUrl = homeCompactUrl,
+            friendCardUrl = friendCardUrl,
         )
 
     companion object {
         fun fromDomain(backgrounds: PetCatalogBackgrounds): PetCatalogBackgroundsEntity =
             PetCatalogBackgroundsEntity(
-                home = backgrounds.home,
-                homeCompact = backgrounds.homeCompact,
-                friendCard = backgrounds.friendCard,
+                homeUrl = backgrounds.homeUrl,
+                homeCompactUrl = backgrounds.homeCompactUrl,
+                friendCardUrl = backgrounds.friendCardUrl,
             )
     }
 }

@@ -32,9 +32,9 @@ class PetCatalogServiceTest : FunSpec({
             name = key,
             backgrounds =
                 PetCatalogBackgroundsEntity(
-                    home = "https://cdn/$key/backgrounds/home.png",
-                    homeCompact = "https://cdn/$key/backgrounds/home_compact.png",
-                    friendCard = "https://cdn/$key/backgrounds/friend_card.png",
+                    homeUrl = "https://cdn/$key/backgrounds/home.png",
+                    homeCompactUrl = "https://cdn/$key/backgrounds/home_compact.png",
+                    friendCardUrl = "https://cdn/$key/backgrounds/friend_card.png",
                 ),
             isActive = isActive,
             displayOrder = order,
@@ -145,9 +145,9 @@ class PetCatalogServiceTest : FunSpec({
 
     fun sampleBackgrounds(): PetCatalogBackgrounds =
         PetCatalogBackgrounds(
-            home = "https://cdn/x/backgrounds/home.png",
-            homeCompact = "https://cdn/x/backgrounds/home_compact.png",
-            friendCard = "https://cdn/x/backgrounds/friend_card.png",
+            homeUrl = "https://cdn/x/backgrounds/home.png",
+            homeCompactUrl = "https://cdn/x/backgrounds/home_compact.png",
+            friendCardUrl = "https://cdn/x/backgrounds/friend_card.png",
         )
 
     test("create는 신규 펫을 저장하고 versionCache를 invalidate한다") {

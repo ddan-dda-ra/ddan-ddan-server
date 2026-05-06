@@ -63,9 +63,9 @@ class PetCatalogAdminControllerIntegrationTest {
             name = "이름-$key",
             backgrounds =
                 PetCatalogBackgrounds(
-                    home = "https://cdn/x/backgrounds/home.png?v=1",
-                    homeCompact = "https://cdn/x/backgrounds/home_compact.png?v=1",
-                    friendCard = "https://cdn/x/backgrounds/friend_card.png?v=1",
+                    homeUrl = "https://cdn/x/backgrounds/home.png",
+                    homeCompactUrl = "https://cdn/x/backgrounds/home_compact.png",
+                    friendCardUrl = "https://cdn/x/backgrounds/friend_card.png",
                 ),
             isActive = isActive,
             displayOrder = order,
@@ -82,9 +82,9 @@ class PetCatalogAdminControllerIntegrationTest {
 
     private fun sampleBackgroundsRequest(): PetCatalogBackgroundsRequest =
         PetCatalogBackgroundsRequest(
-            home = "u/backgrounds/home.png?v=1",
-            homeCompact = "u/backgrounds/home_compact.png?v=1",
-            friendCard = "u/backgrounds/friend_card.png?v=1",
+            homeUrl = "u/backgrounds/home.png",
+            homeCompactUrl = "u/backgrounds/home_compact.png",
+            friendCardUrl = "u/backgrounds/friend_card.png",
         )
 
     @Test
@@ -97,7 +97,7 @@ class PetCatalogAdminControllerIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.pets[0].type").value("CAT"))
             .andExpect(jsonPath("$.pets[0].isActive").value(true))
-            .andExpect(jsonPath("$.pets[0].backgrounds.home").value("https://cdn/x/backgrounds/home.png?v=1"))
+            .andExpect(jsonPath("$.pets[0].backgrounds.homeUrl").value("https://cdn/x/backgrounds/home.png"))
             .andExpect(jsonPath("$.pets[1].type").value("HIDDEN"))
             .andExpect(jsonPath("$.pets[1].isActive").value(false))
     }

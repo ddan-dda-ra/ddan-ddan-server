@@ -17,9 +17,9 @@ data class PetCatalogItem(
 )
 
 data class PetCatalogBackgrounds(
-    val home: String,
-    val homeCompact: String,
-    val friendCard: String,
+    val homeUrl: String,
+    val homeCompactUrl: String,
+    val friendCardUrl: String,
 )
 
 data class PetCatalogLevel(
