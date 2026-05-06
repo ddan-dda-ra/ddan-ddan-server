@@ -75,7 +75,7 @@ class WebSecurityConfig(
     }
 
     @Bean
-    @Order(1)
+    @Order(2)
     fun apiFilterChain(
         http: HttpSecurity,
         jwtTokenProvider: JWTTokenProvider,
@@ -104,7 +104,7 @@ class WebSecurityConfig(
             }.build()
 
     @Bean
-    @Order(2)
+    @Order(1)
     fun loginFilterChain(httpSecurity: HttpSecurity): SecurityFilterChain =
         httpSecurity
             .securityMatcher("/v1/auth/**", "/swagger-ui/index.html")
