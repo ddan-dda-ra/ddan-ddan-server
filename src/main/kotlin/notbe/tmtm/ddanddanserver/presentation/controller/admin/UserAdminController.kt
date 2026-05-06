@@ -35,21 +35,27 @@ class UserAdminController(
         @RequestParam(defaultValue = "20") @Min(1) @Max(100) size: Int,
         @RequestParam(required = false) keyword: String?,
         @RequestParam(defaultValue = "LATEST_LOGIN") sort: UserAdminSortType,
-    ): UserAdminListResponse =
-        UserAdminListResponse.from(
+    ): UserAdminListResponse {
+        val pageResult =
             userAdminService.searchUsers(
                 keyword = keyword,
                 sortType = sort,
                 page = page,
                 size = size,
-            ),
-        )
+            )
+        val mainPetTypes = userAdminService.getMainPetTypes(pageResult.content)
+        return UserAdminListResponse.from(pageResult, mainPetTypes)
+    }
 
     @Operation(summary = "유저 상세")
     @GetMapping("/{id}")
     fun detail(
         @PathVariable id: String,
-    ): UserAdminDetailResponse = UserAdminDetailResponse.from(userAdminService.getUser(ObjectId(id)))
+    ): UserAdminDetailResponse {
+        val user = userAdminService.getUser(ObjectId(id))
+        val mainPetType = userAdminService.getMainPetType(user)
+        return UserAdminDetailResponse.from(user, mainPetType)
+    }
 
     @Operation(
         summary = "유저 일별 칼로리 기록 조회",
