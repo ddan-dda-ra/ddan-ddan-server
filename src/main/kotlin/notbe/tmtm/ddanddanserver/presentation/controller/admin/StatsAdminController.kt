@@ -2,6 +2,7 @@ package notbe.tmtm.ddanddanserver.presentation.controller.admin
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
@@ -26,6 +27,8 @@ class StatsAdminController(
             "전체/신규/활성 유저, 펫 분포, 일별 가입 추이를 한 번에 반환. " +
                 "날짜는 KST(Asia/Seoul) 기준. 가입 시각은 ObjectId timestamp 사용.",
     )
+    @ApiResponse(responseCode = "200", description = "통계 대시보드 조회 성공")
+    @ApiResponse(responseCode = "400", description = "seriesDays 파라미터 오류 (1~90 범위 외)")
     @GetMapping("/dashboard")
     fun dashboard(
         @Parameter(description = "가입 추이 시리즈 길이(일). default 14, max 90")

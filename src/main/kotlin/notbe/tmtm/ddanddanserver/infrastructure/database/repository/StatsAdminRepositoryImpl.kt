@@ -33,6 +33,9 @@ class StatsAdminRepositoryImpl(
     }
 
     override fun countDistinctActiveUsersBetween(from: LocalDate, to: LocalDate): Long {
+        // daily_calories.date는 LocalDate(시간 정보 없음) 타입으로 mongo에 저장되어
+        // 쿼리/저장 모두 동일 직렬화를 거치므로 KST 별도 변환이 불필요.
+        // getSignupSeries는 _id(UTC ObjectId timestamp) 기반이라 KST 변환이 필요한 것과 다른 케이스.
         val agg = Aggregation.newAggregation(
             Aggregation.match(Criteria.where("date").gte(from).lte(to)),
             Aggregation.group("userId"),
