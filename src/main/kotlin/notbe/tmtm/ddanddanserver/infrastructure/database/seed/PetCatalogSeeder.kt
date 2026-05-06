@@ -2,6 +2,7 @@ package notbe.tmtm.ddanddanserver.infrastructure.database.seed
 
 import jakarta.annotation.PostConstruct
 import notbe.tmtm.ddanddanserver.common.util.logger
+import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogBackgroundsEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
@@ -22,6 +23,7 @@ class PetCatalogSeeder(
                 PetCatalogEntity(
                     type = pet.type,
                     name = pet.name,
+                    backgrounds = buildBackgrounds(pet.species),
                     isActive = true,
                     displayOrder = index,
                     levels = buildLevels(pet.species),
@@ -38,12 +40,19 @@ class PetCatalogSeeder(
         }
     }
 
+    private fun buildBackgrounds(species: String): PetCatalogBackgroundsEntity =
+        PetCatalogBackgroundsEntity(
+            home = "$CDN_BASE/$species/backgrounds/home.png?v=$INITIAL_VERSION",
+            homeCompact = "$CDN_BASE/$species/backgrounds/home_compact.png?v=$INITIAL_VERSION",
+            friendCard = "$CDN_BASE/$species/backgrounds/friend_card.png?v=$INITIAL_VERSION",
+        )
+
     private fun buildLevels(species: String): Map<Int, PetCatalogLevelEntity> =
         (1..MAX_LEVEL).associateWith { level ->
             PetCatalogLevelEntity(
-                imageUrl = "$CDN_BASE/$species/level$level.png",
-                lottieDefaultUrl = "$CDN_BASE/$species/level${level}_default.json",
-                lottiePlayEatUrl = "$CDN_BASE/$species/level${level}_play_eat.json",
+                imageUrl = "$CDN_BASE/$species/level$level.png?v=$INITIAL_VERSION",
+                lottieDefaultUrl = "$CDN_BASE/$species/level${level}_default.json?v=$INITIAL_VERSION",
+                lottiePlayEatUrl = "$CDN_BASE/$species/level${level}_play_eat.json?v=$INITIAL_VERSION",
             )
         }
 
@@ -56,6 +65,9 @@ class PetCatalogSeeder(
     companion object {
         private const val CDN_BASE = "https://ddan-ddan-cdn.ddmz.org"
         private const val MAX_LEVEL = 5
+
+        // 자산 캐시 무효화용 버전 쿼리. R2의 자산을 교체할 때마다 어드민에서 URL을 갱신해 v를 증분.
+        private const val INITIAL_VERSION = 1
         private val DEFAULT_PETS =
             listOf(
                 PetSeed(type = "CAT", name = "고양이", species = "cat"),

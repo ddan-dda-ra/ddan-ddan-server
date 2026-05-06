@@ -1,6 +1,7 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
+import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import org.bson.types.ObjectId
@@ -16,6 +17,7 @@ data class PetCatalogEntity(
     @Indexed(unique = true)
     val type: String,
     val name: String,
+    val backgrounds: PetCatalogBackgroundsEntity,
     val isActive: Boolean = true,
     val displayOrder: Int = 0,
     val levels: Map<Int, PetCatalogLevelEntity>,
@@ -26,6 +28,7 @@ data class PetCatalogEntity(
         PetCatalogItem(
             type = type,
             name = name,
+            backgrounds = backgrounds.toDomain(),
             isActive = isActive,
             displayOrder = displayOrder,
             levels = levels.mapValues { it.value.toDomain() },
@@ -36,9 +39,32 @@ data class PetCatalogEntity(
             PetCatalogEntity(
                 type = item.type,
                 name = item.name,
+                backgrounds = PetCatalogBackgroundsEntity.fromDomain(item.backgrounds),
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,
                 levels = item.levels.mapValues { PetCatalogLevelEntity.fromDomain(it.value) },
+            )
+    }
+}
+
+data class PetCatalogBackgroundsEntity(
+    val home: String,
+    val homeCompact: String,
+    val friendCard: String,
+) {
+    fun toDomain(): PetCatalogBackgrounds =
+        PetCatalogBackgrounds(
+            home = home,
+            homeCompact = homeCompact,
+            friendCard = friendCard,
+        )
+
+    companion object {
+        fun fromDomain(backgrounds: PetCatalogBackgrounds): PetCatalogBackgroundsEntity =
+            PetCatalogBackgroundsEntity(
+                home = backgrounds.home,
+                homeCompact = backgrounds.homeCompact,
+                friendCard = backgrounds.friendCard,
             )
     }
 }

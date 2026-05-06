@@ -5,10 +5,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
+import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminCreateRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminUpdateRequest
+import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogBackgroundsRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogLevelRequest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -59,6 +61,12 @@ class PetCatalogAdminControllerIntegrationTest {
         PetCatalogItem(
             type = key,
             name = "이름-$key",
+            backgrounds =
+                PetCatalogBackgrounds(
+                    home = "https://cdn/x/backgrounds/home.png?v=1",
+                    homeCompact = "https://cdn/x/backgrounds/home_compact.png?v=1",
+                    friendCard = "https://cdn/x/backgrounds/friend_card.png?v=1",
+                ),
             isActive = isActive,
             displayOrder = order,
             levels =
@@ -72,6 +80,13 @@ class PetCatalogAdminControllerIntegrationTest {
                 ),
         )
 
+    private fun sampleBackgroundsRequest(): PetCatalogBackgroundsRequest =
+        PetCatalogBackgroundsRequest(
+            home = "u/backgrounds/home.png?v=1",
+            homeCompact = "u/backgrounds/home_compact.png?v=1",
+            friendCard = "u/backgrounds/friend_card.png?v=1",
+        )
+
     @Test
     fun `GET v1 admin pet-catalog는 비활성 포함 전체를 반환한다`() {
         every { petCatalogService.getAllForAdmin() } returns
@@ -82,17 +97,19 @@ class PetCatalogAdminControllerIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.pets[0].type").value("CAT"))
             .andExpect(jsonPath("$.pets[0].isActive").value(true))
+            .andExpect(jsonPath("$.pets[0].backgrounds.home").value("https://cdn/x/backgrounds/home.png?v=1"))
             .andExpect(jsonPath("$.pets[1].type").value("HIDDEN"))
             .andExpect(jsonPath("$.pets[1].isActive").value(false))
     }
 
     @Test
     fun `POST v1 admin pet-catalog는 신규 펫을 등록한다`() {
-        every { petCatalogService.create(any(), any(), any(), any(), any()) } returns item("QUOKKA", 5)
+        every { petCatalogService.create(any(), any(), any(), any(), any(), any()) } returns item("QUOKKA", 5)
         val request =
             PetCatalogAdminCreateRequest(
                 type = "QUOKKA",
                 name = "쿼카",
+                backgrounds = sampleBackgroundsRequest(),
                 isActive = true,
                 displayOrder = 5,
                 levels =
@@ -109,15 +126,16 @@ class PetCatalogAdminControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.type").value("QUOKKA"))
 
-        verify { petCatalogService.create("QUOKKA", "쿼카", true, 5, any()) }
+        verify { petCatalogService.create("QUOKKA", "쿼카", any(), true, 5, any()) }
     }
 
     @Test
     fun `PUT v1 admin pet-catalog는 펫을 수정한다`() {
-        every { petCatalogService.update(any(), any(), any(), any(), any()) } returns item("CAT", 99, false)
+        every { petCatalogService.update(any(), any(), any(), any(), any(), any()) } returns item("CAT", 99, false)
         val request =
             PetCatalogAdminUpdateRequest(
                 name = "갱신",
+                backgrounds = sampleBackgroundsRequest(),
                 isActive = false,
                 displayOrder = 99,
                 levels = mapOf(1 to PetCatalogLevelRequest("a", "b", "c")),

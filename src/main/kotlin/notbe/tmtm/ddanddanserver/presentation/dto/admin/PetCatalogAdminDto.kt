@@ -4,6 +4,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
+import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 
@@ -12,6 +13,8 @@ data class PetCatalogAdminCreateRequest(
     val type: String,
     @field:NotBlank
     val name: String,
+    @field:Valid
+    val backgrounds: PetCatalogBackgroundsRequest,
     val isActive: Boolean = true,
     @field:Min(0)
     val displayOrder: Int = 0,
@@ -25,6 +28,8 @@ data class PetCatalogAdminCreateRequest(
 data class PetCatalogAdminUpdateRequest(
     @field:NotBlank
     val name: String,
+    @field:Valid
+    val backgrounds: PetCatalogBackgroundsRequest,
     val isActive: Boolean,
     @field:Min(0)
     val displayOrder: Int,
@@ -33,6 +38,22 @@ data class PetCatalogAdminUpdateRequest(
     val levels: Map<Int, PetCatalogLevelRequest>,
 ) {
     fun levelsToDomain(): Map<Int, PetCatalogLevel> = levels.mapValues { it.value.toDomain() }
+}
+
+data class PetCatalogBackgroundsRequest(
+    @field:NotBlank
+    val home: String,
+    @field:NotBlank
+    val homeCompact: String,
+    @field:NotBlank
+    val friendCard: String,
+) {
+    fun toDomain(): PetCatalogBackgrounds =
+        PetCatalogBackgrounds(
+            home = home,
+            homeCompact = homeCompact,
+            friendCard = friendCard,
+        )
 }
 
 data class PetCatalogLevelRequest(
@@ -54,6 +75,7 @@ data class PetCatalogLevelRequest(
 data class PetCatalogAdminItemResponse(
     val type: String,
     val name: String,
+    val backgrounds: PetCatalogBackgroundsResponse,
     val isActive: Boolean,
     val displayOrder: Int,
     val levels: Map<Int, PetCatalogLevelResponse>,
@@ -63,9 +85,25 @@ data class PetCatalogAdminItemResponse(
             PetCatalogAdminItemResponse(
                 type = item.type,
                 name = item.name,
+                backgrounds = PetCatalogBackgroundsResponse.from(item.backgrounds),
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,
                 levels = item.levels.mapValues { PetCatalogLevelResponse.from(it.value) },
+            )
+    }
+}
+
+data class PetCatalogBackgroundsResponse(
+    val home: String,
+    val homeCompact: String,
+    val friendCard: String,
+) {
+    companion object {
+        fun from(backgrounds: PetCatalogBackgrounds): PetCatalogBackgroundsResponse =
+            PetCatalogBackgroundsResponse(
+                home = backgrounds.home,
+                homeCompact = backgrounds.homeCompact,
+                friendCard = backgrounds.friendCard,
             )
     }
 }

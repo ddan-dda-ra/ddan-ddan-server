@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
+import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import notbe.tmtm.ddanddanserver.presentation.filter.PetCatalogVersionFilter
@@ -60,6 +61,12 @@ class PetCatalogControllerIntegrationTest {
                         PetCatalogItem(
                             type = "CAT",
                             name = "고양이",
+                            backgrounds =
+                                PetCatalogBackgrounds(
+                                    home = "https://cdn/cat/backgrounds/home.png",
+                                    homeCompact = "https://cdn/cat/backgrounds/home_compact.png",
+                                    friendCard = "https://cdn/cat/backgrounds/friend_card.png",
+                                ),
                             isActive = true,
                             displayOrder = 0,
                             levels =
