@@ -36,6 +36,7 @@ class PetCatalogAdminController(
             petCatalogService.create(
                 type = request.type,
                 name = request.name,
+                backgrounds = request.backgrounds.toDomain(),
                 isActive = request.isActive,
                 displayOrder = request.displayOrder,
                 levels = request.levelsToDomain(),
@@ -52,6 +53,7 @@ class PetCatalogAdminController(
             petCatalogService.update(
                 type = type,
                 name = request.name,
+                backgrounds = request.backgrounds.toDomain(),
                 isActive = request.isActive,
                 displayOrder = request.displayOrder,
                 levels = request.levelsToDomain(),
