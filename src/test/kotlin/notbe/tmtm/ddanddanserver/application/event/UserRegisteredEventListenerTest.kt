@@ -65,7 +65,8 @@ class UserRegisteredEventListenerTest : FunSpec({
     }
 
     test("APPLE provider는 다른 이모지와 색상을 사용한다") {
-        listener = newListener(activeProfile = "dev")
+        // dev 는 발송이 건너뛰어지므로 local 프로파일로 검증 (이모지/색상은 프로파일과 무관)
+        listener = newListener(activeProfile = "local")
 
         val event =
             UserRegisteredEvent(
@@ -83,9 +84,43 @@ class UserRegisteredEventListenerTest : FunSpec({
         val embed = captured.captured.embeds!!.first()
         embed.title shouldBe "🍎 신규 가입"
         embed.color shouldBe 0x1C1C1E
-        embed.footer!!.text shouldBe "🧪 DEV · ddan-ddan-server"
+        embed.footer!!.text shouldBe "💻 LOCAL · ddan-ddan-server"
         embed.fields!!.find { it.name == "Provider" }!!.value shouldBe "APPLE"
         embed.fields.find { it.name == "누적 가입자" }!!.value shouldBe "7명"
+    }
+
+    test("dev 프로파일에서는 디스코드 웹훅을 발송하지 않는다") {
+        listener = newListener(activeProfile = "dev")
+
+        val event =
+            UserRegisteredEvent(
+                userId = ObjectId(),
+                nickName = "dev 테스트 가입",
+                oAuthType = OAuthType.KAKAO,
+                registeredAt = Instant.parse("2026-05-13T00:00:00Z"),
+            )
+
+        listener.handle(event)
+
+        // userRepository.count() 도 호출되지 않아야 한다 (불필요한 DB 조회 회피).
+        verify(exactly = 0) { userRepository.count() }
+        verify(exactly = 0) { discordHookApi.sendMessage(any()) }
+    }
+
+    test("dev 프로파일 매칭은 대소문자를 무시한다") {
+        listener = newListener(activeProfile = "DEV")
+
+        val event =
+            UserRegisteredEvent(
+                userId = ObjectId(),
+                nickName = "대문자 DEV",
+                oAuthType = OAuthType.KAKAO,
+                registeredAt = Instant.parse("2026-05-13T00:00:00Z"),
+            )
+
+        listener.handle(event)
+
+        verify(exactly = 0) { discordHookApi.sendMessage(any()) }
     }
 
     test("누적 가입자가 100 단위 마일스톤이면 description에 표시된다") {

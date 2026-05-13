@@ -21,6 +21,16 @@ class UserRegisteredEventListener(
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     fun handle(event: UserRegisteredEvent) {
+        // dev 프로파일은 실제 가입자 트래킹 대상이 아니라 테스트성 가입이 많아
+        // Discord 채널 노이즈가 크다. 운영 가시성은 prod 에만 필요하므로 dev 에서는 건너뛴다.
+        if (activeProfile.equals("dev", ignoreCase = true)) {
+            logger().info(
+                "Discord 신규 가입 알림 건너뜀 (dev 프로파일): userId={}, provider={}",
+                event.userId,
+                event.oAuthType,
+            )
+            return
+        }
         try {
             val count = userRepository.count()
             val phase = activeProfile.uppercase()
