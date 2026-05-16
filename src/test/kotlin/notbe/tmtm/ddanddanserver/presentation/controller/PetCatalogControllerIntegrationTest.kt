@@ -67,6 +67,7 @@ class PetCatalogControllerIntegrationTest {
                                     homeCompactUrl = "https://cdn/cat/backgrounds/home_compact.png",
                                     friendCardUrl = "https://cdn/cat/backgrounds/friend_card.png",
                                 ),
+                            colorCode = "#FD85FF",
                             isActive = true,
                             displayOrder = 0,
                             levels =
@@ -89,6 +90,7 @@ class PetCatalogControllerIntegrationTest {
             .andExpect(jsonPath("$.version").value("2026-05-04T12:00:00Z"))
             .andExpect(jsonPath("$.pets[0].type").value("CAT"))
             .andExpect(jsonPath("$.pets[0].name").value("고양이"))
+            .andExpect(jsonPath("$.pets[0].colorCode").value("#FD85FF"))
             .andExpect(jsonPath("$.pets[0].levels.1.imageUrl").value("https://cdn/cat_level1.png"))
             .andExpect(header().string("X-Pet-Catalog-Version", "2026-05-04T12:00:00Z"))
     }

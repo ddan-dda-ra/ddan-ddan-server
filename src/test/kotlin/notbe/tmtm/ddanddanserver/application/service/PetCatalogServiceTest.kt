@@ -25,6 +25,7 @@ class PetCatalogServiceTest : FunSpec({
         key: String,
         order: Int,
         isActive: Boolean = true,
+        colorCode: String = "#FFCC00",
         updatedAt: Instant = Instant.parse("2026-05-04T00:00:00Z"),
     ): PetCatalogEntity =
         PetCatalogEntity(
@@ -36,6 +37,7 @@ class PetCatalogServiceTest : FunSpec({
                     homeCompactUrl = "https://cdn/$key/backgrounds/home_compact.png",
                     friendCardUrl = "https://cdn/$key/backgrounds/friend_card.png",
                 ),
+            colorCode = colorCode,
             isActive = isActive,
             displayOrder = order,
             levels =
@@ -167,7 +169,7 @@ class PetCatalogServiceTest : FunSpec({
             )
         }
 
-        val result = service.create("QUOKKA", "쿼카", sampleBackgrounds(), true, 5, sampleLevels())
+        val result = service.create("QUOKKA", "쿼카", sampleBackgrounds(), "#FFCC00", true, 5, sampleLevels())
 
         // Then — save + cache invalidate(다음 currentVersion이 새 값으로 조회)
         result.type shouldBe "QUOKKA"
@@ -182,7 +184,7 @@ class PetCatalogServiceTest : FunSpec({
         } throws org.springframework.dao.DuplicateKeyException("E11000 duplicate key error")
 
         shouldThrow<PetCatalogDuplicateKeyException> {
-            service.create("CAT", "고양이2", sampleBackgrounds(), true, 0, sampleLevels())
+            service.create("CAT", "고양이2", sampleBackgrounds(), "#FFCC00", true, 0, sampleLevels())
         }
     }
 
@@ -198,6 +200,7 @@ class PetCatalogServiceTest : FunSpec({
                 type = "CAT",
                 name = "갱신된고양이",
                 backgrounds = sampleBackgrounds(),
+                colorCode = "#FFCC00",
                 isActive = false,
                 displayOrder = 99,
                 levels = sampleLevels(),
@@ -212,7 +215,7 @@ class PetCatalogServiceTest : FunSpec({
         every { repository.findByType("UNKNOWN") } returns null
 
         shouldThrow<PetCatalogNotFoundException> {
-            service.update("UNKNOWN", "x", sampleBackgrounds(), true, 0, sampleLevels())
+            service.update("UNKNOWN", "x", sampleBackgrounds(), "#FFCC00", true, 0, sampleLevels())
         }
     }
 
@@ -236,6 +239,46 @@ class PetCatalogServiceTest : FunSpec({
 
         result.isActive shouldBe false
         verify(exactly = 0) { repository.save(any()) }
+    }
+
+    test("create는 colorCode를 entity에 저장한다") {
+        every { repository.findAll() } returns emptyList()
+        val saved = slot<PetCatalogEntity>()
+        every { repository.save(capture(saved)) } answers { saved.captured }
+
+        service.create(
+            type = "DOG",
+            name = "강아지",
+            backgrounds = sampleBackgrounds(),
+            colorCode = "#9B6CFF",
+            isActive = true,
+            displayOrder = 3,
+            levels = sampleLevels(),
+        )
+
+        saved.captured.colorCode shouldBe "#9B6CFF"
+    }
+
+    test("update는 colorCode를 갱신한다") {
+        val existing = entity("DOG", order = 3, isActive = true, colorCode = "#000000")
+        every { repository.findByType("DOG") } returns existing
+        val saved = slot<PetCatalogEntity>()
+        every { repository.save(capture(saved)) } answers { saved.captured }
+        every { repository.findAll() } answers { listOf(saved.captured) }
+
+        val result =
+            service.update(
+                type = "DOG",
+                name = "강아지",
+                backgrounds = sampleBackgrounds(),
+                colorCode = "#9B6CFF",
+                isActive = true,
+                displayOrder = 3,
+                levels = sampleLevels(),
+            )
+
+        saved.captured.colorCode shouldBe "#9B6CFF"
+        result.colorCode shouldBe "#9B6CFF"
     }
 
     test("create/update/softDelete 후 versionCache가 invalidate되어 currentVersion이 다시 조회한다") {

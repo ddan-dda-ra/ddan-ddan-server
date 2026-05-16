@@ -24,6 +24,7 @@ class PetCatalogSeeder(
                     type = pet.type,
                     name = pet.name,
                     backgrounds = buildBackgrounds(pet.species),
+                    colorCode = pet.colorCode,
                     isActive = true,
                     displayOrder = index,
                     levels = buildLevels(pet.species),
@@ -60,6 +61,7 @@ class PetCatalogSeeder(
         val type: String,
         val name: String,
         val species: String,
+        val colorCode: String,
     )
 
     companion object {
@@ -67,11 +69,11 @@ class PetCatalogSeeder(
         private const val MAX_LEVEL = 5
         private val DEFAULT_PETS =
             listOf(
-                PetSeed(type = "CAT", name = "고양이", species = "cat"),
-                PetSeed(type = "HAMSTER", name = "햄스터", species = "hamster"),
-                PetSeed(type = "PENGUIN", name = "펭귄", species = "penguin"),
-                PetSeed(type = "DOG", name = "강아지", species = "dog"),
-                PetSeed(type = "MOLE", name = "두더지", species = "mole"),
+                PetSeed(type = "CAT", name = "고양이", species = "cat", colorCode = "#FD85FF"),
+                PetSeed(type = "HAMSTER", name = "햄스터", species = "hamster", colorCode = "#46F8A2"),
+                PetSeed(type = "PENGUIN", name = "펭귄", species = "penguin", colorCode = "#4E95FF"),
+                PetSeed(type = "DOG", name = "강아지", species = "dog", colorCode = "#9B6CFF"),
+                PetSeed(type = "MOLE", name = "두더지", species = "mole", colorCode = "#D0DAE4"),
             )
     }
 }

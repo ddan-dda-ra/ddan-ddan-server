@@ -11,6 +11,7 @@ data class PetCatalogItem(
     val type: String,
     val name: String,
     val backgrounds: PetCatalogBackgrounds,
+    val colorCode: String,
     val isActive: Boolean,
     val displayOrder: Int,
     val levels: Map<Int, PetCatalogLevel>,
