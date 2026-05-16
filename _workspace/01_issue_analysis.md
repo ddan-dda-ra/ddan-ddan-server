@@ -1,58 +1,68 @@
-# 이슈 분석: 신규 가입 디스코드 알림
+# 이슈 분석: 펫 카탈로그 색상 코드 필드 추가
 
 ## 요구사항 요약
 
-OAuth(Kakao/Apple) 로그인 흐름에서 **신규 사용자가 처음 생성되는 시점**에 운영팀의 Discord 관리자 채널로 자동 알림을 보낸다. 발송 주체는 서버이며 사용자 행위로 직접 트리거되지 않는다. Discord 연결은 Webhook URL 방식(Bot Token 아님)을 사용하고, URL은 `application.yaml`에 환경변수로 주입한다. 알림 페이로드 후보는 사용자명, OAuth provider(kakao/apple), 가입 시각, 누적 가입자 수다. 기존 사용자 로그인은 알림 대상이 아니다. Webhook 호출 실패가 가입 흐름을 차단해서는 안 된다.
+펫 카탈로그(`PetCatalog`)의 각 항목에 "색상 코드(color code)" 필드를 추가하여 클라이언트(`GET /v1/pets/catalog`) 응답에 노출한다. 직전 PR #308(commit `0439b7f`, `7e1bb8c`)에서 같은 도메인에 `backgrounds(homeUrl/homeCompactUrl/friendCardUrl)`를 추가했던 작업과 구조적으로 동일한 패턴 — 도메인 모델 → 엔티티 → 응답 DTO → 어드민 DTO → 시드 → 기존 DB 마이그레이션의 5중 변경이 필요하다. 다만 "색상 코드"의 정확한 의미(단일 hex 1개인지, primary/secondary 등 여러 개인지, nested object 형태인지)는 입력에서 결정되지 않았고, 본 단계에서 추측하지 않는다 — 미해결 질문으로 분류한다.
 
 ## 영향 받는 레이어
 
-- [ ] domain
-- [x] application
-- [x] infrastructure
-- [ ] presentation
-- [x] config (application.yaml)
-
-신규 도메인 모델은 필요 없음. 알림은 운영팀용 외부 통보일 뿐 비즈니스 도메인 개념이 아니므로 `infrastructure/api`에 Discord HTTP 클라이언트를, `application/service`(또는 `AuthService` 내부)에서 호출 지점을 둔다. presentation 레이어는 변경 없음 (기존 `/auth` 엔드포인트의 응답 시그니처는 유지).
+- [x] domain — `PetCatalogItem`에 색상 필드 추가 (+ 색상이 nested 구조라면 `PetCatalogColors` 같은 신규 value object 추가)
+- [x] application — `PetCatalogService.create/update` 시그니처에 색상 파라미터 추가
+- [x] infrastructure — `PetCatalogEntity` 필드 추가 + nested 엔티티(필요 시) + `PetCatalogSeeder` 기본값 + **기존 5개 도큐먼트 마이그레이션**
+- [x] presentation — 일반 응답 DTO `PetCatalogResponse` + 어드민 요청/응답 DTO `PetCatalogAdmin*` 양쪽 모두
 
 ## 관련 코드
 
 | 파일 | 라인 | 역할 |
 |---|---|---|
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 24-35 | `login()` — OAuth 로그인 진입점. `authRepository.findByOAuthIdAndType` 결과로 신규/기존 분기. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 50-68 | `loginNewUser()` — **신규 가입 분기**. `userRepository.save(...)`로 User 생성 후 `authRepository.save(...)`로 Auth 생성. 알림 호출은 이 메서드의 마지막(저장 성공 직후, return 직전)에 위치해야 한다. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/OAuth.kt` | 5-9 | OAuth DTO. `id`, `type: OAuthType`, `nickName` 보유 — 알림 페이로드 소스. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/auth/OAuthType.kt` | 3-6 | `KAKAO`, `APPLE` enum. provider 표기에 사용. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/user/User.kt` | 76-81 | `User.register()` 팩토리. 신규 User 식별자/이름이 여기서 만들어진다. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/SlackHookApi.kt` | 1-25 | **참조 모델**. `@HttpExchange` + `@PostExchange` 인터페이스, `Request(channel, text, username)` payload, `companion object`에 채널 상수. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/ApiConfiguration.kt` | 13-19 | **참조 모델**. `@Bean`으로 `RestClient` baseUrl을 webhook URL로 셋업하고 `HttpServiceProxyFactory`로 인터페이스 프록시 생성. `@Value("\${slack.hook-url}")` 패턴. |
-| `src/main/resources/application-prod.yaml` | 24-25 | `slack.hook-url: ${SLACK_WEBHOOK_URL}` — 환경변수 명명 컨벤션 (kebab-case 키, UPPER_SNAKE 환경변수). dev/local 동일. |
-| `src/main/resources/application-dev.yaml` | 24-25 | 동상. |
-| `src/main/resources/application-local.yaml` | 24-25 | 동상. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/repository/UserRepository.kt` | 9 | `MongoRepository<User, ObjectId>` 상속 → `count(): Long` 자동 제공. **별도 메서드 추가 불필요.** |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/client/FirebasePushClient.kt` | 21, 35 | **참조 모델 (비동기/실패 격리)**. `@Async` 어노테이션 + `RetryTemplate`로 외부 호출 격리. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/DdanDdanServerApplication.kt` | 12 | `@EnableAsync` 이미 활성화 — `@Async` 즉시 사용 가능. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/config/RetryConfig.kt` | 7 | `RetryTemplate` 빈 정의 — Discord 호출에도 재사용 가능. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/petcatalog/PetCatalog.kt` | 10-17 | `PetCatalogItem` — 색상 필드를 어디에 끼울지 결정할 1차 지점. `backgrounds: PetCatalogBackgrounds` 바로 옆/아래가 자연 위치. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/petcatalog/PetCatalog.kt` | 19-23 | `PetCatalogBackgrounds` — nested value object의 **참조 모델**. 색상이 다중 컬러라면 동일 패턴으로 `PetCatalogColors(...)` 신규 클래스 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 14-26 | `PetCatalogEntity` 본문 — `backgrounds: PetCatalogBackgroundsEntity` 옆에 색상 필드 추가. MongoDB는 `SnakeCaseFieldNamingStrategy` 사용(camelCase ↔ snake_case 자동) — DB 마이그레이션 작성 시 키 표기 주의(MEMORY 항목 참조). |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 27-46 | `toDomain()` / `fromDomain()` 매퍼 — 색상 매핑 라인 양방향 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 50-70 | `PetCatalogBackgroundsEntity` — nested 엔티티의 **참조 모델**. 다중 컬러 구조라면 동일하게 `PetCatalogColorsEntity`를 만든다. 단일 hex라면 `PetCatalogEntity`에 `val themeColor: String` 한 줄로 끝. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 22-33 | 시드 entity 생성부 — 색상 기본값 매핑 1줄 추가 필요. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 43-48, 68-75 | `buildBackgrounds(species)` 헬퍼 + `DEFAULT_PETS` — 펫 5종(CAT/HAMSTER/PENGUIN/DOG/MOLE)의 기본 색상 값을 species별로 어떻게 할당할지 정해야 한다. backgrounds처럼 species 문자열로 CDN 경로를 만드는 방식이 아니므로 단순 lookup 또는 `PetSeed`에 `color` 필드 추가 형태가 자연스럽다. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 53-82 | `create(...)` — 시그니처에 색상 파라미터 추가. backgrounds와 동일 위치(displayOrder 직전)에 끼우는 패턴. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 84-106 | `update(...)` — 동일 패턴. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/response/PetCatalogResponse.kt` | 21-40 | `PetCatalogItemResponse` — 색상 필드 + `from()` 매핑 추가. **클라이언트 노출 지점**(요구사항 본문에 명시된 "클라이언트에 내려줘야 한다"의 실체). |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/response/PetCatalogResponse.kt` | 42-55 | `PetCatalogBackgroundsResponse` — nested 응답 DTO **참조 모델**. 다중 컬러 구조면 같은 패턴으로 `PetCatalogColorsResponse` 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 11-26 | `PetCatalogAdminCreateRequest` — 색상 요청 필드 + `@field:Valid`/`@field:NotBlank` 검증 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 28-41 | `PetCatalogAdminUpdateRequest` — 동상. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 43-57 | `PetCatalogBackgroundsRequest` — 요청 nested DTO **참조 모델**. 다중 컬러면 동일 패턴. 단일 hex면 `PetCatalogAdmin*Request`에 `val themeColor: String` 한 줄. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 75-94 | `PetCatalogAdminItemResponse` + `from()` — 어드민 응답에도 색상 표시. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 96-109 | `PetCatalogBackgroundsResponse`(어드민용) — 어드민 응답 nested DTO 참조 모델. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 30-44 | `create(...)` — 컨트롤러 자체는 `request.backgrounds.toDomain()` 라인 옆에 `request.colors.toDomain()`(또는 `request.themeColor`) 1줄 추가. 시그니처는 그대로. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 46-61 | `update(...)` — 동상. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/PetCatalogController.kt` | 18-22 | `getCatalog()` — 컨트롤러는 무변경. 응답 DTO의 `from(...)`이 색상까지 매핑하므로 자동 노출됨. **요구사항의 핵심 노출 엔드포인트.** |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/repository/PetCatalogRepository.kt` | 7-15 | 변경 없음. 색상은 정렬/조회 키가 아니므로 신규 쿼리 메서드 불필요. |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogServiceTest.kt` | 24-51 | 테스트 fixture(`entity(...)`)가 backgrounds를 명시적으로 만들어 넣는 패턴 — 색상도 동일하게 fixture 보강 필요. mockk 단위 테스트라 stub만 수정. |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/PetCatalogControllerIntegrationTest.kt` | (PR #308 diff 기준 +7라인) | 응답 JSON에 색상 필드가 노출되는지 통합 테스트로 검증. backgrounds와 동일 패턴으로 jsonPath 단언 추가. |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminControllerIntegrationTest.kt` | (PR #308 diff 기준 +24라인) | 어드민 CRUD 통합 테스트 — 색상 필드 요청/응답 검증. |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/filter/PetCatalogVersionFilterTest.kt` | 전체 | 영향 없음. version 헤더만 검증하므로 색상과 무관. |
 
 ## 참조할 기존 패턴
 
-- **`SlackHookApi` (`infrastructure/api/SlackHookApi.kt` + `ApiConfiguration.kt`)** — Discord Webhook 클라이언트의 1:1 미러링 모델. 인터페이스 + `@HttpExchange` + `@PostExchange` + `RestClient` baseUrl 주입 방식, webhook URL을 `@Value`로 yaml에서 주입하는 패턴, 채널/봇이름 등 상수를 `companion object`로 모으는 컨벤션을 그대로 따른다. (단, Discord Webhook payload는 Slack과 키가 다르다 — Discord는 `content`, `username`, `avatar_url`, `embeds` 사용.)
-- **`FirebasePushClient` (`infrastructure/client/FirebasePushClient.kt`)** — 외부 호출을 메인 흐름에서 떼어내는 패턴. `@Async` + `RetryTemplate.execute { ... }` 조합. Discord 알림도 동일 패턴이 적합하다 (가입은 사용자가 기다리는 동기 흐름이라 webhook 실패/지연이 절대 전이되면 안 된다).
-- **`AuthService.loginNewUser` (`application/service/AuthService.kt:50-68`)** — 신규 분기 자체가 명확히 분리돼 있어, 알림 호출 1줄을 메서드 끝에 추가하면 된다. 별도 분기 식별 로직이 필요 없다.
+- **PR #308 `backgrounds` 추가 (commits `0439b7f`, `7e1bb8c`)** — 본 작업의 1:1 미러링 대상. backgrounds는 nested value object(`homeUrl`/`homeCompactUrl`/`friendCardUrl`) 3-필드 구조로, 도메인 → 엔티티 → 응답 DTO → 어드민 DTO → 시드의 5중 변경을 거쳤다. 색상도 nested 구조라면 동일 매핑이 적용된다. 또한 `7e1bb8c`에서 `home/homeCompact/friendCard` → `homeUrl/homeCompactUrl/friendCardUrl`로 `*Url` 접미사 컨벤션을 통일한 이력이 있다 — **색상 필드명도 동일 컨벤션 점검 필요** (예: `color` 단일이라면 `themeColor` / `colorCode`, hex 문자열이라면 접미사 없이 그대로 두는 게 맞는지).
+- **`PetCatalogBackgrounds` (도메인) / `PetCatalogBackgroundsEntity` (인프라) / `PetCatalogBackgroundsResponse` (응답·어드민)** — nested value object 3계층의 표준 패턴. 색상이 다중 컬러면 정확히 동일하게 3개 클래스를 만든다.
+- **`PetCatalogLevel` 매핑** — `Map<Int, PetCatalogLevel>` 방식은 색상에는 부적합. 색상은 펫당 1개(또는 고정 키셋 nested 1개)이므로 levels가 아닌 backgrounds 패턴을 따른다.
+- **`PetCatalogSeeder.buildBackgrounds(species)` (43-48)** — 시드 헬퍼 함수의 형태. 색상은 species → URL 매핑이 아니라 species → hex 매핑이므로 함수 시그니처는 비슷하되 본문은 단순 `when (species)` 룩업 또는 `PetSeed.color` 필드 추가가 자연스럽다.
+- **기존 도큐먼트 `$set` 마이그레이션 컨벤션 (PR #308 커밋 메시지 명시: "기존 5 docs는 별도 마이그레이션으로 \$set")** — 코드 시드는 신규 환경(빈 컬렉션)에서만 동작(`if (repository.count() > 0L) return`)이므로 dev/prod의 기존 5개 도큐먼트(CAT/HAMSTER/PENGUIN/DOG/MOLE)는 mongosh `$set`으로 별도 마이그레이션해야 한다. **MongoDB는 SnakeCaseFieldNamingStrategy 사용 — 마이그레이션 스크립트의 키는 snake_case로 작성** (MEMORY 항목: PR #308 사고 이력).
 
 ## 위험 요소
 
-- **메인 가입 흐름 차단** — Discord Webhook 호출이 동기적으로 수 초 블록되면 OAuth 로그인 응답이 늦어진다. 반드시 `@Async` 메서드로 위임하거나 `try/catch`로 예외를 흡수해야 한다. `FirebasePushClient` 패턴 차용 권장.
-- **Webhook 실패 → 가입 실패 전이** — `@Transactional`(AuthService.login에 적용 중) 컨텍스트 안에서 webhook 호출 중 예외가 던져지면 user/auth 저장이 롤백된다. 두 가지 방어가 동시에 필요: (1) `@Async`로 트랜잭션 경계 밖으로 빼거나 (2) 호출부를 `try/catch`로 감싸 logger().error로만 남긴다. 추천: 둘 다.
-- **트랜잭션 커밋 전 알림 발송** — `@Async`만 적용하면 별 쓰레드에서 즉시 실행돼 user 저장 트랜잭션이 아직 커밋되지 않았을 수 있다. `누적 가입자 수`를 알림에 포함하려면 커밋 후 `count()`가 신규 사용자를 포함하도록 해야 정확하다. → `ApplicationEventPublisher` + `@TransactionalEventListener(phase = AFTER_COMMIT)` + `@Async` 조합이 가장 안전하다. 차선은 `AuthService.login()`이 끝난 뒤(=컨트롤러 레이어)에서 호출하는 것 (현재 controller는 미확인이므로 service 내부 이벤트 발행이 깔끔).
-- **민감 정보 노출** — `OAuth.nickName`은 KakaoProcessor에서는 카카오 닉네임이지만 **AppleProcessor에서는 이메일을 그대로 담는다** (`AppleProcessor.kt:34` `nickName = claims["email"].toString()`). Discord 채널이 운영팀 전용이라도 이메일을 평문으로 보내는 것은 PII 정책상 위험. provider별 표기를 다르게 하거나 마스킹 필요 (예: `m***@kakao.com`). 또는 알림 본문에서 nickName 노출을 생략하고 `userId`만 표기.
-- **환경변수 명명 일관성** — 기존 컨벤션은 `slack.hook-url: ${SLACK_WEBHOOK_URL}` (yaml 키는 kebab-case, 환경변수는 UPPER_SNAKE). Discord도 `discord.hook-url: ${DISCORD_WEBHOOK_URL}` 형식이 정합. dev/prod/local 세 yaml 모두 추가 필요.
-- **누적 가입자 수 계산 비용** — `userRepository.count()`는 `users` 컬렉션 전체 카운트로, 데이터가 커지면 무시 못 할 비용이 된다. 가입은 빈도가 낮으므로 큰 문제는 아니지만, 알림에 포함을 강제할 만큼 가치가 있는지 한번 고려할 것.
-- **dev/prod 채널 분리** — 운영팀 채널 하나로 두면 dev 환경 가입(테스트)도 같은 채널에 쏟아진다. profile별로 webhook URL을 다르게 주거나 dev에서는 알림을 끄는 토글이 권장된다.
-- **`SlackHookApi`는 정의만 있고 실사용 코드 없음** — `grep -rn sendMessage` 결과 호출 지점이 없다. Discord 클라이언트를 같은 패턴으로 만들면 동일하게 "정의만 있고 안 쓰는 상태"가 되지 않도록 호출부(AuthService 또는 이벤트 리스너)까지 반드시 같이 구현해야 한다.
+- **응답 DTO 호환성** — `PetCatalogResponse`에 nullable 아닌 필드를 추가하면 기존 응답 스키마가 변한다. 클라이언트(iOS)가 카탈로그를 아직 미사용 상태이므로 backgrounds처럼 wire 호환성 영향은 사실상 없다(PR #308 commit body 명시). 그래도 OpenAPI 스펙은 갱신되므로 swagger 노출은 신규 필드로 잡힌다.
+- **기존 DB 도큐먼트 마이그레이션** — `PetCatalogSeeder.seed()`는 `count() > 0L`이면 즉시 return하므로 시드 코드만 고치면 신규 환경에서만 색상이 채워진다. dev/prod의 기존 5 docs(`pet_catalog` 컬렉션)에는 색상 필드가 빠진 채로 남아 Kotlin 역직렬화 시 nullable이 아닌 필드는 예외를 던질 위험이 있다. **마이그레이션 mongosh 스크립트가 PR과 동시에 준비되어야 한다.** dev/prod 양쪽 모두 적용 필요.
+- **역직렬화 실패 시 서비스 전면 다운** — 색상 필드를 nullable 아닌 `String`/value object로 추가하고 마이그레이션을 누락하면, 첫 카탈로그 조회에서 `MappingException`/`NullValueException`이 발생하여 `GET /v1/pets/catalog`, `POST /v1/pets`(랜덤 펫 추가) 등 카탈로그 의존 API가 전부 실패한다. 대안: (a) 코드에 default 값 부여(생성자 기본값), (b) 필드를 nullable로 추가 후 데이터 백필 완료 시 non-null 전환, (c) 마이그레이션을 코드 배포보다 먼저 수행. PR #308에서는 (c)로 처리한 것으로 보임.
+- **`SnakeCaseFieldNamingStrategy` 키 표기 실수** — Kotlin 필드 `themeColor` ↔ MongoDB 필드 `theme_color`. mongosh 마이그레이션 시 `{ $set: { themeColor: "#FFCC00" } }`로 쓰면 DB에는 `themeColor`라는 별도 키가 생기고 Spring Data는 `theme_color`를 읽으려 해 null이 된다. MEMORY 항목(PR #308 사고)에서 동일 사고가 이미 발생했음.
+- **`PetCatalogService.currentVersion()` 캐시(`60s TTL`) 무효화** — service.create/update에서 `invalidateVersionCache()`를 호출하므로 어드민 API 경로의 일관성은 보장된다. 다만 **mongosh로 직접 마이그레이션할 경우 캐시가 자동 무효화되지 않는다** — 최대 60초간 stale `version`을 응답하므로 마이그레이션 직후 클라이언트가 새 색상을 받아도 헤더 `X-Pet-Catalog-Version`이 갱신되지 않을 수 있다. 운영 영향은 미미하나 인지 필요.
+- **어드민 요청 검증** — 색상이 hex 문자열이라면 단순 `@NotBlank`로는 잘못된 값(`"red"`, `"#GGG"`)을 막지 못한다. `@Pattern(regexp = "^#[0-9A-Fa-f]{6}$")` 등 hex 정규식 검증을 추가하는 것이 안전하다. 다중 컬러(객체)면 각 필드별로 동일 규칙 적용.
+- **시드 기본값 정확성** — 펫 5종의 "어떤 색"이 정답인지(디자이너/PM 공급값) 입력에 없다. 시드 코드의 default는 어드민이 추후 수정한다는 전제로 임시값을 박을 수도 있지만, 그렇게 되면 신규 dev 환경 첫 부팅 시 사용자 노출 색상이 misleading해진다. 디자인 공급값 필요.
 
 ## 미해결 질문
 
-- **닉네임 노출 정책** — Apple의 경우 `nickName`이 이메일이다. 그대로 보낼지, 마스킹할지, 아예 빼고 `userId`만 보낼지? (위험 요소의 PII 항목과 동일.)
-- **dev/prod 채널 분리 여부** — 단일 webhook으로 통일할지, profile별로 다르게 둘지? 기본안은 단일이지만 dev 노이즈 우려가 있다.
-- **알림 실패 시 재시도 정책** — `RetryTemplate`(기존 `RetryConfig`)을 재사용할지, "fire and forget"으로 끝낼지? 운영 알림은 한 번 놓치면 끝이라 재시도 1~2회 권장.
-- **누적 가입자 수 포함 확정 여부** — 추측 기본안엔 들어 있으나 사용자 명시 동의는 없음. 비용/필요성 검토 필요.
+1. **색상의 구조** — 단일 hex 1개(`themeColor: "#FFCC00"`)인가, primary/secondary 등 다중 컬러 nested object(`colors: { primary, secondary, background }`)인가, 컬러 팔레트 리스트(`colors: ["#FFCC00", "#AABBCC"]`)인가? — backgrounds처럼 `PetCatalogColors` value object를 만들지, 도메인 모델에 평탄한 단일 필드만 추가할지 결정에 직결.
+2. **필드명 컨벤션** — `colorCode` / `color` / `themeColor` / `colors` / `palette` 중 무엇? 단일 hex면 `themeColor`가 자연스럽고, nested면 `colors`가 자연스럽다. (`backgrounds`가 복수형 nested인 것과 정합) PR #308의 `*Url` 접미사 컨벤션 통일 이력에 비추어, hex string은 접미사 없이 두는 게 가독성에 맞다.
+3. **필수 vs 옵셔널** — 색상이 모든 펫에 강제되는 필수 메타데이터인지, 일부 펫만 색상이 정의되는 옵셔널인지? non-null 필드 추가는 마이그레이션 의무를 동반(기존 5 docs 백필 필수). nullable이면 코드는 안전하지만 클라이언트가 fallback UI를 가져야 한다.
+4. **기존 DB 데이터 백필 정책** — PR #308과 동일하게 mongosh `$set`으로 별도 마이그레이션할 것인가? 그렇다면 펫 5종(CAT/HAMSTER/PENGUIN/DOG/MOLE)의 색상 정답값은 누가 공급(디자이너/PM)하는가? 디자인 토큰 확정 전이라면 임시값으로 박고 어드민 API로 추후 갱신할지?
+5. **어드민 요청 검증 강도** — hex 정규식(`^#[0-9A-Fa-f]{6}$`) 적용? 3자리 단축형(`#FFF`) 허용? 알파 채널 8자리(`#FFCC0080`) 허용? `rgba(...)` 같은 CSS 표기 허용?
+6. **클라이언트 사용 시점** — 요구사항 본문은 "클라이언트에 내려줘야 한다"만 명시. iOS가 이번 스프린트에 실사용하는지(즉시 노출), wire만 먼저 깔고 추후 사용인지(PR #308과 동일한 wire-first 패턴)? 사용 시점에 따라 default 값의 품질 기준이 달라진다.

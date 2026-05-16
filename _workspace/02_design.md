@@ -1,244 +1,545 @@
-# 설계: 신규 가입 디스코드 알림
+# 설계: 펫 카탈로그 색상 코드(`colorCode`) 필드 추가
+
+## 결정 사항 요약 (입력에서 확정된 사항 반영)
+
+| 항목 | 결정 |
+|---|---|
+| 구조 | **단일 hex 문자열 1개**. nested value object 없음. |
+| 필드명 | **`colorCode`** (camelCase, 도메인/엔티티/응답 DTO/요청 DTO 동일). MongoDB는 `SnakeCaseFieldNamingStrategy`로 `color_code`로 영속화. |
+| nullability | **non-null `String`** (필수). |
+| hex 검증 | `@field:Pattern(regexp = "^#[0-9A-Fa-f]{6}$")` — 6자리만. 3자리 단축 / 알파 채널 / `rgba(...)` 불가. |
+| 시드 기본값 | MOLE `#D0DAE4`, DOG `#9B6CFF`, CAT `#FD85FF`, PENGUIN `#4E95FF`, HAMSTER `#46F8A2`. |
+| 클라이언트 사용 | wire-first (PR #308과 동일 패턴). |
+| DB 마이그레이션 | dev/prod 모두 mongosh `$set`. **코드 배포보다 먼저** 실행. 키는 **snake_case `color_code`**. |
+
+## backgrounds 패턴과의 차이점 (의도된 분기)
+
+| 비교 항목 | `backgrounds` (PR #308) | `colorCode` (본 작업) |
+|---|---|---|
+| 구조 | nested value object 3-필드 (`PetCatalogBackgrounds(homeUrl, homeCompactUrl, friendCardUrl)`) | 평탄한 단일 `String` 필드 |
+| 도메인 클래스 신설 | `PetCatalogBackgrounds` 1개 추가 | **없음** — `PetCatalogItem`에 필드 1줄만 추가 |
+| 엔티티 nested class | `PetCatalogBackgroundsEntity` | **없음** |
+| 응답 nested DTO | `PetCatalogBackgroundsResponse` (응답 + 어드민 응답 각각) | **없음** |
+| 요청 nested DTO | `PetCatalogBackgroundsRequest` | **없음** |
+| `*Url` 접미사 컨벤션 | 모든 필드(`homeUrl` 등)가 URL이므로 `Url` 접미사 통일 (commit `7e1bb8c`) | **`colorCode`는 hex 문자열이지 URL이 아니므로 접미사 없음.** 컨벤션 정합 — "type을 접미사로 드러낸다"가 원칙이고, `code` 자체가 의미 표시 접미사 역할을 한다 |
+| 시드 헬퍼 함수 | `buildBackgrounds(species)` — species → CDN URL 매핑 | **없음** — `PetSeed.colorCode: String` 필드 추가, 5종에 직접 lookup |
+| 검증 | 각 URL `@field:NotBlank` 3개 | hex 정규식 `@field:Pattern` 1개 |
+| 마이그레이션 키 | `backgrounds.home_url` 등 nested 경로 | 평탄 `color_code` (root) |
 
 ## 도메인 모델
 
-없음. Discord 운영 알림은 비즈니스 도메인 개념이 아니라 운영팀 통지 부수효과(side-effect)이므로 `domain/model/`에 새 모델을 만들지 않는다. 이벤트 객체(`UserRegisteredEvent`)는 application 레이어 내부 통신 매개체이며 도메인 모델이 아니다.
+### `PetCatalogItem` (domain/model/petcatalog/PetCatalog.kt)
 
-## 이벤트
-
-### `UserRegisteredEvent` (application/event)
-
-`AuthService.loginNewUser()` 트랜잭션이 **커밋된 이후** Discord 발송에 필요한 모든 정보를 옮기는 불변 데이터 클래스.
-
-**필드:**
-
-| 필드 | 타입 | 의미 / 출처 |
-|---|---|---|
-| `userId` | `org.bson.types.ObjectId` | `newUser.id` — Discord 메시지에서 식별자 표기에 사용 |
-| `nickName` | `String` | `oAuth.nickName` — Discord 메시지의 사용자명 표기 (사용자 결정: 마스킹 없이 그대로 노출, Apple의 이메일 노출 위험은 사용자가 감수) |
-| `oAuthType` | `notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType` | `KAKAO` / `APPLE` — provider 표기 |
-| `registeredAt` | `java.time.Instant` | 이벤트 생성 시각(가입 시각). 트랜잭션 커밋 후 시각이 아니라 신규 User 생성 시점을 보존하기 위해 publish 직전에 `Instant.now()`로 채운다 |
-
-**필드 선정 근거:**
-- Discord 메시지 본문 구성에 필요한 최소 필드만 담는다. `User` 객체 전체나 `Auth` 객체 전체를 넣지 않는 이유는 (1) listener에서 도메인 메서드를 호출할 일이 없고 (2) 이벤트 객체는 영속 객체 참조를 들고 트랜잭션 경계를 넘기지 않는 편이 안전하기 때문이다(LazyInitialization 등 우회 가능 이슈 회피 + 의도 명확화).
-- `누적 가입자 수`는 이벤트 필드에 넣지 않는다. listener가 `AFTER_COMMIT` 시점에 `userRepository.count()`로 직접 조회한다. 이렇게 해야 신규 사용자 자신을 포함한 정확한 카운트가 나온다.
-
-## 서비스 시그니처
-
-### `AuthService` 변경 (application/service/AuthService.kt 수정)
-
-생성자에 `ApplicationEventPublisher`를 주입받고, `loginNewUser()` 내부에서 `userRepository.save(...)`/`authRepository.save(...)` 직후 이벤트를 발행한다.
+`backgrounds` 직후, `isActive` 직전에 평탄한 단일 필드를 추가한다.
 
 ```kotlin
-@Service
-class AuthService(
-    private val authRepository: AuthRepository,
-    private val userRepository: UserRepository,
-    private val jwtTokenProvider: JWTTokenProvider,
-    private val oauthProcessorFactory: OAuthProcessorFactory,
-    private val eventPublisher: org.springframework.context.ApplicationEventPublisher, // 추가
-) {
-    // ...
-
-    private fun loginNewUser(
-        oAuth: OAuth,
-        deviceToken: String?,
-        oAuthType: OAuthType,
-    ): AuthResult {
-        val newUser = userRepository.save(
-            User.register(name = oAuth.nickName, deviceToken = deviceToken),
-        )
-        authRepository.save(
-            Auth.create(oAuthId = oAuth.id, type = oAuthType, userId = newUser.id),
-        )
-
-        // 추가: 트랜잭션 커밋 후 Discord 알림 발송을 위한 이벤트 발행
-        eventPublisher.publishEvent(
-            UserRegisteredEvent(
-                userId = newUser.id,
-                nickName = oAuth.nickName,
-                oAuthType = oAuthType,
-                registeredAt = Instant.now(),
-            ),
-        )
-
-        return AuthResult(
-            accessToken = jwtTokenProvider.createAccessToken(newUser),
-            refreshToken = jwtTokenProvider.createRefreshToken(newUser),
-            user = newUser,
-        )
-    }
-}
+data class PetCatalogItem(
+    val type: String,
+    val name: String,
+    val backgrounds: PetCatalogBackgrounds,
+    val colorCode: String,        // 신규 — non-null hex (예: "#9B6CFF")
+    val isActive: Boolean,
+    val displayOrder: Int,
+    val levels: Map<Int, PetCatalogLevel>,
+)
 ```
 
-**기존 메서드 시그니처(반환 타입, 파라미터) 변경 없음.** 컨트롤러/외부 API 영향 없음.
+**비즈니스 규칙:**
+- `colorCode`는 6자리 hex 문자열이며, 어드민 입력에서 정규식으로 검증된다. 도메인 모델 자체에는 검증 로직을 두지 않는다 (DTO `@field:Pattern`이 단일 시점에서 보장하고, 도메인은 string으로 단순 운반). 이는 backgrounds의 각 URL이 도메인 단에서 별도 검증 로직을 갖지 않는 것과 일관된다.
+- 신규 value object를 만들지 않은 이유: 펫당 1개 hex뿐이고, 의미상 분해할 하위 필드가 없으므로 nested 클래스 도입은 과도한 캡슐화다.
 
-### `UserRegisteredEventListener` (신규: application/event/UserRegisteredEventListener.kt)
+### `PetCatalogBackgrounds`, `PetCatalogLevel`
 
-```kotlin
-@Component
-class UserRegisteredEventListener(
-    private val userRepository: UserRepository,
-    private val discordHookApi: DiscordHookApi,
-    @Value("\${spring.profiles.active:local}") private val activeProfile: String,
-) {
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    fun handle(event: UserRegisteredEvent)
-}
-```
-
-**핸들러 책임:**
-1. `userRepository.count()`로 누적 가입자 수 조회 (트랜잭션 커밋 후이므로 신규 사용자 포함됨).
-2. `activeProfile.uppercase()`로 phase 접두어 생성 (`PROD`, `DEV`, `LOCAL`).
-3. 한국어 한 줄 메시지 본문 조립.
-4. `discordHookApi.sendMessage(...)`를 `try { ... } catch (e: Exception) { log.error(...) }`로 감싸 모든 예외 흡수.
-
-**메시지 포맷 (예시):**
-
-```
-[PROD] 신규 가입 | 닉네임=홍길동 | provider=KAKAO | userId=66341a2b3c4d5e6f78901234 | 가입시각=2026-05-02T14:23:11Z | 누적 가입자=1,234명
-```
-
-- 단일 `content` 한 줄 문자열. Discord embed 미사용 (사용자 결정 가이드: "content 한 줄도 충분").
-- 천단위 콤마는 `String.format("%,d", count)` 사용.
-
-## 외부 클라이언트
-
-### `DiscordHookApi` (신규: infrastructure/api/DiscordHookApi.kt)
-
-`SlackHookApi`를 1:1 미러링한다. `@HttpExchange` + `@PostExchange` + `RestClient` baseUrl 주입 패턴 동일.
-
-```kotlin
-@HttpExchange(accept = [MediaType.APPLICATION_JSON_VALUE])
-interface DiscordHookApi {
-    @PostExchange
-    fun sendMessage(
-        @RequestBody request: Request,
-    )
-
-    data class Request(
-        val content: String,
-        val username: String = DEFAULT_USERNAME,
-    )
-
-    companion object {
-        const val DEFAULT_USERNAME = "ddan-ddan-server-bot"
-    }
-}
-```
-
-**Slack과의 차이 (Discord webhook 스펙 준수):**
-- payload 키는 `content`, `username` (Slack은 `text`, `channel`, `username`).
-- Discord webhook은 채널을 URL 자체에 묶기 때문에 `channel` 필드가 없다.
-- `avatar_url`, `embeds` 등 추가 필드는 본 설계 범위에서 사용하지 않음 (단순 한 줄 알림으로 충분).
-
-### `ApiConfiguration` 수정 (infrastructure/api/ApiConfiguration.kt)
-
-`slackHookApi` 빈과 동일한 형태로 `discordHookApi` 빈 추가. `@Value("\${discord.hook-url}")`로 webhook URL 주입.
-
-```kotlin
-@Bean
-fun discordHookApi(
-    @Value("\${discord.hook-url}") hookUrl: String,
-): DiscordHookApi {
-    val factory = HttpServiceProxyFactory.builderFor(restClientAdapter(hookUrl)).build()
-    return factory.createClient(DiscordHookApi::class.java)
-}
-```
-
-기존 `restClientAdapter(baseUrl: String)` 헬퍼 그대로 재사용. 신규 헬퍼 함수 불필요.
+**변경 없음.**
 
 ## API 명세
 
-**외부 API 변경 없음.** presentation 레이어 무변화. 기존 `/auth/login` 시리즈 엔드포인트의 요청/응답 시그니처도 그대로다. 본 기능은 OAuth 가입 흐름의 부수효과로만 동작한다.
+### 클라이언트 응답 — `GET /v1/pets/catalog` (변경 영향)
 
-## MongoDB 스키마
+요청/엔드포인트 자체는 **무변경**. 응답 body JSON에 `pets[].colorCode` 신규 필드가 노출된다.
 
-**변경 없음.** `users` 컬렉션의 `count()`만 읽으며, 신규 컬렉션/필드/인덱스 추가 없음.
+| Method | Path | Request | Response 변경 | Auth |
+|---|---|---|---|---|
+| GET | `/v1/pets/catalog` | (없음) | `pets[].colorCode: string` 필드 추가 (필수, 6자리 hex) | 공개 (filter 통과) |
 
-## 예외
+응답 헤더 `X-Pet-Catalog-Version`은 그대로. 색상 변경도 `updatedAt` 갱신을 통해 자연스럽게 버전이 올라간다.
 
-**신규 도메인 예외 없음.** Discord 알림 실패는 비즈니스 실패가 아니라 운영 통지 부수효과 실패이므로 `WebExceptionHandler`에 매핑할 필요가 없다.
+### 어드민 — `POST /v1/admin/pet-catalog`, `PUT /v1/admin/pet-catalog/{type}` (요청 body 변경)
 
-`UserRegisteredEventListener.handle()`은 단일 `try { ... } catch (e: Exception) { log.error(...) }` 블록으로 모든 예외(IO, HTTP 4xx/5xx, 직렬화 등)를 흡수한다. 재시도 없음 (사용자 결정: fire-and-forget).
+| Method | Path | Request 변경 | Response 변경 | Auth |
+|---|---|---|---|---|
+| POST | `/v1/admin/pet-catalog` | body에 `colorCode: string`(hex 6자리 필수) 추가 | `colorCode` 필드 응답에 노출 | Admin |
+| PUT | `/v1/admin/pet-catalog/{type}` | 동상 | 동상 | Admin |
+| GET | `/v1/admin/pet-catalog` | 무변경 | `pets[].colorCode` 노출 | Admin |
+| DELETE | `/v1/admin/pet-catalog/{type}` | 무변경 | `colorCode` 필드 응답에 노출 | Admin |
 
-```kotlin
-private val log = LoggerFactory.getLogger(javaClass)
+요청 예시:
 
-try {
-    discordHookApi.sendMessage(DiscordHookApi.Request(content = body))
-} catch (e: Exception) {
-    log.error("Discord 신규 가입 알림 발송 실패: userId={}, provider={}", event.userId, event.oAuthType, e)
+```json
+POST /v1/admin/pet-catalog
+{
+  "type": "QUOKKA",
+  "name": "쿼카",
+  "backgrounds": { "homeUrl": "...", "homeCompactUrl": "...", "friendCardUrl": "..." },
+  "colorCode": "#FFCC00",
+  "isActive": true,
+  "displayOrder": 5,
+  "levels": { ... }
 }
 ```
 
-로그에는 사용자 PII(`nickName`)를 남기지 않는다 — `userId`와 provider만. (kotlin-spring-conventions 가이드 준수: "민감 정보는 절대 로깅 금지".)
+검증 실패 케이스 (`MethodArgumentNotValidException` → 400):
+- 누락: `colorCode` 없음 → Kotlin non-null 역직렬화 실패 (Jackson `MissingKotlinParameterException` → 400)
+- 형식 위반: `"red"`, `"#GGGGGG"`, `"#FFF"`, `"#FFCC0080"`, `"rgba(...)"` → `@Pattern` 위반 → 400
 
-## 환경변수 / 설정
+## 서비스 시그니처
 
-### `discord.hook-url` 추가
+### `PetCatalogService` (application/service/PetCatalogService.kt 수정)
 
-`slack.hook-url`과 동일한 컨벤션 (yaml 키 kebab-case, 환경변수 UPPER_SNAKE).
+`create(...)` 및 `update(...)`의 시그니처에 `colorCode: String`을 `backgrounds` 직후, `isActive` 직전에 추가한다 (도메인 모델과 같은 순서).
 
-| 파일 | 추가 라인 |
-|---|---|
-| `src/main/resources/application-prod.yaml` | `discord:`<br>` hook-url: ${DISCORD_WEBHOOK_URL}` |
-| `src/main/resources/application-dev.yaml` | `discord:`<br>` hook-url: ${DISCORD_WEBHOOK_URL}` |
-| `src/main/resources/application-local.yaml` | `discord:`<br>` hook-url: ${DISCORD_WEBHOOK_URL}` |
+```kotlin
+@Service
+class PetCatalogService(
+    private val repository: PetCatalogRepository,
+) {
+    // 기존 메서드들 (시그니처 무변경): getActiveCatalog, currentVersion, getAllForAdmin,
+    // pickRandomActiveExcluding, getName, requireActive, softDelete
 
-세 yaml 모두 `slack:` 블록 바로 아래(혹은 인접한 외부 통합 영역)에 들여쓰기 2-space로 추가한다. 단일 webhook URL을 공유하되 메시지 본문에 phase 접두어를 붙여 채널 분리 효과를 낸다 (사용자 결정).
+    fun create(
+        type: String,
+        name: String,
+        backgrounds: PetCatalogBackgrounds,
+        colorCode: String,            // 신규
+        isActive: Boolean,
+        displayOrder: Int,
+        levels: Map<Int, PetCatalogLevel>,
+    ): PetCatalogItem
 
-### `spring.profiles.active` 사용처
+    fun update(
+        type: String,
+        name: String,
+        backgrounds: PetCatalogBackgrounds,
+        colorCode: String,            // 신규
+        isActive: Boolean,
+        displayOrder: Int,
+        levels: Map<Int, PetCatalogLevel>,
+    ): PetCatalogItem
+}
+```
 
-`UserRegisteredEventListener` 생성자에서 `@Value("\${spring.profiles.active:local}") private val activeProfile: String`로 주입받아 메시지 prefix에 사용. 기본값 `local`로 두어 profile 미설정 환경에서도 안전.
+**구현 변경:**
+- `create()` 내부 `PetCatalogEntity(...)` 생성자 호출에 `colorCode = colorCode` 1줄 추가.
+- `update()` 내부 `existing.copy(...)` 호출에 `colorCode = colorCode` 1줄 추가.
+- 다른 메서드(`softDelete`, `getActiveCatalog` 등)는 무변경.
 
-### `@Async` 동작 보장
+## MongoDB 스키마
 
-`DdanDdanServerApplication`에 `@EnableAsync`가 이미 활성화되어 있어(이슈 분석 메모 확인) 별도 설정 불필요. `@TransactionalEventListener`는 spring-tx에 포함되어 추가 의존성 없음.
+### `PetCatalogEntity` (infrastructure/database/entity/PetCatalogEntity.kt)
+
+`backgrounds` 필드 직후에 `colorCode: String` 추가. **nested entity 클래스는 만들지 않는다.**
+
+```kotlin
+@Document("pet_catalog")
+data class PetCatalogEntity(
+    @Id
+    val id: ObjectId = ObjectId(),
+    @Indexed(unique = true)
+    val type: String,
+    val name: String,
+    val backgrounds: PetCatalogBackgroundsEntity,
+    val colorCode: String,        // 신규 — Mongo: color_code
+    val isActive: Boolean = true,
+    val displayOrder: Int = 0,
+    val levels: Map<Int, PetCatalogLevelEntity>,
+    val createdAt: Instant = Instant.now(),
+    val updatedAt: Instant = Instant.now(),
+)
+```
+
+**매퍼 변경:**
+- `toDomain()`에 `colorCode = colorCode` 1줄 추가
+- `fromDomain(item)`에 `colorCode = item.colorCode` 1줄 추가
+
+**MongoDB 컬렉션 필드명:** `SnakeCaseFieldNamingStrategy` 적용에 따라 DB에서는 `color_code`로 저장된다. Kotlin 필드명은 `colorCode`.
+
+**인덱스/쿼리:** `colorCode`는 정렬/필터 키가 아니므로 신규 인덱스 불필요. 기존 `type` unique index 그대로.
+
+### 마이그레이션 필요 여부
+
+**필요.** 기존 dev/prod의 5개 도큐먼트(CAT/HAMSTER/PENGUIN/DOG/MOLE)에 `color_code`가 없으면 Spring Data가 Kotlin `non-null String` 필드 역직렬화에서 실패하여 `GET /v1/pets/catalog` 등 카탈로그 의존 API 전부가 다운된다. **코드 배포 전에 mongosh 마이그레이션 선행 필수.**
+
+### mongosh 마이그레이션 스크립트
+
+**핵심 주의: 키는 반드시 snake_case `color_code` 사용** (MEMORY 항목, PR #308 사고 재발 방지).
+
+#### dev (`dev-ddan-ddan-db`)
+
+```javascript
+use("dev-ddan-ddan-db");
+
+// 5종 모두에 color_code 채움 + updatedAt 갱신 (캐시 무효화 효과)
+const now = new Date();
+const colorMap = {
+  MOLE: "#D0DAE4",
+  DOG: "#9B6CFF",
+  CAT: "#FD85FF",
+  PENGUIN: "#4E95FF",
+  HAMSTER: "#46F8A2",
+};
+for (const [type, color] of Object.entries(colorMap)) {
+  db.pet_catalog.updateOne(
+    { type: type },
+    { $set: { color_code: color, updated_at: now } }
+  );
+}
+
+// 검증: 5건 모두 color_code 채워졌는지 확인
+db.pet_catalog.find({}, { type: 1, color_code: 1, _id: 0 }).toArray();
+// 기대값: 5건, color_code 모두 #으로 시작하는 6자리 hex
+```
+
+#### prod (`ddan-ddan-db`)
+
+```javascript
+use("ddan-ddan-db");
+
+const now = new Date();
+const colorMap = {
+  MOLE: "#D0DAE4",
+  DOG: "#9B6CFF",
+  CAT: "#FD85FF",
+  PENGUIN: "#4E95FF",
+  HAMSTER: "#46F8A2",
+};
+for (const [type, color] of Object.entries(colorMap)) {
+  db.pet_catalog.updateOne(
+    { type: type },
+    { $set: { color_code: color, updated_at: now } }
+  );
+}
+
+db.pet_catalog.find({}, { type: 1, color_code: 1, _id: 0 }).toArray();
+```
+
+**실행 순서:**
+1. mongosh로 dev 마이그레이션 → 검증 쿼리로 5건 확인 → dev 앱이 기존 코드로도 동작하는지 (color_code 필드 무시) 확인.
+2. dev 코드 배포 → smoke 테스트로 `colorCode` 응답 노출 확인.
+3. prod 마이그레이션 → 검증.
+4. prod 코드 배포.
+
+**캐시 영향:** mongosh로 `updated_at`도 함께 갱신했으므로, 코드 배포 후 첫 `currentVersion()` 호출(또는 60초 TTL 만료 후)에 새 version이 반영된다. `X-Pet-Catalog-Version` 헤더로 클라이언트 캐시도 자연스럽게 무효화.
+
+## 예외
+
+**신규 도메인 예외 없음.** 입력 검증 실패는 Spring `MethodArgumentNotValidException` (이미 `WebExceptionHandler`에서 처리되리라 가정 — 기존 backgrounds 검증과 동일 경로). 도메인 단에서는 `colorCode`를 plain `String`으로 운반하므로 도메인 예외 발생 지점 없음.
+
+## 시드 (PetCatalogSeeder)
+
+### `PetSeed` 데이터 클래스에 `colorCode` 필드 추가
+
+```kotlin
+private data class PetSeed(
+    val type: String,
+    val name: String,
+    val species: String,
+    val colorCode: String,    // 신규
+)
+```
+
+### `DEFAULT_PETS`에 색상 채움
+
+```kotlin
+private val DEFAULT_PETS =
+    listOf(
+        PetSeed(type = "CAT",     name = "고양이",   species = "cat",     colorCode = "#FD85FF"),
+        PetSeed(type = "HAMSTER", name = "햄스터",   species = "hamster", colorCode = "#46F8A2"),
+        PetSeed(type = "PENGUIN", name = "펭귄",     species = "penguin", colorCode = "#4E95FF"),
+        PetSeed(type = "DOG",     name = "강아지",   species = "dog",     colorCode = "#9B6CFF"),
+        PetSeed(type = "MOLE",    name = "두더지",   species = "mole",    colorCode = "#D0DAE4"),
+    )
+```
+
+### `seed()` 내부 entity 생성부
+
+`PetCatalogEntity(...)` 생성자 호출에 `colorCode = pet.colorCode` 1줄 추가 (backgrounds 직후).
+
+```kotlin
+PetCatalogEntity(
+    type = pet.type,
+    name = pet.name,
+    backgrounds = buildBackgrounds(pet.species),
+    colorCode = pet.colorCode,        // 신규
+    isActive = true,
+    displayOrder = index,
+    levels = buildLevels(pet.species),
+    createdAt = now,
+    updatedAt = now,
+)
+```
+
+### `buildBackgrounds` / `buildLevels`
+
+**무변경.** `colorCode`는 species 기반 lookup이 아니라 type 기반 고정값이므로 헬퍼 함수 불필요. `PetSeed`에 필드를 추가하는 방식이 더 자연스럽다 (backgrounds처럼 species → URL 변환 규칙이 있는 게 아니라 단순 상수 매핑).
+
+## 응답 DTO (presentation/dto/response/PetCatalogResponse.kt)
+
+### `PetCatalogItemResponse`
+
+`backgrounds` 직후에 `colorCode: String` 추가.
+
+```kotlin
+data class PetCatalogItemResponse(
+    val type: String,
+    val name: String,
+    val backgrounds: PetCatalogBackgroundsResponse,
+    val colorCode: String,            // 신규
+    val isActive: Boolean,
+    val displayOrder: Int,
+    val levels: Map<Int, PetCatalogLevelResponse>,
+) {
+    companion object {
+        fun from(item: PetCatalogItem): PetCatalogItemResponse =
+            PetCatalogItemResponse(
+                type = item.type,
+                name = item.name,
+                backgrounds = PetCatalogBackgroundsResponse.from(item.backgrounds),
+                colorCode = item.colorCode,    // 신규
+                isActive = item.isActive,
+                displayOrder = item.displayOrder,
+                levels = item.levels.mapValues { PetCatalogLevelResponse.from(it.value) },
+            )
+    }
+}
+```
+
+`PetCatalogResponse`, `PetCatalogBackgroundsResponse`, `PetCatalogLevelResponse`는 **무변경**.
+
+## 어드민 DTO (presentation/dto/admin/PetCatalogAdminDto.kt)
+
+### `PetCatalogAdminCreateRequest`
+
+`backgrounds` 직후에 `colorCode` 추가. hex 정규식 검증.
+
+```kotlin
+data class PetCatalogAdminCreateRequest(
+    @field:NotBlank
+    val type: String,
+    @field:NotBlank
+    val name: String,
+    @field:Valid
+    val backgrounds: PetCatalogBackgroundsRequest,
+    @field:NotBlank
+    @field:Pattern(regexp = HEX_COLOR_REGEX, message = "colorCode는 #으로 시작하는 6자리 hex(예: #FFCC00) 여야 합니다")
+    val colorCode: String,
+    val isActive: Boolean = true,
+    @field:Min(0)
+    val displayOrder: Int = 0,
+    @field:NotEmpty
+    @field:Valid
+    val levels: Map<Int, PetCatalogLevelRequest>,
+) {
+    fun levelsToDomain(): Map<Int, PetCatalogLevel> = levels.mapValues { it.value.toDomain() }
+}
+```
+
+### `PetCatalogAdminUpdateRequest`
+
+```kotlin
+data class PetCatalogAdminUpdateRequest(
+    @field:NotBlank
+    val name: String,
+    @field:Valid
+    val backgrounds: PetCatalogBackgroundsRequest,
+    @field:NotBlank
+    @field:Pattern(regexp = HEX_COLOR_REGEX, message = "colorCode는 #으로 시작하는 6자리 hex(예: #FFCC00) 여야 합니다")
+    val colorCode: String,
+    val isActive: Boolean,
+    @field:Min(0)
+    val displayOrder: Int,
+    @field:NotEmpty
+    @field:Valid
+    val levels: Map<Int, PetCatalogLevelRequest>,
+) {
+    fun levelsToDomain(): Map<Int, PetCatalogLevel> = levels.mapValues { it.value.toDomain() }
+}
+```
+
+### hex 정규식 상수 — 파일 최상단(또는 companion object) 추가
+
+```kotlin
+private const val HEX_COLOR_REGEX = "^#[0-9A-Fa-f]{6}$"
+```
+
+> `kotlin.text.Regex` 패턴이 아니라 `@Pattern`(jakarta.validation)이 사용할 `String` 상수. backgrounds DTO와 같은 파일(`PetCatalogAdminDto.kt`)의 top-level에 둔다.
+
+### `PetCatalogAdminItemResponse`
+
+`backgrounds` 직후에 `colorCode: String` 추가.
+
+```kotlin
+data class PetCatalogAdminItemResponse(
+    val type: String,
+    val name: String,
+    val backgrounds: PetCatalogBackgroundsResponse,
+    val colorCode: String,        // 신규
+    val isActive: Boolean,
+    val displayOrder: Int,
+    val levels: Map<Int, PetCatalogLevelResponse>,
+) {
+    companion object {
+        fun from(item: PetCatalogItem): PetCatalogAdminItemResponse =
+            PetCatalogAdminItemResponse(
+                type = item.type,
+                name = item.name,
+                backgrounds = PetCatalogBackgroundsResponse.from(item.backgrounds),
+                colorCode = item.colorCode,    // 신규
+                isActive = item.isActive,
+                displayOrder = item.displayOrder,
+                levels = item.levels.mapValues { PetCatalogLevelResponse.from(it.value) },
+            )
+    }
+}
+```
+
+`PetCatalogAdminListResponse`, 어드민 측 nested DTO(`PetCatalogBackgroundsResponse`, `PetCatalogLevelResponse`, `PetCatalogBackgroundsRequest`, `PetCatalogLevelRequest`)는 **무변경**.
+
+## 컨트롤러 (PetCatalogAdminController.kt)
+
+시그니처 변경 없음. `create()`/`update()` 본문에서 `petCatalogService.create/update` 호출 시 `colorCode = request.colorCode` 1줄을 `backgrounds` 직후에 추가.
+
+```kotlin
+@PostMapping
+fun create(
+    @RequestBody @Valid request: PetCatalogAdminCreateRequest,
+): PetCatalogAdminItemResponse =
+    PetCatalogAdminItemResponse.from(
+        petCatalogService.create(
+            type = request.type,
+            name = request.name,
+            backgrounds = request.backgrounds.toDomain(),
+            colorCode = request.colorCode,    // 신규
+            isActive = request.isActive,
+            displayOrder = request.displayOrder,
+            levels = request.levelsToDomain(),
+        ),
+    )
+```
+
+`update()`도 동일 패턴. `list()`, `softDelete()`는 본문 무변경.
+
+`PetCatalogController.kt`(클라이언트용)는 **완전 무변경** — 응답 DTO `from(...)`이 `colorCode`를 자동 매핑하므로.
 
 ## 변경 파일 목록
 
 ### 생성
 
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/application/event/UserRegisteredEvent.kt`
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/application/event/UserRegisteredEventListener.kt`
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/DiscordHookApi.kt`
+**없음.** 신규 클래스 없음 (단일 평탄 필드 추가이므로).
 
 ### 수정
 
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` — 생성자에 `ApplicationEventPublisher` 추가, `loginNewUser()` 끝(return 직전)에서 `eventPublisher.publishEvent(UserRegisteredEvent(...))` 1줄 추가
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/ApiConfiguration.kt` — `discordHookApi` `@Bean` 메서드 추가
-- `src/main/resources/application-prod.yaml` — `discord.hook-url` 항목 추가
-- `src/main/resources/application-dev.yaml` — `discord.hook-url` 항목 추가
-- `src/main/resources/application-local.yaml` — `discord.hook-url` 항목 추가
+| 파일 | 위치/라인 | 변경 내용 |
+|---|---|---|
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/petcatalog/PetCatalog.kt` | 10-17 (`PetCatalogItem`) | `backgrounds` 직후, `isActive` 직전에 `val colorCode: String` 1줄 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 14-26 (`PetCatalogEntity` 본문) | `backgrounds` 직후, `isActive` 직전에 `val colorCode: String` 1줄 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 27-46 (`toDomain`, `fromDomain`) | 각각에 `colorCode = ...` 1줄씩 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 22-33 (entity 생성부) | `colorCode = pet.colorCode` 1줄 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 59-63 (`PetSeed`) | `val colorCode: String` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 68-75 (`DEFAULT_PETS`) | 5개 항목 모두에 `colorCode = "#..."` 추가 (위 표 값) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 53-82 (`create`) | 시그니처에 `colorCode: String` 파라미터 추가, `PetCatalogEntity(...)` 생성자 호출에 `colorCode = colorCode` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 84-106 (`update`) | 동상 — 시그니처 추가 + `existing.copy(...)`에 `colorCode = colorCode` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/response/PetCatalogResponse.kt` | 21-40 (`PetCatalogItemResponse`) | `colorCode: String` 필드 + `from()` 매핑 1줄 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 파일 상단 (import 직후) | `import jakarta.validation.constraints.Pattern` + `private const val HEX_COLOR_REGEX = "^#[0-9A-Fa-f]{6}$"` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 11-26 (`PetCatalogAdminCreateRequest`) | `colorCode` 필드 + `@field:NotBlank` + `@field:Pattern(regexp = HEX_COLOR_REGEX, ...)` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 28-41 (`PetCatalogAdminUpdateRequest`) | 동상 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 75-94 (`PetCatalogAdminItemResponse`) | `colorCode` 필드 + `from()` 매핑 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 30-44 (`create`) | service 호출 인자에 `colorCode = request.colorCode` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 46-61 (`update`) | 동상 |
 
-테스트 파일은 test-engineer가 별도로 추가한다.
+### 무변경 (영향 없음)
+
+- `src/main/kotlin/.../presentation/controller/PetCatalogController.kt` — 응답 DTO가 자동으로 `colorCode` 노출
+- `src/main/kotlin/.../infrastructure/database/repository/PetCatalogRepository.kt`
+- `src/main/kotlin/.../presentation/filter/PetCatalogVersionFilter.kt`
+
+### 테스트 파일
+
+테스트 파일은 test-engineer가 별도로 추가/보강한다 (아래 "테스트 계획" 참고).
+
+## 테스트 계획
+
+### 단위 테스트 fixture 보강
+
+| 파일 | 변경 |
+|---|---|
+| `src/test/kotlin/.../application/service/PetCatalogServiceTest.kt` | (1) `entity(...)` 헬퍼: `colorCode = "#$key".padEnd(7, 'A')` 등 임의 hex 또는 고정 `"#AABBCC"` 추가. (2) `sampleBackgrounds()` 옆에 색상 인자를 직접 넘기는 형태로 `service.create(...)` / `service.update(...)` 호출부 4곳에 `colorCode = "#FFCC00"` 추가. (3) "create는 colorCode를 entity에 저장한다" 단언 신규 테스트 1건 추가 — `saved.captured.colorCode shouldBe "#FFCC00"`. (4) "update는 colorCode를 갱신한다" 단언 신규 테스트 1건 추가. |
+| `src/test/kotlin/.../presentation/controller/PetCatalogControllerIntegrationTest.kt` | (1) `PetCatalogItem` fixture에 `colorCode = "#FFCC00"` 추가 (1곳). (2) jsonPath 단언 추가: `.andExpect(jsonPath("$.pets[0].colorCode").value("#FFCC00"))`. |
+| `src/test/kotlin/.../presentation/controller/admin/PetCatalogAdminControllerIntegrationTest.kt` | (1) `item(...)` fixture에 `colorCode = "#FFCC00"` 추가. (2) `PetCatalogAdminCreateRequest` / `PetCatalogAdminUpdateRequest` 빌더에 `colorCode = "#FFCC00"` 추가 (2곳). (3) 단언 추가: `jsonPath("$.pets[0].colorCode").value("#FFCC00")` (GET list), `jsonPath("$.colorCode").value("#FFCC00")` (POST/PUT). (4) **신규 테스트: hex 정규식 검증 실패** — 잘못된 colorCode(`"red"`, `"#GGG"`, `"#FFCC0080"`)로 POST 요청 시 400 응답 확인. (5) `verify { petCatalogService.create(... any() ... ) }` 시그니처에 인자 1개 추가(`any()` 추가 또는 명시값). |
+
+### 시드 단위 테스트 (선택)
+
+`PetCatalogSeederTest`가 이미 존재한다면 5종에 대해 `entity.colorCode`가 위 5색 매핑과 일치하는지 단언 추가. (현재 미확인. 존재하지 않으면 신규 작성 생략.)
+
+### 회귀 방지 통합 테스트 (이미 존재하는 통합 테스트 보강으로 충분)
+
+`PetCatalogControllerIntegrationTest` + `PetCatalogAdminControllerIntegrationTest`의 jsonPath 단언 추가로 충분. 별도 통합 테스트 신설 불필요.
+
+### `PetCatalogVersionFilterTest`
+
+**영향 없음.** 헤더만 검증하므로 colorCode와 무관.
 
 ## 결정 이유
 
-### 왜 `ApplicationEventPublisher` + `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` 조합인가
+### 왜 평탄한 단일 필드인가 (사용자 결정 반영)
 
-1. **트랜잭션 커밋 후 발송 보장.** `AuthService.login()`은 `@Transactional`이 걸려 있어 신규 사용자/Auth 저장이 트랜잭션 안에서 일어난다. 만약 service 내부에서 webhook을 직접 호출하면 (a) 호출 중 예외가 던져져 트랜잭션이 롤백되거나 (b) 커밋 전에 알림이 나가버리는 문제가 생긴다. `@TransactionalEventListener(phase = AFTER_COMMIT)`은 정확히 이 두 문제를 함께 막는다 — 커밋이 완료된 뒤에만 호출되고, listener에서 던진 예외는 원래 트랜잭션에 영향을 주지 않는다.
-2. **누적 가입자 수의 정확성.** `userRepository.count()`를 listener에서 호출하면 새로 저장된 사용자 자신이 카운트에 포함된 결과가 나온다. service 내부에서 호출하면 트랜잭션 격리에 따라 카운트에 자기 자신이 빠질 수 있고 (read-uncommitted가 아닌 한), 트랜잭션 경계 안에서 호출되어 의도가 흐려진다.
-3. **메인 흐름과의 분리 (응답 지연 방지).** `@Async`로 별도 쓰레드에서 실행하므로 Discord webhook이 수 초 지연되어도 OAuth 로그인 응답은 즉시 반환된다. `@EnableAsync`가 이미 적용돼 있어 추가 부트스트랩 비용 없음.
-4. **대안 비교.**
-   - "service 내부에서 직접 webhook 호출 + `@Async`만 적용": 트랜잭션 미커밋 상태에서 알림이 나갈 수 있음. **탈락.**
-   - "controller에서 service 호출 후 webhook 호출": controller가 비즈니스 부수효과를 책임지게 되어 layered 의존 규칙(presentation→application 단방향) 안에 두기 어렵고, controller에 신규/기존 분기를 다시 만들어야 함. **탈락.**
-   - "도메인 이벤트를 domain 모델에 부착": Spring `ApplicationEvent`는 domain 모델을 Spring에 묶는 결과가 되어 layered-architecture-guide의 "domain은 Spring 어노테이션 금지" 원칙을 위반. **탈락.**
-   - 따라서 **이벤트 객체는 application 레이어 plain class**로 두고, publisher/listener도 application에 위치시키는 것이 가장 깔끔하다.
+- 펫당 색상이 1개로 확정됐고, primary/secondary 등 의미 분해도 없다. nested value object는 "복수의 연관 필드를 묶는다"가 핵심 가치인데, 이 경우 묶을 형제 필드가 없다.
+- backgrounds가 nested인 이유는 `homeUrl/homeCompactUrl/friendCardUrl` 3개가 항상 함께 변하는 단위였기 때문. colorCode는 그런 단위가 아니다.
+- 도메인/엔티티/요청 DTO/응답 DTO/어드민 DTO 모두 **클래스 신설 0개**로 처리 가능 — 변경 라인 수도 backgrounds보다 훨씬 적다.
 
-### 왜 재시도가 없는가 (사용자 결정)
+### 왜 필드명이 `colorCode`인가 (사용자 결정 반영)
 
-- 사용자 결정: 운영 알림 1건 누락보다는 코드 단순성과 외부 의존도 최소화를 우선. fire-and-forget으로 처리하고 실패는 `logger.error`로 흔적만 남긴다. 운영 부재 시 ELK/CloudWatch 등에서 ERROR 로그를 검색해 누락 가입을 사후 보정 가능.
-- 기존 `RetryConfig`의 `RetryTemplate`을 끌어다 쓸 수 있지만 본 설계에서는 사용하지 않는다. 재시도 정책이 추후 필요해지면 listener 안에서만 추가하면 되므로 확장 용이.
+- `themeColor`도 후보였으나 사용자가 **`colorCode`**로 결정 (camelCase 일관성).
+- backgrounds의 `*Url` 접미사 컨벤션(`homeUrl` 등 commit `7e1bb8c`)과 정합: 접미사는 "필드의 타입(URL인지 코드인지)"을 드러내는 역할이고, `colorCode`의 `Code` 자체가 그 역할을 한다. URL이 아니므로 `Url` 접미사는 부적합.
+- 단순 `color`보다 `colorCode`가 명시적이다. hex 코드라는 표기법을 필드명으로 드러낸다.
 
-### 왜 phase 접두어로 채널을 통합하는가 (사용자 결정)
+### 왜 hex 정규식 검증을 어드민 DTO에만 두는가
 
-- 사용자 결정: dev/prod webhook URL을 별도로 두면 Vault/CI 환경변수 관리 부담이 두 배가 된다. 단일 webhook URL을 유지하되 메시지 첫머리에 `[PROD]` / `[DEV]` / `[LOCAL]` 접두어를 붙여 운영팀이 시각적으로 구분.
-- 트레이드오프: dev 노이즈가 같은 채널에 흘러들어가지만, phase 접두어로 운영팀이 필터링/검색 가능. dev 트래픽이 과도해지면 추후 이 설계를 깨지 않고 yaml만 분리해 channel webhook을 환경별로 다르게 줄 수 있다.
+- 도메인 모델은 `String` 그대로 받고 비즈니스 규칙 메서드는 두지 않는다. backgrounds의 URL도 도메인 단에서 별도 검증을 하지 않는 것과 일관.
+- 입력 진입점(어드민 요청)에서 한 번 검증하면 충분. 시드 코드는 우리가 작성한 상수이므로 컴파일 타임에 신뢰 가능.
+- 정규식 위치는 `PetCatalogAdminDto.kt` top-level 상수로 두어 `Create`/`Update` 양쪽에서 재사용.
 
-### 왜 nickName을 그대로 노출하는가 (사용자 결정)
+### 왜 hex 6자리 strict (3자리 단축 / 알파 / rgba 불가)
 
-- 사용자 결정: Apple 로그인 시 `OAuth.nickName`이 이메일이라는 것을 알고 있으나, 운영팀 전용 Discord 채널이고 마스킹 로직 추가 시 KakaoProcessor 닉네임도 함께 가독성이 떨어지는 트레이드오프 발생. 사용자가 PII 노출 위험을 감수하기로 결정.
-- 보완: 로그(`logger.error`)에는 `nickName`을 남기지 않는다 — 코드 컨벤션 가이드의 "민감 정보 로깅 금지" 원칙은 준수. Discord webhook payload는 운영팀에 한정된 1회성 통보이므로 영구 저장 위험은 webhook 수신 시스템(Discord) 보존 정책에 위임.
+- 사용자 결정.
+- 클라이언트(iOS) 측에서 hex string 파싱 시 6자리 strict가 가장 단순. 3자리 단축/알파/rgba를 허용하면 클라이언트 파서가 분기를 가져야 한다.
+- 디자이너 공급값 5색이 모두 6자리 hex이므로 strict 정책 적용 가능.
+
+### 왜 마이그레이션이 코드 배포보다 선행해야 하는가
+
+- `colorCode`는 non-null `String`. 마이그레이션 없이 코드 배포하면 기존 5개 도큐먼트 역직렬화 시 `MappingException`/`NullValueException`이 발생하여 `GET /v1/pets/catalog`, `POST /v1/pets`(랜덤 펫 추가), `requireActive(...)` 등 카탈로그 의존 API가 전부 다운된다.
+- PR #308의 backgrounds와 정확히 동일한 위험. 동일 절차로 처리.
+- **대안 비교:**
+  - nullable로 추가 후 백필: 클라이언트가 fallback UI를 가져야 하고, non-null 전환 시 마이그레이션을 또 해야 한다. 2단계 배포가 됨. **탈락.**
+  - 도메인 default 값(`val colorCode: String = "#000000"`): Spring Data Mongo는 default를 항상 인식하지 않으며 (kotlin reflect 의존), 잘못된 default가 운영에 나갈 위험. **탈락.**
+  - mongosh 선행 마이그레이션 (현재 안): PR #308과 정합, 가장 단순. **채택.**
+
+### 왜 마이그레이션 키가 snake_case `color_code`인가
+
+- MongoDB는 `SnakeCaseFieldNamingStrategy` 적용. Kotlin `colorCode` ↔ DB `color_code`.
+- mongosh로 `{ $set: { colorCode: "..." } }` 라고 쓰면 DB에는 `colorCode`라는 별도 키가 생기고, Spring Data는 `color_code`를 읽으려 해 null이 된다 → 역직렬화 실패.
+- MEMORY 항목(PR #308 사고)에서 이 사고가 이미 발생. 반드시 snake_case로 작성한다.
+
+### 왜 마이그레이션에서 `updated_at`도 함께 갱신하는가
+
+- `currentVersion()`은 `max(updatedAt)`을 반환하므로, 마이그레이션 후 클라이언트가 새로 받은 카탈로그의 버전이 갱신되어야 캐시 무효화가 자연스럽게 동작한다.
+- 60초 TTL이 끝나면 자동 반영되지만, 명시적으로 `updated_at`을 `new Date()`로 박아두면 그 시점 이후 첫 호출부터 즉시 반영된다.
+
+### 왜 신규 컨트롤러 / 신규 엔드포인트를 만들지 않는가
+
+- 요구사항은 "기존 `GET /v1/pets/catalog` 응답에 색상 노출". 신규 엔드포인트가 필요 없는 wire-additive 변경.
+- 어드민 CRUD도 이미 존재하므로 요청/응답 DTO에 필드만 추가하면 끝.
+
+### 왜 wire-first인가 (사용자 결정 반영)
+
+- PR #308과 동일 패턴. iOS 즉시 사용 여부와 무관하게 backend는 필드 노출만 보장.
+- 따라서 통합 테스트는 "응답 JSON에 필드가 노출되는지" + "어드민 요청에서 검증되는지" 두 가지로 충분. 실제 화면 노출 시점은 iOS 작업에 위임.
