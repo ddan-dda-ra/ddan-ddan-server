@@ -1,244 +1,428 @@
-# 설계: 신규 가입 디스코드 알림
+# 설계: dev 환경 Mock/Real OAuth 동시 사용 (X-Mock-OAuth 헤더 기반 디스패치)
+
+## 결정 사항 요약 (사용자 확정 사항 반영)
+
+| 항목 | 결정 |
+|---|---|
+| 헤더명 | `X-Mock-OAuth` (Boolean, optional, default `false`) |
+| prod 정책 | Mock 빈 미등록 환경에서 `X-Mock-OAuth: true` 수신 시 **400 reject**. Real로 fallback 하지 않음. |
+| dev 동일 정책 | dev에서도 `useMock=true`인데 해당 `OAuthType`의 Mock processor가 없으면 동일하게 **400 reject**. |
+| Real/Mock 구분 패턴 | `MockOAuthProcessor` 마커 인터페이스 신설 (SOLID 관점에서 가장 명시적). `OAuthProcessorFactory`에서 `clients.partition { it is MockOAuthProcessor }`로 분리. |
+| `KakaoProcessor`/`AppleProcessor` | `@ConditionalOnProperty` **제거** → 항상 빈 등록. |
+| `MockKakaoProcessor`/`MockAppleProcessor` | `@ConditionalOnProperty(prefix="mock-oauth", name=["enabled"], havingValue="true")` **유지**. |
+| `mock-oauth.enabled` 의미 | "Mock processor 빈 등록 여부"로 격하. Real 빈 등록과는 무관. |
+| Swagger 문서화 | **안 함** (내부 용도, `@Parameter` 미사용). |
+| 신규 도메인 예외 | `UnsupportedOAuthModeException` (extends `AuthenticationException`). `WebExceptionHandler`에서 400으로 매핑. |
+| 환경 설정 파일 | `application-*.yaml` 변경 **없음** (`mock-oauth.enabled` 키 그대로 유지). |
+
+## 영향 받는 레이어와 책임
+
+| 레이어 | 변경 |
+|---|---|
+| domain | `UnsupportedOAuthModeException` 1개 추가, `ErrorCode.UNSUPPORTED_OAUTH_MODE` 1개 추가 |
+| application | `MockOAuthProcessor` 마커 인터페이스 신설; `MockKakao/MockAppleProcessor`에 마커 적용; `KakaoProcessor`/`AppleProcessor`의 `@ConditionalOnProperty` 제거; `OAuthProcessorFactory` 내부 맵을 real/mock 2개로 분리, `getClient(type, useMock)` 시그니처 변경; `AuthService.login` 시그니처에 `useMock` 추가 |
+| infrastructure | 없음 |
+| presentation | `AuthController.login`에 `@RequestHeader("X-Mock-OAuth")` 추가; `WebExceptionHandler`에 신규 예외 매핑(또는 `AuthenticationException` 기존 핸들러 재사용 검토) |
 
 ## 도메인 모델
 
-없음. Discord 운영 알림은 비즈니스 도메인 개념이 아니라 운영팀 통지 부수효과(side-effect)이므로 `domain/model/`에 새 모델을 만들지 않는다. 이벤트 객체(`UserRegisteredEvent`)는 application 레이어 내부 통신 매개체이며 도메인 모델이 아니다.
+**도메인 모델 신규/수정 없음.** `OAuth`, `OAuthType`, `AuthResult` 모두 무변경. 본 변경은 "어떤 processor가 호출될지"의 디스패치 결정 로직이며, 도메인 데이터 구조 변경이 아니다.
 
-## 이벤트
+### 도메인 예외 신설 — `UnsupportedOAuthModeException`
 
-### `UserRegisteredEvent` (application/event)
-
-`AuthService.loginNewUser()` 트랜잭션이 **커밋된 이후** Discord 발송에 필요한 모든 정보를 옮기는 불변 데이터 클래스.
-
-**필드:**
-
-| 필드 | 타입 | 의미 / 출처 |
-|---|---|---|
-| `userId` | `org.bson.types.ObjectId` | `newUser.id` — Discord 메시지에서 식별자 표기에 사용 |
-| `nickName` | `String` | `oAuth.nickName` — Discord 메시지의 사용자명 표기 (사용자 결정: 마스킹 없이 그대로 노출, Apple의 이메일 노출 위험은 사용자가 감수) |
-| `oAuthType` | `notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType` | `KAKAO` / `APPLE` — provider 표기 |
-| `registeredAt` | `java.time.Instant` | 이벤트 생성 시각(가입 시각). 트랜잭션 커밋 후 시각이 아니라 신규 User 생성 시점을 보존하기 위해 publish 직전에 `Instant.now()`로 채운다 |
-
-**필드 선정 근거:**
-- Discord 메시지 본문 구성에 필요한 최소 필드만 담는다. `User` 객체 전체나 `Auth` 객체 전체를 넣지 않는 이유는 (1) listener에서 도메인 메서드를 호출할 일이 없고 (2) 이벤트 객체는 영속 객체 참조를 들고 트랜잭션 경계를 넘기지 않는 편이 안전하기 때문이다(LazyInitialization 등 우회 가능 이슈 회피 + 의도 명확화).
-- `누적 가입자 수`는 이벤트 필드에 넣지 않는다. listener가 `AFTER_COMMIT` 시점에 `userRepository.count()`로 직접 조회한다. 이렇게 해야 신규 사용자 자신을 포함한 정확한 카운트가 나온다.
-
-## 서비스 시그니처
-
-### `AuthService` 변경 (application/service/AuthService.kt 수정)
-
-생성자에 `ApplicationEventPublisher`를 주입받고, `loginNewUser()` 내부에서 `userRepository.save(...)`/`authRepository.save(...)` 직후 이벤트를 발행한다.
+`domain/exception/AuthenticationException.kt`에 추가 (기존 파일 내 클래스 추가; 새 파일 신설 안 함). `AuthenticationException`의 하위 클래스로 두는 이유는 "인증 입구에서 거부되는 요청" 카테고리에 정합하기 때문이다. 다만 HTTP 응답은 401이 아니라 **400 Bad Request**이므로 (인증 시도 자체가 잘못된 요청 형태) `WebExceptionHandler`에서 별도 매핑한다.
 
 ```kotlin
-@Service
-class AuthService(
-    private val authRepository: AuthRepository,
-    private val userRepository: UserRepository,
-    private val jwtTokenProvider: JWTTokenProvider,
-    private val oauthProcessorFactory: OAuthProcessorFactory,
-    private val eventPublisher: org.springframework.context.ApplicationEventPublisher, // 추가
-) {
-    // ...
-
-    private fun loginNewUser(
-        oAuth: OAuth,
-        deviceToken: String?,
-        oAuthType: OAuthType,
-    ): AuthResult {
-        val newUser = userRepository.save(
-            User.register(name = oAuth.nickName, deviceToken = deviceToken),
-        )
-        authRepository.save(
-            Auth.create(oAuthId = oAuth.id, type = oAuthType, userId = newUser.id),
-        )
-
-        // 추가: 트랜잭션 커밋 후 Discord 알림 발송을 위한 이벤트 발행
-        eventPublisher.publishEvent(
-            UserRegisteredEvent(
-                userId = newUser.id,
-                nickName = oAuth.nickName,
-                oAuthType = oAuthType,
-                registeredAt = Instant.now(),
-            ),
-        )
-
-        return AuthResult(
-            accessToken = jwtTokenProvider.createAccessToken(newUser),
-            refreshToken = jwtTokenProvider.createRefreshToken(newUser),
-            user = newUser,
-        )
-    }
-}
+class UnsupportedOAuthModeException(
+    oAuthType: OAuthType,
+) : AuthenticationException(ErrorCode.UNSUPPORTED_OAUTH_MODE, oAuthType)
 ```
 
-**기존 메서드 시그니처(반환 타입, 파라미터) 변경 없음.** 컨트롤러/외부 API 영향 없음.
+데이터로 `oAuthType`을 실어서 클라이언트 디버깅에 도움.
 
-### `UserRegisteredEventListener` (신규: application/event/UserRegisteredEventListener.kt)
+### `ErrorCode` 추가
+
+`domain/exception/ErrorCode.kt` 인증 카테고리 또는 기본 카테고리에 추가:
 
 ```kotlin
-@Component
-class UserRegisteredEventListener(
-    private val userRepository: UserRepository,
-    private val discordHookApi: DiscordHookApi,
-    @Value("\${spring.profiles.active:local}") private val activeProfile: String,
-) {
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    fun handle(event: UserRegisteredEvent)
-}
+UNSUPPORTED_OAUTH_MODE("AC006", "요청한 OAuth 모드를 현재 환경에서 사용할 수 없습니다."),
 ```
 
-**핸들러 책임:**
-1. `userRepository.count()`로 누적 가입자 수 조회 (트랜잭션 커밋 후이므로 신규 사용자 포함됨).
-2. `activeProfile.uppercase()`로 phase 접두어 생성 (`PROD`, `DEV`, `LOCAL`).
-3. 한국어 한 줄 메시지 본문 조립.
-4. `discordHookApi.sendMessage(...)`를 `try { ... } catch (e: Exception) { log.error(...) }`로 감싸 모든 예외 흡수.
-
-**메시지 포맷 (예시):**
-
-```
-[PROD] 신규 가입 | 닉네임=홍길동 | provider=KAKAO | userId=66341a2b3c4d5e6f78901234 | 가입시각=2026-05-02T14:23:11Z | 누적 가입자=1,234명
-```
-
-- 단일 `content` 한 줄 문자열. Discord embed 미사용 (사용자 결정 가이드: "content 한 줄도 충분").
-- 천단위 콤마는 `String.format("%,d", count)` 사용.
-
-## 외부 클라이언트
-
-### `DiscordHookApi` (신규: infrastructure/api/DiscordHookApi.kt)
-
-`SlackHookApi`를 1:1 미러링한다. `@HttpExchange` + `@PostExchange` + `RestClient` baseUrl 주입 패턴 동일.
-
-```kotlin
-@HttpExchange(accept = [MediaType.APPLICATION_JSON_VALUE])
-interface DiscordHookApi {
-    @PostExchange
-    fun sendMessage(
-        @RequestBody request: Request,
-    )
-
-    data class Request(
-        val content: String,
-        val username: String = DEFAULT_USERNAME,
-    )
-
-    companion object {
-        const val DEFAULT_USERNAME = "ddan-ddan-server-bot"
-    }
-}
-```
-
-**Slack과의 차이 (Discord webhook 스펙 준수):**
-- payload 키는 `content`, `username` (Slack은 `text`, `channel`, `username`).
-- Discord webhook은 채널을 URL 자체에 묶기 때문에 `channel` 필드가 없다.
-- `avatar_url`, `embeds` 등 추가 필드는 본 설계 범위에서 사용하지 않음 (단순 한 줄 알림으로 충분).
-
-### `ApiConfiguration` 수정 (infrastructure/api/ApiConfiguration.kt)
-
-`slackHookApi` 빈과 동일한 형태로 `discordHookApi` 빈 추가. `@Value("\${discord.hook-url}")`로 webhook URL 주입.
-
-```kotlin
-@Bean
-fun discordHookApi(
-    @Value("\${discord.hook-url}") hookUrl: String,
-): DiscordHookApi {
-    val factory = HttpServiceProxyFactory.builderFor(restClientAdapter(hookUrl)).build()
-    return factory.createClient(DiscordHookApi::class.java)
-}
-```
-
-기존 `restClientAdapter(baseUrl: String)` 헬퍼 그대로 재사용. 신규 헬퍼 함수 불필요.
+코드 prefix `AC`는 인증(authentication) 카테고리 컨벤션과 일치.
 
 ## API 명세
 
-**외부 API 변경 없음.** presentation 레이어 무변화. 기존 `/auth/login` 시리즈 엔드포인트의 요청/응답 시그니처도 그대로다. 본 기능은 OAuth 가입 흐름의 부수효과로만 동작한다.
+### `POST /v1/auth/login` — 요청 헤더 추가
 
-## MongoDB 스키마
+| Method | Path | Request Body | Request Header | Response | Auth |
+|---|---|---|---|---|---|
+| POST | `/v1/auth/login` | `LoginRequest` (무변경) | `X-Mock-OAuth: Boolean` (optional, default `false`) | `LoginResponse` (무변경) | 공개 (`/v1/auth/**` permitAll) |
 
-**변경 없음.** `users` 컬렉션의 `count()`만 읽으며, 신규 컬렉션/필드/인덱스 추가 없음.
+요청 예시:
 
-## 예외
+```http
+POST /v1/auth/login HTTP/1.1
+Content-Type: application/json
+X-Mock-OAuth: true
 
-**신규 도메인 예외 없음.** Discord 알림 실패는 비즈니스 실패가 아니라 운영 통지 부수효과 실패이므로 `WebExceptionHandler`에 매핑할 필요가 없다.
-
-`UserRegisteredEventListener.handle()`은 단일 `try { ... } catch (e: Exception) { log.error(...) }` 블록으로 모든 예외(IO, HTTP 4xx/5xx, 직렬화 등)를 흡수한다. 재시도 없음 (사용자 결정: fire-and-forget).
-
-```kotlin
-private val log = LoggerFactory.getLogger(javaClass)
-
-try {
-    discordHookApi.sendMessage(DiscordHookApi.Request(content = body))
-} catch (e: Exception) {
-    log.error("Discord 신규 가입 알림 발송 실패: userId={}, provider={}", event.userId, event.oAuthType, e)
+{
+  "token": "12345",
+  "tokenType": "KAKAO",
+  "deviceToken": "..."
 }
 ```
 
-로그에는 사용자 PII(`nickName`)를 남기지 않는다 — `userId`와 provider만. (kotlin-spring-conventions 가이드 준수: "민감 정보는 절대 로깅 금지".)
+응답 시나리오:
 
-## 환경변수 / 설정
+| 환경 | 헤더 | 결과 |
+|---|---|---|
+| prod | 없음 또는 `false` | Real processor 호출 (기존과 동일) |
+| prod | `true` | **400 `UNSUPPORTED_OAUTH_MODE`** (mock 빈 미등록) |
+| dev | 없음 또는 `false` | Real processor 호출 (실제 카카오/Apple API 호출) |
+| dev | `true` | Mock processor 호출 (`mock-kakao-{token}` 등) |
+| dev (mock-oauth.enabled=false인 가상 케이스) | `true` | **400 `UNSUPPORTED_OAUTH_MODE`** |
 
-### `discord.hook-url` 추가
+### `POST /v1/auth/reissue` — 무변경
 
-`slack.hook-url`과 동일한 컨벤션 (yaml 키 kebab-case, 환경변수 UPPER_SNAKE).
+refresh 토큰만 검증하므로 `X-Mock-OAuth` 헤더 영향 없음.
 
-| 파일 | 추가 라인 |
-|---|---|
-| `src/main/resources/application-prod.yaml` | `discord:`<br>` hook-url: ${DISCORD_WEBHOOK_URL}` |
-| `src/main/resources/application-dev.yaml` | `discord:`<br>` hook-url: ${DISCORD_WEBHOOK_URL}` |
-| `src/main/resources/application-local.yaml` | `discord:`<br>` hook-url: ${DISCORD_WEBHOOK_URL}` |
+### Swagger / OpenAPI
 
-세 yaml 모두 `slack:` 블록 바로 아래(혹은 인접한 외부 통합 영역)에 들여쓰기 2-space로 추가한다. 단일 webhook URL을 공유하되 메시지 본문에 phase 접두어를 붙여 채널 분리 효과를 낸다 (사용자 결정).
+`@Parameter` 추가하지 **않는다** (사용자 확정). 헤더는 내부용도이며 외부 문서 노출 불필요.
 
-### `spring.profiles.active` 사용처
+## 서비스 시그니처
 
-`UserRegisteredEventListener` 생성자에서 `@Value("\${spring.profiles.active:local}") private val activeProfile: String`로 주입받아 메시지 prefix에 사용. 기본값 `local`로 두어 profile 미설정 환경에서도 안전.
+### `AuthService.login(...)` — 시그니처 변경
 
-### `@Async` 동작 보장
+```kotlin
+@Service
+class AuthService(...) {
+    @Transactional
+    fun login(
+        oAuthAccessToken: String,
+        oAuthType: OAuthType,
+        deviceToken: String?,
+        useMock: Boolean = false,        // 신규 (default false: prod 안전)
+    ): AuthResult {
+        val oAuth = oauthProcessorFactory
+            .getClient(oAuthType, useMock)   // 신규 시그니처
+            .getOAuth(oAuthAccessToken)
+        // 이하 기존 로직 동일
+    }
 
-`DdanDdanServerApplication`에 `@EnableAsync`가 이미 활성화되어 있어(이슈 분석 메모 확인) 별도 설정 불필요. `@TransactionalEventListener`는 spring-tx에 포함되어 추가 의존성 없음.
+    // reissueToken: 무변경
+}
+```
+
+**default 값을 `false`로 둔 이유:**
+- 기존 호출처 호환 (테스트 등).
+- prod-safe default (악의적 false → mock 우회 불가).
+
+### `OAuthProcessorFactory.getClient(...)` — 시그니처 변경 + 내부 로직 재설계
+
+```kotlin
+@Component
+class OAuthProcessorFactory(
+    private val clients: List<OAuthProcessor>,
+) {
+    private lateinit var realMap: Map<OAuthType, OAuthProcessor>
+    private lateinit var mockMap: Map<OAuthType, OAuthProcessor>
+
+    @PostConstruct
+    fun init() {
+        val (mocks, reals) = clients.partition { it is MockOAuthProcessor }
+        realMap = reals.associateBy { it.getProviderType() }
+        mockMap = mocks.associateBy { it.getProviderType() }
+    }
+
+    fun getClient(type: OAuthType, useMock: Boolean): OAuthProcessor {
+        val pool = if (useMock) mockMap else realMap
+        return pool[type] ?: run {
+            if (useMock) {
+                throw UnsupportedOAuthModeException(type)
+            }
+            throw IllegalArgumentException("Unknown OAuth type: $type")
+        }
+    }
+}
+```
+
+**왜 `partition` 한 줄로 분리하는가:**
+- `MockOAuthProcessor` 마커 인터페이스로 명시적 분류 가능.
+- `associateBy { it.getProviderType() }`만으로는 같은 type이 2개(Real + Mock)일 때 마지막 1개만 살아남는 silent bug가 발생. partition으로 사전 분리.
+- 신규 OAuth provider 추가 시 별도 if/when 분기 없이 자동 분류 (open-closed).
+
+**왜 `useMock=true && mockMap[type]==null`을 도메인 예외로 던지는가:**
+- prod에서 헤더 위조/실수 방지 (real fallback 시 mock 토큰으로 real API 호출 → 카카오/Apple API에서 4xx 발생하지만, 그 4xx가 우리 의도와 무관한 외부 에러로 가려진다).
+- 명시적 400으로 클라이언트 측 버그를 빠르게 발견 가능.
+- 헤더 자체가 무력화되는 이중 안전 장치(아래 "보안 검토" 참조).
+
+**왜 `useMock=false && realMap[type]==null`은 `IllegalArgumentException`인가:**
+- 이 경로는 OAuthType enum이 모든 provider를 커버한다는 가정 하에 발생해선 안 됨. 발생 시 코드 버그(새 OAuthType 추가 후 Processor 미구현).
+- 기존 동작과 동일하게 `IllegalArgumentException` → `WebExceptionHandler`에서 `INVALID_INPUT` 400으로 매핑됨. 호환성 유지.
+
+### `MockOAuthProcessor` 마커 인터페이스 (신규)
+
+`application/processor/MockOAuthProcessor.kt`:
+
+```kotlin
+package notbe.tmtm.ddanddanserver.application.processor
+
+/**
+ * Mock OAuth processor 분류용 마커 인터페이스.
+ *
+ * - dev/local profile 등 `mock-oauth.enabled=true` 환경에서만 빈으로 등록되는 processor가 구현.
+ * - `OAuthProcessorFactory`는 이 마커를 기준으로 real/mock 풀을 분리한다.
+ * - 별도 메서드 없이 분류 목적에만 사용 (메서드 추가 시 `OAuthProcessor` 인터페이스를 오염시키지 않기 위한 SOLID 분리).
+ */
+interface MockOAuthProcessor : OAuthProcessor
+```
+
+적용 클래스:
+- `MockKakaoProcessor : MockOAuthProcessor` (기존 `OAuthProcessor` 직접 구현 → 마커 인터페이스 구현으로 변경; 마커가 `OAuthProcessor`를 상속하므로 동작 동일)
+- `MockAppleProcessor : MockOAuthProcessor` (동상)
+
+`KakaoProcessor`/`AppleProcessor`는 그대로 `OAuthProcessor` 직접 구현 (마커 미적용).
+
+## 컨트롤러 시그니처
+
+### `AuthController.login(...)` — 헤더 파라미터 추가
+
+```kotlin
+@PostMapping("/login")
+fun login(
+    @RequestBody request: LoginRequest,
+    @RequestHeader(name = "X-Mock-OAuth", required = false, defaultValue = "false")
+    useMock: Boolean,
+): LoginResponse {
+    val result = authService.login(
+        request.token,
+        request.tokenType,
+        request.deviceToken,
+        useMock,
+    )
+
+    return LoginResponse.fromDomain(
+        accessToken = result.accessToken,
+        refreshToken = result.refreshToken,
+        user = result.user,
+    )
+}
+```
+
+`refresh(...)`는 무변경.
+
+**Spring 헤더 → Boolean 바인딩 규칙:**
+- `"true"` (대소문자 무관) → `true`
+- `"false"`, `"1"`, `"0"`, 빈 문자열, 기타 → `false`
+- 헤더 자체가 없음 → `defaultValue = "false"`로 fallback → `false`
+
+이 동작은 안전한 default (실수로 다른 값을 보내도 `false`로 해석되어 real로 흘러감). 단 `1` → `false`인 점은 클라이언트 합의 시 명시 (이슈 분석 미해결 질문 1번 → "true/false 문자열로 합의").
+
+## MongoDB 스키마
+
+**변경 없음.** 본 변경은 인증 디스패치 로직만 다루며 DB 도큐먼트/인덱스/마이그레이션 모두 무관.
+
+## 예외
+
+### 신규 도메인 예외
+
+| 클래스 | 위치 | 부모 | ErrorCode | HTTP 상태 |
+|---|---|---|---|---|
+| `UnsupportedOAuthModeException` | `domain/exception/AuthenticationException.kt`에 클래스 추가 | `AuthenticationException` | `UNSUPPORTED_OAUTH_MODE` (신규 `AC006`) | **400 Bad Request** |
+
+### `WebExceptionHandler` 매핑
+
+기존 `handleAuthenticationException`은 모든 `AuthenticationException`을 **401 UNAUTHORIZED**로 매핑한다. 그러나 `UnsupportedOAuthModeException`은 "환경 정책 위반"이므로 **400**이 의미상 맞다 (인증 시도 자체가 부적절한 요청).
+
+따라서 `UnsupportedOAuthModeException`을 별도 핸들러로 잡아 400으로 응답한다. ExceptionHandler 매처 순서상, **`UnsupportedOAuthModeException` 핸들러를 `AuthenticationException` 핸들러보다 먼저** 평가하도록 별도 메서드로 추가 (Spring `@ExceptionHandler`는 가장 구체적인 타입 우선 매칭이 기본이므로 자동 처리되지만, 명시적으로 둔다).
+
+`common/WebExceptionHandler.kt`에 추가:
+
+```kotlin
+@ExceptionHandler(value = [UnsupportedOAuthModeException::class])
+fun handleUnsupportedOAuthModeException(
+    exception: UnsupportedOAuthModeException,
+    request: HttpServletRequest,
+): ResponseEntity<ErrorResponse> =
+    ResponseEntity
+        .badRequest()
+        .body(
+            ErrorResponse.fromErrorCode(
+                errorCode = exception.errorCode,
+                data = exception.data,
+            ),
+        )
+```
+
+**대안 비교:**
+- (A) `AuthenticationException` 상속 + 별도 400 핸들러 (채택): 카테고리상 가장 적합하고, 기존 401 핸들러는 더 구체적인 핸들러가 먼저 매칭되어 그대로 안전.
+- (B) `CustomException` 직접 상속 → 기본 400 핸들러가 자동 처리: 가능하지만 카테고리(인증 입구) 분류가 흐려짐.
+- (C) `IllegalArgumentException`으로 던지기: 의미가 모호하고 디버깅 시 트레이스가 부족. **탈락.**
+
+## 환경 설정
+
+`application.yaml`, `application-dev.yaml`, `application-local.yaml`, `application-prod.yaml` 모두 **변경 없음**.
+
+`mock-oauth.enabled` 키의 의미가 바뀐다 ("Mock processor 빈 등록 여부"로 격하). dev/local yaml에 주석으로 명시하는 것은 implementer가 결정 (선택 사항).
+
+## 필터 / Security
+
+**변경 없음.**
+
+- `LoggingFilter` — 모든 헤더를 평문 로깅. `X-Mock-OAuth`는 비밀값 아님. 마스킹 불필요.
+- `WebSecurityConfig.loginFilterChain` (`@Order(2)`, `/v1/auth/**` permitAll) — 헤더 검사 없음.
 
 ## 변경 파일 목록
 
 ### 생성
 
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/application/event/UserRegisteredEvent.kt`
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/application/event/UserRegisteredEventListener.kt`
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/DiscordHookApi.kt`
+| 파일 | 내용 |
+|---|---|
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockOAuthProcessor.kt` | `MockOAuthProcessor` 마커 인터페이스 정의 (3-5줄 + KDoc) |
 
-### 수정
+### 수정 (라인 단위)
 
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` — 생성자에 `ApplicationEventPublisher` 추가, `loginNewUser()` 끝(return 직전)에서 `eventPublisher.publishEvent(UserRegisteredEvent(...))` 1줄 추가
-- `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/ApiConfiguration.kt` — `discordHookApi` `@Bean` 메서드 추가
-- `src/main/resources/application-prod.yaml` — `discord.hook-url` 항목 추가
-- `src/main/resources/application-dev.yaml` — `discord.hook-url` 항목 추가
-- `src/main/resources/application-local.yaml` — `discord.hook-url` 항목 추가
+| 파일 | 위치/라인 | 변경 내용 |
+|---|---|---|
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/KakaoProcessor.kt` | 라인 9 (import) | `import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty` **제거** |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/KakaoProcessor.kt` | 라인 14 | `@ConditionalOnProperty(...)` **제거** (`@Component`만 유지) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/AppleProcessor.kt` | 라인 14 (import) | `import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty` **제거** |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/AppleProcessor.kt` | 라인 23 | `@ConditionalOnProperty(...)` **제거** (`@Component`만 유지) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockKakaoProcessor.kt` | 라인 10 | `class MockKakaoProcessor : OAuthProcessor` → `class MockKakaoProcessor : MockOAuthProcessor` (`@ConditionalOnProperty`는 유지) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockAppleProcessor.kt` | 라인 10 | 동일 — 부모를 `MockOAuthProcessor`로 변경 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/OAuthProcessorFactory.kt` | 전체 (라인 7-23) | `clientMap` → `realMap`/`mockMap`으로 분리; `init()`에 `partition` 로직; `getClient(type, useMock)` 시그니처; `useMock=true && mock 없음` 시 `UnsupportedOAuthModeException` throw |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/OAuthProcessorFactory.kt` | import 추가 | `notbe.tmtm.ddanddanserver.domain.exception.UnsupportedOAuthModeException` |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 라인 28-32 | `login(...)` 시그니처에 `useMock: Boolean = false` 파라미터 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 라인 33 | `oauthProcessorFactory.getClient(oAuthType)` → `oauthProcessorFactory.getClient(oAuthType, useMock)` |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/AuthController.kt` | 라인 8 (import) | `org.springframework.web.bind.annotation.RequestHeader` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/AuthController.kt` | 라인 19-23 | `login` 시그니처에 `@RequestHeader(name = "X-Mock-OAuth", required = false, defaultValue = "false") useMock: Boolean` 추가; `authService.login(...)` 호출에 `useMock` 전달 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/exception/ErrorCode.kt` | 라인 25 직후 (인증 카테고리 끝) | `UNSUPPORTED_OAUTH_MODE("AC006", "요청한 OAuth 모드를 현재 환경에서 사용할 수 없습니다.")` 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/exception/AuthenticationException.kt` | 파일 끝 | `UnsupportedOAuthModeException(oAuthType: OAuthType) : AuthenticationException(ErrorCode.UNSUPPORTED_OAUTH_MODE, oAuthType)` 클래스 추가 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/common/WebExceptionHandler.kt` | 라인 102 직전 또는 직후 | `@ExceptionHandler(UnsupportedOAuthModeException::class)` 핸들러 추가 (400 응답) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/common/WebExceptionHandler.kt` | import | `notbe.tmtm.ddanddanserver.domain.exception.UnsupportedOAuthModeException` 추가 (또는 기존 `domain.exception.*` wildcard로 자동 흡수) |
 
-테스트 파일은 test-engineer가 별도로 추가한다.
+### 무변경 (영향 없음)
+
+- `src/main/kotlin/.../application/processor/OAuthProcessor.kt` (마커 인터페이스 도입으로 `isMock()` 같은 메서드 불필요)
+- `src/main/kotlin/.../presentation/dto/request/LoginRequest.kt` (body 변경 없음)
+- `src/main/kotlin/.../presentation/filter/LoggingFilter.kt`
+- `src/main/kotlin/.../config/WebSecurityConfig.kt`
+- `src/main/resources/application.yaml` 및 profile별 yaml
+- `src/main/kotlin/.../infrastructure/api/KakaoAuthApi.kt`, `AppleAuthApi.kt`
+
+### 테스트 파일
+
+test-engineer가 별도로 추가/보강 (아래 "테스트 계획" 참고).
+
+## 테스트 계획
+
+### 1. `OAuthProcessorFactoryTest` (신규)
+
+`src/test/kotlin/notbe/tmtm/ddanddanserver/application/processor/OAuthProcessorFactoryTest.kt`:
+
+| 테스트 케이스 | 검증 |
+|---|---|
+| `partition: real과 mock processor가 함께 주입되면 두 맵으로 정확히 분리된다` | 직접 4개 빈(Real Kakao/Apple + Mock Kakao/Apple) 주입 → `getClient(KAKAO, false)`가 RealKakao, `getClient(KAKAO, true)`가 MockKakao 반환 |
+| `useMock=false인데 real 없음` | Real 1개 누락 시 `IllegalArgumentException` |
+| `useMock=true인데 mock 없음 (prod 시나리오)` | Mock 빈 없는 상태에서 `getClient(KAKAO, true)` → `UnsupportedOAuthModeException` throw; `data == OAuthType.KAKAO` |
+| `useMock=false면 real이 항상 우선` | mock 빈이 함께 있어도 `getClient(KAKAO, false)`는 Real 반환 (mock 우회 불가 확인) |
+
+Mockk으로 `MockOAuthProcessor` 구현체 fake를 만들어 `getProviderType()` 반환만 stubbing.
+
+### 2. `AuthServiceTest` (기존 보강)
+
+`src/test/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthServiceTest.kt`:
+
+- 기존 3개 `login(...)` 호출에 `useMock = false` 명시 (default param이 있어도 mockk verify 호환을 위해 명시) 또는 `verify { ... getClient(any(), any()) }` 패턴.
+- 신규 테스트: `useMock=true이면 factory에 useMock=true가 전달된다` — `verify { oauthProcessorFactory.getClient(OAuthType.KAKAO, true) }`.
+- 신규 테스트: `useMock=false이면 factory에 useMock=false가 전달된다` — `verify { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) }`.
+
+### 3. `AuthControllerIntegrationTest` (신규 또는 기존 보강) — **필수**
+
+CLAUDE.md MEMORY 항목 "Spring 어노테이션 핵심 코드는 통합 테스트 필수" — `@RequestHeader` 바인딩과 `WebExceptionHandler` 매핑은 `@SpringBootTest` + `MockMvc`로 검증해야 한다.
+
+`src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/AuthControllerIntegrationTest.kt`:
+
+| 시나리오 | 환경 | 헤더 | 기대 결과 |
+|---|---|---|---|
+| 헤더 없음 → real 호출 | `mock-oauth.enabled=true` (test profile) | (없음) | RealKakaoProcessor mock bean이 호출됨 (200) |
+| `X-Mock-OAuth: false` → real 호출 | 동상 | `false` | RealKakaoProcessor 호출 |
+| `X-Mock-OAuth: true` → mock 호출 | 동상 | `true` | MockKakaoProcessor 호출 (200, user nickname == `MockKakao_{token}`) |
+| `X-Mock-OAuth: true` (prod 시나리오) → 400 | `mock-oauth.enabled=false` (별도 `@TestPropertySource`) | `true` | **400 응답, errorCode == `AC006` (`UNSUPPORTED_OAUTH_MODE`)** |
+| `X-Mock-OAuth: invalid_value` | `mock-oauth.enabled=true` | `not-a-bool` | Spring이 `false`로 바인딩 → real 호출 (200). 정책 명시. |
+
+**핵심 포인트:**
+- `mock-oauth.enabled=false` 시나리오는 `@TestPropertySource(properties = ["mock-oauth.enabled=false"])`를 적용한 별도 nested 테스트 클래스 또는 별도 통합 테스트 파일로 구성. 컨텍스트 분리 필요.
+- `KakaoAuthApi`/`AppleAuthApi`는 `@MockkBean` 또는 `@MockBean`으로 stubbing하여 외부 API 호출 차단.
+
+### 4. `MockKakaoProcessorTest`, `MockAppleProcessorTest` — 무변경
+
+마커 인터페이스로 부모만 변경 (시그니처 무영향). 컴파일만 확인.
+
+### 5. `KakaoProcessorTest`, `AppleProcessorTest` — 무변경
+
+`@ConditionalOnProperty` 제거는 빈 등록 조건만 영향. 단위 테스트는 `@Component`와 무관하게 생성자 직접 호출이므로 영향 없음.
+
+## 보안 검토
+
+### 헤더가 prod에서 무력화되는 이중 안전 장치
+
+| 방어선 | 메커니즘 |
+|---|---|
+| 1차 (빈 등록) | prod yaml에 `mock-oauth.enabled=false` → `MockKakaoProcessor`/`MockAppleProcessor` 빈이 아예 생성되지 않음 → `mockMap`이 빈 Map |
+| 2차 (런타임 검사) | `useMock=true`인데 `mockMap[type] == null` → `UnsupportedOAuthModeException` (400) throw. Real로 fallback하지 않음 |
+
+**공격 시나리오 분석:**
+- 공격자가 prod로 `X-Mock-OAuth: true` 전송 → 2차 방어선에서 400. mock 시드 토큰(`mock-kakao-xxx`)으로 mock OAuth id 생성 불가. real 토큰을 갖고 있지 않으면 어떤 유저로도 로그인 불가.
+- 실수로 클라이언트가 prod에 헤더를 보냄 → 400 응답을 받아 즉시 인지. 조용히 real fallback되어 부정확한 동작이 누적되는 사고 방지.
+
+### dev 환경 위험
+
+- dev에서 real 토큰으로 로그인 시 dev DB에 신규 user 도큐먼트 생성될 수 있음 (이슈 분석 미해결 질문 3번). 본 변경 범위 외. 메모리 항목 "smoke 테스트는 고정 mock 토큰 재사용"으로 운영적 회피 권장.
+- dev에서 real OAuth API 호출 빈도 증가 → 카카오 dev 앱 quota/rate-limit 영향. 모니터링 권장.
+
+### 로깅 / 감사
+
+- `LoggingFilter`가 모든 헤더를 평문 로깅 → `X-Mock-OAuth: true` 사용 흔적이 로그에 남음. 별도 알람은 불필요하나, prod에서 `UNSUPPORTED_OAUTH_MODE` 400 발생 시 알람 추가 검토 가능 (운영 영역).
 
 ## 결정 이유
 
-### 왜 `ApplicationEventPublisher` + `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` 조합인가
+### 왜 마커 인터페이스 (MockOAuthProcessor) 인가
 
-1. **트랜잭션 커밋 후 발송 보장.** `AuthService.login()`은 `@Transactional`이 걸려 있어 신규 사용자/Auth 저장이 트랜잭션 안에서 일어난다. 만약 service 내부에서 webhook을 직접 호출하면 (a) 호출 중 예외가 던져져 트랜잭션이 롤백되거나 (b) 커밋 전에 알림이 나가버리는 문제가 생긴다. `@TransactionalEventListener(phase = AFTER_COMMIT)`은 정확히 이 두 문제를 함께 막는다 — 커밋이 완료된 뒤에만 호출되고, listener에서 던진 예외는 원래 트랜잭션에 영향을 주지 않는다.
-2. **누적 가입자 수의 정확성.** `userRepository.count()`를 listener에서 호출하면 새로 저장된 사용자 자신이 카운트에 포함된 결과가 나온다. service 내부에서 호출하면 트랜잭션 격리에 따라 카운트에 자기 자신이 빠질 수 있고 (read-uncommitted가 아닌 한), 트랜잭션 경계 안에서 호출되어 의도가 흐려진다.
-3. **메인 흐름과의 분리 (응답 지연 방지).** `@Async`로 별도 쓰레드에서 실행하므로 Discord webhook이 수 초 지연되어도 OAuth 로그인 응답은 즉시 반환된다. `@EnableAsync`가 이미 적용돼 있어 추가 부트스트랩 비용 없음.
-4. **대안 비교.**
-   - "service 내부에서 직접 webhook 호출 + `@Async`만 적용": 트랜잭션 미커밋 상태에서 알림이 나갈 수 있음. **탈락.**
-   - "controller에서 service 호출 후 webhook 호출": controller가 비즈니스 부수효과를 책임지게 되어 layered 의존 규칙(presentation→application 단방향) 안에 두기 어렵고, controller에 신규/기존 분기를 다시 만들어야 함. **탈락.**
-   - "도메인 이벤트를 domain 모델에 부착": Spring `ApplicationEvent`는 domain 모델을 Spring에 묶는 결과가 되어 layered-architecture-guide의 "domain은 Spring 어노테이션 금지" 원칙을 위반. **탈락.**
-   - 따라서 **이벤트 객체는 application 레이어 plain class**로 두고, publisher/listener도 application에 위치시키는 것이 가장 깔끔하다.
+- **명시적**: 클래스 선언만 봐도 Mock인지 즉시 식별. `isMock(): Boolean = false` 디폴트 메서드는 `OAuthProcessor` 인터페이스를 오염시키고, 누구든 `override fun isMock() = true`로 우회 가능.
+- **OCP (Open-Closed)**: 새 Mock provider 추가 시 `MockOAuthProcessor`만 구현하면 Factory가 자동 분류. Factory 로직 수정 불필요.
+- **SOLID 분리**: 마커는 분류 책임만 가지며, 동작 추가 시 별도 메서드가 마커에 추가될 수 있음. Real processor는 마커를 모름.
+- **대안 (a) `isMock(): Boolean`**: 인터페이스 오염 + 모든 구현체가 명시 부담. **탈락.**
+- **대안 (c) 클래스명 prefix `Mock` 분류**: 리네임 시 깨짐, 컴파일 안전 X. **탈락.**
 
-### 왜 재시도가 없는가 (사용자 결정)
+### 왜 prod에서 fallback이 아니라 400 reject인가 (사용자 확정)
 
-- 사용자 결정: 운영 알림 1건 누락보다는 코드 단순성과 외부 의존도 최소화를 우선. fire-and-forget으로 처리하고 실패는 `logger.error`로 흔적만 남긴다. 운영 부재 시 ELK/CloudWatch 등에서 ERROR 로그를 검색해 누락 가입을 사후 보정 가능.
-- 기존 `RetryConfig`의 `RetryTemplate`을 끌어다 쓸 수 있지만 본 설계에서는 사용하지 않는다. 재시도 정책이 추후 필요해지면 listener 안에서만 추가하면 되므로 확장 용이.
+- **명시적 오류 우선**: 클라이언트 버그로 의도치 않게 헤더가 박혀서 보내질 경우, real fallback은 정상으로 보이지만 실제로는 잘못된 호출 패턴이 누적된다. 400을 받으면 즉시 인지.
+- **공격 표면 축소**: real fallback 시 mock 시드 토큰으로 real API 호출이 일어남 (의미 없는 외부 API 호출 발생). reject가 더 깔끔.
+- **일관성**: dev/prod 동일 정책 → 환경별 분기 코드 불필요.
 
-### 왜 phase 접두어로 채널을 통합하는가 (사용자 결정)
+### 왜 `UnsupportedOAuthModeException`이 `AuthenticationException` 자식인가 (그러나 HTTP 400)
 
-- 사용자 결정: dev/prod webhook URL을 별도로 두면 Vault/CI 환경변수 관리 부담이 두 배가 된다. 단일 webhook URL을 유지하되 메시지 첫머리에 `[PROD]` / `[DEV]` / `[LOCAL]` 접두어를 붙여 운영팀이 시각적으로 구분.
-- 트레이드오프: dev 노이즈가 같은 채널에 흘러들어가지만, phase 접두어로 운영팀이 필터링/검색 가능. dev 트래픽이 과도해지면 추후 이 설계를 깨지 않고 yaml만 분리해 channel webhook을 환경별로 다르게 줄 수 있다.
+- 카테고리상 "인증 시도 진입점에서의 거부"가 가장 자연스러운 분류. `domain/exception/AuthenticationException.kt` 같은 파일에 두면 응집도가 높음.
+- HTTP 상태 코드는 핸들러에서 결정. 부모 401(`AuthenticationException` 일반)과 다른 400을 의도적으로 사용 — "인증 자체의 실패"가 아닌 "요청 형태/환경 정책 위반"이기 때문.
+- ErrorCode `AC006`은 인증(AC) 코드 네임스페이스 일관성 유지.
 
-### 왜 nickName을 그대로 노출하는가 (사용자 결정)
+### 왜 `getClient` 시그니처에 default 파라미터 안 두는가
 
-- 사용자 결정: Apple 로그인 시 `OAuth.nickName`이 이메일이라는 것을 알고 있으나, 운영팀 전용 Discord 채널이고 마스킹 로직 추가 시 KakaoProcessor 닉네임도 함께 가독성이 떨어지는 트레이드오프 발생. 사용자가 PII 노출 위험을 감수하기로 결정.
-- 보완: 로그(`logger.error`)에는 `nickName`을 남기지 않는다 — 코드 컨벤션 가이드의 "민감 정보 로깅 금지" 원칙은 준수. Discord webhook payload는 운영팀에 한정된 1회성 통보이므로 영구 저장 위험은 webhook 수신 시스템(Discord) 보존 정책에 위임.
+- `getClient(type)` 단일 시그니처 유지가 호출 의도를 명확히 한다 ("어떤 풀에서 가져올지 호출자가 반드시 결정").
+- `AuthService.login`은 `useMock` 파라미터를 받으므로 Factory에 default가 있어도 의미 없음.
+- 단, `AuthService.login`의 `useMock`은 default `false`를 유지 — 기존 테스트(`useMock` 미명시) 호환과 prod-safe default 보장.
+
+### 왜 `application-*.yaml`을 안 바꾸는가
+
+- `mock-oauth.enabled` 키는 그대로 사용. 의미만 격하 (Mock 빈 등록 여부).
+- yaml 변경 없이 동작 변경이 가능 → 운영 변수 누락 위험 없음.
+- 의미 명세는 코드/문서로 보강 (구현 시 `MockKakaoProcessor` 등의 `@ConditionalOnProperty` 옆 주석으로 명시 권장).
+
+### 왜 `LoginRequest` body가 아니라 헤더로 받는가
+
+- "이 토큰을 어떻게 처리할지"는 **요청의 메타 정보** (인프라/디스패치 정보) — body의 도메인 데이터와 별개.
+- iOS/Android 클라이언트가 로그인 모드 토글 시 별도 build flavor / 환경 변수 → 헤더 자동 주입이 더 자연스러움.
+- 운영적으로 헤더는 LB/프록시 단에서 필터링/모니터링 가능. body 내부 필드보다 관찰성 우수.
+- 본 헤더는 비밀값 아님 → `LoggingFilter` 평문 로깅 OK.
