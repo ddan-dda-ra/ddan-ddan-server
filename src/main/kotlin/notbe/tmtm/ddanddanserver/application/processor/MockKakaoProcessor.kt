@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 @Component
 @ConditionalOnProperty(prefix = "mock-oauth", name = ["enabled"], havingValue = "true")
-class MockKakaoProcessor : OAuthProcessor {
+class MockKakaoProcessor : MockOAuthProcessor {
     init {
         logger().warn(
             "MockKakaoProcessor 활성화 — dev/local profile 전용. 실제 카카오 API 호출 없이 accessToken을 시드로 사용한다.",

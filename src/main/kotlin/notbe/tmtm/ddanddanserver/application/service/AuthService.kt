@@ -29,8 +29,9 @@ class AuthService(
         oAuthAccessToken: String,
         oAuthType: OAuthType,
         deviceToken: String?,
+        useMock: Boolean,
     ): AuthResult {
-        val oAuth = oauthProcessorFactory.getClient(oAuthType).getOAuth(oAuthAccessToken)
+        val oAuth = oauthProcessorFactory.getClient(oAuthType, useMock).getOAuth(oAuthAccessToken)
         authRepository.findByOAuthIdAndType(oAuth.id, oAuthType)?.let { auth ->
             return loginExistUser(auth, deviceToken)
         }

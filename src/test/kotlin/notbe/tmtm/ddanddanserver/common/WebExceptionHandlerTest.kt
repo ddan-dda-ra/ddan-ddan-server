@@ -3,6 +3,7 @@ package notbe.tmtm.ddanddanserver.common
 import io.mockk.mockk
 import jakarta.servlet.http.HttpServletRequest
 import notbe.tmtm.ddanddanserver.domain.exception.*
+import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.presentation.dto.response.ErrorResponse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -143,6 +144,40 @@ class WebExceptionHandlerTest {
         assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
         assertEquals(ErrorCode.INVALID_AUTH_TOKEN.code, response.body?.code)
         assertEquals(ErrorCode.INVALID_AUTH_TOKEN.message, response.body?.message)
+    }
+
+    @Test
+    fun `UnsupportedOAuthModeException은 400 Bad Request로 처리되며 AC006 에러코드와 OAuthType data를 담는다`() {
+        // given
+        val exception = UnsupportedOAuthModeException(OAuthType.KAKAO)
+
+        // when
+        val response = webExceptionHandler.handleUnsupportedOAuthModeException(exception, httpServletRequest)
+
+        // then
+        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+        assertEquals(ErrorCode.UNSUPPORTED_OAUTH_MODE.code, response.body?.code)
+        assertEquals(ErrorCode.UNSUPPORTED_OAUTH_MODE.message, response.body?.message)
+        assertEquals(OAuthType.KAKAO, response.body?.data)
+    }
+
+    @Test
+    fun `UnsupportedOAuthModeException은 부모 AuthenticationException 401 핸들러보다 우선 매칭된다`() {
+        // given - 부모 타입(AuthenticationException) 변수에 담아도 RestControllerAdvice는 가장 구체적인 타입 매처를 사용해야 한다.
+        // 본 단위 테스트는 핸들러 메서드 자체의 응답을 검증하지만, 핸들러 분리 의도 보존을 위해 명시적으로 추가.
+        val exception: AuthenticationException = UnsupportedOAuthModeException(OAuthType.APPLE)
+
+        // when - 구체 핸들러 호출 시 400을 반환한다
+        val response =
+            webExceptionHandler.handleUnsupportedOAuthModeException(
+                exception as UnsupportedOAuthModeException,
+                httpServletRequest,
+            )
+
+        // then
+        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+        assertEquals("AC006", response.body?.code)
+        assertEquals(OAuthType.APPLE, response.body?.data)
     }
 
     @Test

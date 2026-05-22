@@ -18,3 +18,7 @@ class AuthenticationExpiredAccessTokenException : AuthenticationException(ErrorC
 class AuthenticationExpiredRefreshTokenException : AuthenticationException(ErrorCode.EXPIRED_REFRESH_TOKEN)
 
 class AuthenticationTokenNotExistException : AuthenticationException(ErrorCode.NOT_EXIST_TOKEN)
+
+class UnsupportedOAuthModeException(
+    oAuthType: OAuthType,
+) : AuthenticationException(ErrorCode.UNSUPPORTED_OAUTH_MODE, oAuthType)

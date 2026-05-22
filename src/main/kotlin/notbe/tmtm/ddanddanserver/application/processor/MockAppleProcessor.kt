@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 @Component
 @ConditionalOnProperty(prefix = "mock-oauth", name = ["enabled"], havingValue = "true")
-class MockAppleProcessor : OAuthProcessor {
+class MockAppleProcessor : MockOAuthProcessor {
     init {
         logger().warn(
             "MockAppleProcessor 활성화 — dev/local profile 전용. 실제 Apple 키 검증 없이 accessToken을 시드로 사용한다.",
