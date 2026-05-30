@@ -4,39 +4,69 @@
 
 | 파일 | 동작 | 요약 |
 |---|---|---|
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/event/UserRegisteredEvent.kt` | 생성 | Spring 무관 plain `data class`. 필드: `userId(ObjectId)`, `nickName(String)`, `oAuthType(OAuthType)`, `registeredAt(Instant)`. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/event/UserRegisteredEventListener.kt` | 생성 | `@Component`, `@Async + @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)`. `userRepository.count()` → `[PROFILE] 신규 가입 ...` 한 줄 메시지 조립 → `discordHookApi.sendMessage(...)`. `try/catch (Exception)`로 모든 예외 흡수, `logger().error`에 `userId`/`oAuthType`만 로깅 (nickName 미포함). 천단위 콤마는 `String.format("%,d", count)`. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/DiscordHookApi.kt` | 생성 | `SlackHookApi`와 동일한 패턴(`@HttpExchange` + `@PostExchange` + `data class Request` + `companion object`). Discord webhook 스펙에 맞춰 payload 키는 `content`, `username`. `DEFAULT_USERNAME = "ddan-ddan-server-bot"`. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/api/ApiConfiguration.kt` | 수정 | `slackHookApi` 빈 직후 동일한 형태로 `discordHookApi` `@Bean` 추가. `@Value("\${discord.hook-url}")` + 기존 `restClientAdapter(baseUrl)` 헬퍼 재사용. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 수정 | 생성자 마지막 파라미터로 `private val eventPublisher: ApplicationEventPublisher` 추가. `loginNewUser()` 내부 `authRepository.save(...)` 직후 `return AuthResult` 직전에 `eventPublisher.publishEvent(UserRegisteredEvent(..., registeredAt = Instant.now()))` 1줄 추가. import 2건 추가(`ApplicationEventPublisher`, `Instant`, `UserRegisteredEvent`). 기존 메서드 시그니처 변동 없음. |
-| `src/main/resources/application-prod.yaml` | 수정 | `slack:` 블록 직후에 `discord:` 블록 추가 (`hook-url: ${DISCORD_WEBHOOK_URL}`). 들여쓰기는 기존 파일과 동일한 4-space. |
-| `src/main/resources/application-dev.yaml` | 수정 | 동상. |
-| `src/main/resources/application-local.yaml` | 수정 | 동상. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/petcatalog/PetCatalog.kt` | 수정 | `PetCatalogItem`에 `val colorCode: String` 1줄 추가 (backgrounds 직후, isActive 직전). |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 수정 | `PetCatalogEntity`에 `val colorCode: String` 추가 + `toDomain()` / `fromDomain()` 매퍼 양방향 1줄씩 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 수정 | `PetSeed`에 `colorCode` 필드 추가, `DEFAULT_PETS` 5개 항목에 색상 채움(CAT `#FD85FF`, HAMSTER `#46F8A2`, PENGUIN `#4E95FF`, DOG `#9B6CFF`, MOLE `#D0DAE4`), `seed()` 내 entity 생성부에 `colorCode = pet.colorCode` 1줄 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 수정 | `create(...)` / `update(...)` 시그니처에 `colorCode: String` 파라미터 추가, 본문의 `PetCatalogEntity(...)` 및 `existing.copy(...)`에 `colorCode = colorCode` 1줄씩 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/response/PetCatalogResponse.kt` | 수정 | `PetCatalogItemResponse`에 `colorCode: String` 필드 + `from()` 매핑 1줄 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 수정 | `import jakarta.validation.constraints.Pattern` 추가, top-level `private const val HEX_COLOR_REGEX = "^#[0-9A-Fa-f]{6}$"` 추가. `PetCatalogAdminCreateRequest` / `PetCatalogAdminUpdateRequest`에 `@field:NotBlank @field:Pattern(regexp = HEX_COLOR_REGEX, ...) val colorCode: String` 추가. `PetCatalogAdminItemResponse`에 `colorCode` 필드 + `from()` 매핑 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 수정 | `create()` / `update()`의 `petCatalogService.create/update` 호출 인자에 `colorCode = request.colorCode` 1줄씩 추가. |
+
+**무변경 파일(설계서 명시):**
+- `presentation/controller/PetCatalogController.kt` — 응답 DTO `from(...)`이 자동 매핑하므로 무변경.
+- `infrastructure/database/repository/PetCatalogRepository.kt` — 조회/정렬 키가 아니므로 무변경.
+- `presentation/filter/PetCatalogVersionFilter.kt` — 헤더만 다루므로 무변경.
+
+**생성 파일:** 없음 (단일 평탄 필드 추가이므로 신규 클래스 없음).
 
 ## 핵심 결정
 
-- **yaml 들여쓰기**: 작업 지시는 "2-space"였으나, 기존 세 yaml 파일 모두 최상위 키 하위에 4-space를 사용 중(`slack:` 블록 포함). 컨벤션 일관성을 위해 기존 파일과 동일한 4-space로 작성. 기존 컨벤션을 깨지 않기 위한 결정.
-- **그 외 설계 대비 변경 사항 없음.** 설계서 그대로 구현.
+- 설계 대비 변경 사항 **없음**. 설계서(`_workspace/02_design.md`)의 변경 파일 목록 7개 파일 + 변경 내역과 1:1 일치.
+- 필드명 `colorCode` (camelCase), MongoDB는 `SnakeCaseFieldNamingStrategy`에 의해 `color_code`로 영속화. nested value object 신설 없이 평탄한 단일 `String` 필드.
+- hex 정규식 검증은 어드민 요청 DTO(`PetCatalogAdminCreateRequest`, `PetCatalogAdminUpdateRequest`)에만 위치. 도메인 모델은 plain `String` 운반.
 
 ## 빌드 검증
 
-- `./gradlew compileKotlin`: 통과. (로컬 기본 JDK가 25로 잡혀 있어 Gradle 8.8 호환성 이슈로 1차 실패 → JDK 17(`/usr/libexec/java_home -v 17.0.14`)로 재시도해 `BUILD SUCCESSFUL`. 본 변경과 무관한 환경 이슈이며, 코드 자체는 문제 없음.)
-- 출력된 경고는 모두 기존 코드의 Kotlin KT-73255(어노테이션 타깃 변경) 마이그레이션 경고로 본 작업과 무관.
+- `./gradlew compileKotlin`: ✅ 성공 (JDK 17 사용).
+- 초기에 시스템 기본 JDK 25로 실행 시 Gradle 8.8 + Kotlin 1.9.24 호환성 문제로 daemon 초기화 단계에서 `What went wrong: 25` 에러가 발생하여 `JAVA_HOME=/Users/.../azul-17.0.14`로 전환 후 정상 통과. 이는 환경 이슈이며 본 변경과는 무관.
+
+```
+> Task :checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :compileKotlin
+
+BUILD SUCCESSFUL in 13s
+1 actionable task: 1 executed
+```
 
 ## test-engineer에게 전달할 메모
 
-- **`UserRegisteredEventListener` 단위 테스트 시 mock 포인트**:
-  - `userRepository.count()` — `every { userRepository.count() } returns 1234L`
-  - `discordHookApi.sendMessage(any())` — `every { discordHookApi.sendMessage(any()) } just runs` 또는 예외 던지는 케이스
-  - `@Value("\${spring.profiles.active:local}") activeProfile` — 생성자 인자로 직접 문자열 주입(`"prod"`, `"dev"`, `"local"`) 가능
-- **검증 포인트**:
-  - 메시지 본문 정확성: `[PROD] 신규 가입 | 닉네임=홍길동 | provider=KAKAO | userId=... | 가입시각=... | 누적 가입자=1,234명` 형식. 천단위 콤마 확인.
-  - `discordHookApi.sendMessage`가 정확히 1회 호출되는지 (`verify(exactly = 1) { ... }`)
-  - `discordHookApi.sendMessage`가 예외를 던져도 `handle()`에서 throw되지 않는지(예외 흡수 검증)
-  - 예외 발생 시 logger error 호출은 직접 검증보다 "throw되지 않음"으로 검증하는 편이 견고
-- **`AuthService` 단위 테스트**:
-  - 생성자에 `ApplicationEventPublisher` 추가됨 → 기존 `AuthService` 테스트의 mock 생성자에 `eventPublisher` 인자 추가 필요. mockk이라면 `mockk<ApplicationEventPublisher>(relaxed = true)`로 받고, 신규 가입 케이스에 한해 `verify { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }`로 발행 1회 검증.
-  - `loginExistUser()` 경로에서는 이벤트가 발행되지 않아야 함 → `verify(exactly = 0) { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }`.
-  - `Instant.now()`는 publish 직전에 호출되므로 정확한 값 비교는 `match { it.userId == ... && it.oAuthType == ... }` 식 부분 매칭 권장.
-- **트랜잭션 / `@Async` 행위 검증**: 단위 테스트로는 잡기 어렵다. `@TransactionalEventListener(AFTER_COMMIT)`/`@Async` 동작은 통합 테스트 영역. 단위 테스트는 "이벤트 발행"과 "리스너 핸들러 동작"을 분리해서 검증하면 충분.
-- **외부 의존**: Discord webhook은 실제 호출되지 않도록 `DiscordHookApi`를 항상 mock으로 주입할 것. 통합 테스트에서도 webhook URL을 더미로 두면 `RestClient`가 실제 네트워크 호출을 시도하지 않게 막아야 함(또는 `DiscordHookApi`를 `@MockBean`).
+### 보강해야 할 기존 테스트 파일 (모두 main 변경에 의해 컴파일 깨짐 상태)
+
+1. **`src/test/kotlin/.../application/service/PetCatalogServiceTest.kt`**
+   - `entity(...)` / fixture 헬퍼에서 `PetCatalogEntity(...)` 생성자 호출 시 `colorCode = "#FFCC00"` 등 임의 hex 추가 필요.
+   - `service.create(...)` / `service.update(...)` 호출부 4곳에 `colorCode = "#FFCC00"` 추가 필요.
+   - 신규 단언 권장:
+     - "create는 colorCode를 entity에 저장한다" — `saved.captured.colorCode shouldBe "#FFCC00"`.
+     - "update는 colorCode를 갱신한다" — `existing.copy(...)` 결과의 `colorCode` 단언.
+
+2. **`src/test/kotlin/.../presentation/controller/PetCatalogControllerIntegrationTest.kt`**
+   - `PetCatalogItem(...)` fixture에 `colorCode = "#FFCC00"` 추가.
+   - jsonPath 단언 추가: `jsonPath("$.pets[0].colorCode").value("#FFCC00")`.
+
+3. **`src/test/kotlin/.../presentation/controller/admin/PetCatalogAdminControllerIntegrationTest.kt`**
+   - `item(...)` fixture에 `colorCode = "#FFCC00"` 추가.
+   - `PetCatalogAdminCreateRequest(...)` / `PetCatalogAdminUpdateRequest(...)` 빌더에 `colorCode = "#FFCC00"` 추가 (2곳).
+   - 단언 추가: `jsonPath("$.pets[0].colorCode").value("#FFCC00")` (GET list), `jsonPath("$.colorCode").value("#FFCC00")` (POST/PUT 응답).
+   - **신규 테스트 케이스 — hex 정규식 검증 실패**: `"red"`, `"#GGGGGG"`, `"#FFF"`, `"#FFCC0080"` 등 잘못된 colorCode로 POST 요청 시 400 응답 확인. `@field:Pattern`이 `WebExceptionHandler`로 어떻게 변환되는지 기존 backgrounds `@NotBlank` 실패 케이스와 동일 경로일 것.
+   - `verify { petCatalogService.create(...) }` 시그니처에 `colorCode = any()` 또는 명시값 인자 추가 필요.
+
+### Mocking / 경계 케이스 포인트
+
+- **MockK relaxed mock 주의**: `PetCatalogService` 모킹 시 `create`/`update`가 추가 파라미터를 가져 기존 `every { ... }` 블록의 매처가 인자 개수 불일치로 실패할 수 있다. 모든 호출부에 `colorCode = any()` 명시 권장.
+- **Jackson 역직렬화 실패**: `colorCode`가 non-null `String`이라 어드민 요청 body에 필드 누락 시 `MissingKotlinParameterException` → 400으로 빠진다. 이 케이스도 통합 테스트로 검증 가능 (선택).
+- **시드 검증 (선택)**: `PetCatalogSeederTest`가 존재한다면 5종에 대해 `entity.colorCode`가 설계 표 5색과 일치하는지 단언 추가. (현재 파일 존재 미확인.)
+
+### 외부 의존 / 마이그레이션 메모
+
+- **mongosh 마이그레이션은 본 단계 구현 범위에 없음** (설계서 명시). PR 본문/배포 문서에 첨부할 운영 절차. 마이그레이션이 prod/dev 코드 배포보다 선행되지 않으면 기존 5개 도큐먼트의 `color_code` 누락으로 카탈로그 의존 API 전부가 다운된다 — 통합 테스트로는 잡히지 않는 위험.
+- **`SnakeCaseFieldNamingStrategy`**: Kotlin `colorCode` ↔ DB `color_code`. mongosh 스크립트는 반드시 snake_case 키 사용 (MEMORY 항목 PR #308 사고 재발 방지).

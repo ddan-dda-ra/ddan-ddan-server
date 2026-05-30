@@ -1,49 +1,41 @@
 # 테스트 결과
 
-## 추가된 테스트 파일
+## 수정/추가된 테스트 파일
 
-- `src/test/kotlin/notbe/tmtm/ddanddanserver/application/event/UserRegisteredEventListenerTest.kt` — 6개 테스트 (정상 4 / 예외 2)
-- `src/test/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthServiceTest.kt` — 3개 테스트 (정상 3 / 예외 0)
-  - 기존 `AuthServiceTest`는 존재하지 않아 신규 작성. 기존 케이스 회귀 우려 없음.
+| 파일 | 상태 | 변경 요약 |
+|---|---|---|
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogServiceTest.kt` | 수정 + 신규 케이스 2건 | `entity(...)` 헬퍼에 `colorCode` 기본값 `#FFCC00` 추가, `service.create(...)` / `service.update(...)` 호출 4곳에 `colorCode` 인자 보강. 신규 단언 2건 — "create는 colorCode를 entity에 저장한다", "update는 colorCode를 갱신한다" (slot capture로 `saved.captured.colorCode shouldBe "#9B6CFF"` 형태). |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/PetCatalogControllerIntegrationTest.kt` | 수정 | `PetCatalogItem` fixture에 `colorCode = "#FD85FF"` 추가, jsonPath `$.pets[0].colorCode` 단언 추가. |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminControllerIntegrationTest.kt` | 수정 + 신규 케이스 1건 | `item(...)` fixture에 `colorCode` 파라미터, 요청 DTO에 `colorCode` 필드, `service.create/update` mock 시그니처 인자 7개로 보강. GET / POST / PUT 응답에 `$.colorCode` jsonPath 단언 추가. 신규 — `POST v1 admin pet-catalog는 colorCode가 hex 정규식에 어긋나면 400을 반환한다` (잘못된 5종 colorCode 검증). `@BeforeEach clearMocks(petCatalogService)`로 Spring 컨텍스트 공유 mock 상태 누설 차단. |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeederTest.kt` | 신규 | 5종 시드의 `colorCode` 일치 검증을 포함한 5건 테스트. |
 
-## 커버한 케이스
+## 추가된 테스트 케이스 (한국어)
 
-### UserRegisteredEventListenerTest
-- 신규 가입 이벤트 수신 시 디스코드 웹훅에 정확한 페이로드로 발송한다
-  - 메시지 형식 검증: `[PROD] 신규 가입`, `닉네임=...`, `provider=KAKAO`, `userId=...`, `가입시각=...`, `누적 가입자=1,234명`
-  - `userRepository.count()`가 정확히 1회 호출되는지 검증
-  - `discordHookApi.sendMessage`가 정확히 1회 호출되는지 검증
-- activeProfile이 소문자여도 메시지 접두어는 대문자로 변환된다 (`dev` → `[DEV]`, `provider=APPLE` 검증)
-- 누적 가입자 수가 천 단위 이상이면 콤마가 포함된다 (1,234,567명)
-- 디스코드 웹훅 호출이 예외를 던져도 리스너는 예외를 흡수한다 (`shouldNotThrow`)
-- userRepository.count() 호출이 예외를 던져도 리스너는 예외를 흡수한다 (`shouldNotThrow` + `discordHookApi.sendMessage`가 호출되지 않음 검증)
-- 디스코드 요청의 username 필드는 기본값을 따른다 (`DiscordHookApi.DEFAULT_USERNAME`)
+### PetCatalogServiceTest (신규 2건)
+- `create는 colorCode를 entity에 저장한다`
+- `update는 colorCode를 갱신한다`
 
-### AuthServiceTest
-- 신규 사용자 가입 시 UserRegisteredEvent가 발행된다
-  - `eventPublisher.publishEvent(any<UserRegisteredEvent>())` 정확히 1회
-  - 발행된 이벤트의 `nickName`, `oAuthType`, `userId` 필드가 신규 유저와 일치
-- 기존 사용자 로그인 시 UserRegisteredEvent가 발행되지 않는다 (`verify(exactly = 0)`)
-- 기존 사용자가 동일한 deviceToken으로 로그인하면 사용자 저장이 호출되지 않는다 (분기 검증, 이벤트 미발행도 함께 확인)
+### PetCatalogAdminControllerIntegrationTest (신규 1건)
+- `POST v1 admin pet-catalog는 colorCode가 hex 정규식에 어긋나면 400을 반환한다` — `"red"`, `"#GGGGGG"`, `"#FFF"`, `"#FFCC0080"`, `"rgba(255,0,0,1)"` 5종 invalid 입력 모두 400 + `petCatalogService.create` 미호출 검증.
+
+### PetCatalogSeederTest (신규 5건)
+- `seed는 빈 컬렉션에 5종 기본 펫을 등록한다`
+- `seed의 5종 colorCode는 설계 표 5색과 일치한다` — CAT `#FD85FF` / HAMSTER `#46F8A2` / PENGUIN `#4E95FF` / DOG `#9B6CFF` / MOLE `#D0DAE4`.
+- `seed는 displayOrder를 0부터 순차 부여한다 (CAT=0, HAMSTER=1, PENGUIN=2, DOG=3, MOLE=4)`
+- `seed는 이미 데이터가 존재하면 saveAll을 호출하지 않는다`
+- `seed는 5종 모두 isActive=true이며 level=1..5의 lottie URL을 채운다`
 
 ## 실행 결과
 
-```
-./gradlew test --tests "notbe.tmtm.ddanddanserver.application.event.*" \
-              --tests "notbe.tmtm.ddanddanserver.application.service.AuthServiceTest"
-```
+- `./gradlew test`: 성공 (BUILD SUCCESSFUL).
+- 총계: **254 tests, 0 failures, 7 ignored**.
+- JDK 17 (Azul Zulu 17.0.14) 사용. 시스템 기본 JDK 25 + Gradle 8.8 + Kotlin 1.9.24 조합은 daemon 초기화 단계에서 실패 — 환경 이슈이며 본 변경과 무관.
 
-- BUILD SUCCESSFUL
-- UserRegisteredEventListenerTest: 6 tests, 0 failures, 0 errors (0.585s)
-- AuthServiceTest: 3 tests, 0 failures, 0 errors (0.197s)
-- 합계: ✅ 9/9 통과
-
-JDK는 환경 안내대로 `JAVA_HOME=$(/usr/libexec/java_home -v 17.0.14)`로 실행.
+### 트러블슈팅 기록 (참고용)
+- 처음 통합 테스트 실행 시 `POST 잘못된 colorCode 400 반환` 테스트가 `verify(exactly = 0) { create(...) }` 단언에서 실패. 원인: Spring `@WebMvcTest` 컨텍스트가 클래스 단위로 공유되어 `PetCatalogService` mock이 싱글톤. 직전 테스트(`POST 신규 펫 등록`)의 호출 기록이 누설된 결과. `@BeforeEach { clearMocks(petCatalogService) }` 추가로 해결.
 
 ## implementer에게 전달할 피드백
 
-- **테스트 용이성: 양호.** 인계 메모대로 `UserRegisteredEventListener`의 `activeProfile`을 `@Value` 주입이지만 생성자 인자로 그대로 직접 주입할 수 있어 mock 없이 phase 분기 검증이 깔끔했음.
-- **`AuthService`도 양호.** `ApplicationEventPublisher`를 생성자에 노출했기 때문에 `mockk(relaxed = true)`로 받고 `slot`/`verify(exactly = 0/1)`만으로 분기를 충분히 검증 가능.
-- **개선 제안 (선택):** `UserRegisteredEventListener.handle()`의 `Instant.now()`는 `AuthService.loginNewUser()`에서 호출되는데, 만약 후속에 메시지 본문이 한국 시간 포맷팅을 요구하게 되면 `Clock` 주입을 고려해 볼 만함. 현재 범위에서는 불필요.
-- **`@Async`/`@TransactionalEventListener(AFTER_COMMIT)` 검증은 통합 테스트 영역**으로 분리됨 (단위 테스트 범위 외). 본 PR에서는 작성 안 함.
-- **`DiscordHookApi`/`ApiConfiguration` 단위 테스트 미작성** — 인터페이스 + Spring 빈 정의로 단위 테스트 가치가 낮아 작업 지시대로 생략.
+- **production 코드 결함 없음.** 모든 테스트 실패는 fixture/시그니처 보강 누락으로 인한 컴파일 에러 또는 (위의) mock 상태 누설 한 건이었고 모두 테스트 측에서 해결.
+- 테스트 친화도 — `PetCatalogService.create/update`가 위치 인자 7개로 늘어남. 향후 1개만 더 늘어나면 호출부 가독성/`every { ... } returns ...` 매처 작성이 부담스러워질 수 있음. 도메인 객체(예: `PetCatalogSpec` 같은 입력 holder)로 묶는 것을 추후 검토.
+- `colorCode`의 hex 검증이 어드민 DTO에만 위치한다는 결정은 합리적이나, 도메인 모델 `PetCatalogItem.colorCode` 생성 시점 검증이 0이라 mongosh 등 비공식 경로로 잘못된 값이 유입되면 런타임 에러 없이 그대로 응답된다. 운영 가이드라인 문서화 권장.
