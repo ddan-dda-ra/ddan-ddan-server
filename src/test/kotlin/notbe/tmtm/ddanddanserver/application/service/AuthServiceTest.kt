@@ -54,7 +54,7 @@ class AuthServiceTest : FunSpec({
         val oAuthAccessToken = "kakao-access"
         val oAuth = OAuth(id = "oauth-id-1", type = OAuthType.KAKAO, nickName = "신규유저")
 
-        every { oauthProcessorFactory.getClient(OAuthType.KAKAO) } returns oauthProcessor
+        every { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) } returns oauthProcessor
         every { oauthProcessor.getOAuth(oAuthAccessToken) } returns oAuth
         every { authRepository.findByOAuthIdAndType(oAuth.id, OAuthType.KAKAO) } returns null
         every { userRepository.save(any<User>()) } answers { firstArg() }
@@ -63,7 +63,7 @@ class AuthServiceTest : FunSpec({
         val capturedEvent = slot<UserRegisteredEvent>()
         every { eventPublisher.publishEvent(capture(capturedEvent)) } returns Unit
 
-        val result = authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = "device-1")
+        val result = authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = "device-1", useMock = false)
 
         result.accessToken shouldBe "access-token"
         result.refreshToken shouldBe "refresh-token"
@@ -88,13 +88,13 @@ class AuthServiceTest : FunSpec({
             )
         val existingAuth = Auth.create(oAuthId = oAuth.id, type = OAuthType.KAKAO, userId = existingUserId)
 
-        every { oauthProcessorFactory.getClient(OAuthType.KAKAO) } returns oauthProcessor
+        every { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) } returns oauthProcessor
         every { oauthProcessor.getOAuth(oAuthAccessToken) } returns oAuth
         every { authRepository.findByOAuthIdAndType(oAuth.id, OAuthType.KAKAO) } returns existingAuth
         every { userRepository.findById(existingUserId) } returns Optional.of(existingUser)
         every { userRepository.save(any<User>()) } answers { firstArg() }
 
-        val result = authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = "new-device")
+        val result = authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = "new-device", useMock = false)
 
         result.user.id shouldBe existingUserId
         verify(exactly = 0) { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }
@@ -112,14 +112,46 @@ class AuthServiceTest : FunSpec({
             )
         val existingAuth = Auth.create(oAuthId = oAuth.id, type = OAuthType.APPLE, userId = existingUserId)
 
-        every { oauthProcessorFactory.getClient(OAuthType.APPLE) } returns oauthProcessor
+        every { oauthProcessorFactory.getClient(OAuthType.APPLE, false) } returns oauthProcessor
         every { oauthProcessor.getOAuth(oAuthAccessToken) } returns oAuth
         every { authRepository.findByOAuthIdAndType(oAuth.id, OAuthType.APPLE) } returns existingAuth
         every { userRepository.findById(existingUserId) } returns Optional.of(existingUser)
 
-        authService.login(oAuthAccessToken, OAuthType.APPLE, deviceToken = "same-token")
+        authService.login(oAuthAccessToken, OAuthType.APPLE, deviceToken = "same-token", useMock = false)
 
         verify(exactly = 0) { userRepository.save(any<User>()) }
         verify(exactly = 0) { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }
+    }
+
+    test("useMock=true가 전달되면 factory에 useMock=true로 전파된다") {
+        val oAuthAccessToken = "mock-kakao-token"
+        val oAuth = OAuth(id = "mock-oauth-id", type = OAuthType.KAKAO, nickName = "목유저")
+
+        every { oauthProcessorFactory.getClient(OAuthType.KAKAO, true) } returns oauthProcessor
+        every { oauthProcessor.getOAuth(oAuthAccessToken) } returns oAuth
+        every { authRepository.findByOAuthIdAndType(oAuth.id, OAuthType.KAKAO) } returns null
+        every { userRepository.save(any<User>()) } answers { firstArg() }
+        every { authRepository.save(any<Auth>()) } answers { firstArg() }
+
+        authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = null, useMock = true)
+
+        verify(exactly = 1) { oauthProcessorFactory.getClient(OAuthType.KAKAO, true) }
+        verify(exactly = 0) { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) }
+    }
+
+    test("useMock=false가 전달되면 factory에 useMock=false로 전파된다") {
+        val oAuthAccessToken = "real-kakao-token"
+        val oAuth = OAuth(id = "real-oauth-id", type = OAuthType.KAKAO, nickName = "실유저")
+
+        every { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) } returns oauthProcessor
+        every { oauthProcessor.getOAuth(oAuthAccessToken) } returns oAuth
+        every { authRepository.findByOAuthIdAndType(oAuth.id, OAuthType.KAKAO) } returns null
+        every { userRepository.save(any<User>()) } answers { firstArg() }
+        every { authRepository.save(any<Auth>()) } answers { firstArg() }
+
+        authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = null, useMock = false)
+
+        verify(exactly = 1) { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) }
+        verify(exactly = 0) { oauthProcessorFactory.getClient(OAuthType.KAKAO, true) }
     }
 })

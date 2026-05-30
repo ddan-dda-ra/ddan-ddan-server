@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.application.processor
 
+import notbe.tmtm.ddanddanserver.domain.exception.UnsupportedOAuthModeException
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import org.springframework.stereotype.Component
 import javax.annotation.PostConstruct
@@ -8,16 +9,26 @@ import javax.annotation.PostConstruct
 class OAuthProcessorFactory(
     private val clients: List<OAuthProcessor>,
 ) {
-    private lateinit var clientMap: Map<OAuthType, OAuthProcessor>
+    private lateinit var realMap: Map<OAuthType, OAuthProcessor>
+    private lateinit var mockMap: Map<OAuthType, OAuthProcessor>
 
     @PostConstruct
     fun init() {
-        clientMap = clients.associateBy { it.getProviderType() }
+        val (mocks, reals) = clients.partition { it is MockOAuthProcessor }
+        realMap = reals.associateBy { it.getProviderType() }
+        mockMap = mocks.associateBy { it.getProviderType() }
     }
 
-    fun getClient(type: OAuthType): OAuthProcessor {
-        clientMap[type]?.let {
-            return it
-        } ?: throw IllegalArgumentException("Unknown OAuth type: $type")
+    fun getClient(
+        type: OAuthType,
+        useMock: Boolean,
+    ): OAuthProcessor {
+        val pool = if (useMock) mockMap else realMap
+        return pool[type] ?: run {
+            if (useMock) {
+                throw UnsupportedOAuthModeException(type)
+            }
+            throw IllegalArgumentException("Unknown OAuth type: $type")
+        }
     }
 }

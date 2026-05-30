@@ -23,6 +23,7 @@ enum class ErrorCode(
     EXPIRED_ACCESS_TOKEN("AC003", "만료된 엑세스 토큰입니다."),
     EXPIRED_REFRESH_TOKEN("AC004", "만료된 리프레시 토큰입니다."),
     NOT_EXIST_TOKEN("AC005", "토큰이 존재하지 않습니다."),
+    UNSUPPORTED_OAUTH_MODE("AC006", "요청한 OAuth 모드를 현재 환경에서 사용할 수 없습니다."),
 
     /**
      * 권한 오류

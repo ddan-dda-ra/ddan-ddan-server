@@ -1,68 +1,97 @@
-# 이슈 분석: 펫 카탈로그 색상 코드 필드 추가
+# 이슈 분석: dev 환경 Mock/Real OAuth 동시 사용 (X-Mock-OAuth 헤더 기반 디스패치)
 
 ## 요구사항 요약
-
-펫 카탈로그(`PetCatalog`)의 각 항목에 "색상 코드(color code)" 필드를 추가하여 클라이언트(`GET /v1/pets/catalog`) 응답에 노출한다. 직전 PR #308(commit `0439b7f`, `7e1bb8c`)에서 같은 도메인에 `backgrounds(homeUrl/homeCompactUrl/friendCardUrl)`를 추가했던 작업과 구조적으로 동일한 패턴 — 도메인 모델 → 엔티티 → 응답 DTO → 어드민 DTO → 시드 → 기존 DB 마이그레이션의 5중 변경이 필요하다. 다만 "색상 코드"의 정확한 의미(단일 hex 1개인지, primary/secondary 등 여러 개인지, nested object 형태인지)는 입력에서 결정되지 않았고, 본 단계에서 추측하지 않는다 — 미해결 질문으로 분류한다.
+dev 환경에서 `mock-oauth.enabled=true`로 인해 Real OAuth processor가 빈에서 제외되어, 실제 카카오/Apple 토큰을 가진 prod 가입 유저로 dev 로그인이 불가능하다. 이를 해소하기 위해 dev 환경에서 Real/Mock processor를 동시에 빈으로 등록하고, 클라이언트가 `X-Mock-OAuth: true` 헤더를 명시할 때만 Mock processor를 사용하도록 디스패치를 변경한다. 헤더가 없거나 false면 Real로 처리(prod와 동일). prod에서는 `mock-oauth.enabled=false`로 Mock 빈이 아예 등록되지 않으므로 헤더가 와도 자연스럽게 Real로 fallback되어야 한다.
 
 ## 영향 받는 레이어
-
-- [x] domain — `PetCatalogItem`에 색상 필드 추가 (+ 색상이 nested 구조라면 `PetCatalogColors` 같은 신규 value object 추가)
-- [x] application — `PetCatalogService.create/update` 시그니처에 색상 파라미터 추가
-- [x] infrastructure — `PetCatalogEntity` 필드 추가 + nested 엔티티(필요 시) + `PetCatalogSeeder` 기본값 + **기존 5개 도큐먼트 마이그레이션**
-- [x] presentation — 일반 응답 DTO `PetCatalogResponse` + 어드민 요청/응답 DTO `PetCatalogAdmin*` 양쪽 모두
+- [x] domain — 없음 (도메인 변경 없음)
+- [x] application — `OAuthProcessorFactory`, `AuthService` 시그니처 변경 (Mock/Real 디스패치 로직 추가)
+- [x] infrastructure — 없음 (외부 API 클라이언트 변경 없음)
+- [x] presentation — `AuthController.login`이 `@RequestHeader("X-Mock-OAuth")` 받아 service로 전파, `LoggingFilter`는 헤더 평문 로깅(별도 마스킹 불필요)
 
 ## 관련 코드
 
+### Processor 빈 등록 (Conditional 변경 대상)
 | 파일 | 라인 | 역할 |
 |---|---|---|
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/petcatalog/PetCatalog.kt` | 10-17 | `PetCatalogItem` — 색상 필드를 어디에 끼울지 결정할 1차 지점. `backgrounds: PetCatalogBackgrounds` 바로 옆/아래가 자연 위치. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/petcatalog/PetCatalog.kt` | 19-23 | `PetCatalogBackgrounds` — nested value object의 **참조 모델**. 색상이 다중 컬러라면 동일 패턴으로 `PetCatalogColors(...)` 신규 클래스 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 14-26 | `PetCatalogEntity` 본문 — `backgrounds: PetCatalogBackgroundsEntity` 옆에 색상 필드 추가. MongoDB는 `SnakeCaseFieldNamingStrategy` 사용(camelCase ↔ snake_case 자동) — DB 마이그레이션 작성 시 키 표기 주의(MEMORY 항목 참조). |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 27-46 | `toDomain()` / `fromDomain()` 매퍼 — 색상 매핑 라인 양방향 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 50-70 | `PetCatalogBackgroundsEntity` — nested 엔티티의 **참조 모델**. 다중 컬러 구조라면 동일하게 `PetCatalogColorsEntity`를 만든다. 단일 hex라면 `PetCatalogEntity`에 `val themeColor: String` 한 줄로 끝. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 22-33 | 시드 entity 생성부 — 색상 기본값 매핑 1줄 추가 필요. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 43-48, 68-75 | `buildBackgrounds(species)` 헬퍼 + `DEFAULT_PETS` — 펫 5종(CAT/HAMSTER/PENGUIN/DOG/MOLE)의 기본 색상 값을 species별로 어떻게 할당할지 정해야 한다. backgrounds처럼 species 문자열로 CDN 경로를 만드는 방식이 아니므로 단순 lookup 또는 `PetSeed`에 `color` 필드 추가 형태가 자연스럽다. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 53-82 | `create(...)` — 시그니처에 색상 파라미터 추가. backgrounds와 동일 위치(displayOrder 직전)에 끼우는 패턴. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 84-106 | `update(...)` — 동일 패턴. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/response/PetCatalogResponse.kt` | 21-40 | `PetCatalogItemResponse` — 색상 필드 + `from()` 매핑 추가. **클라이언트 노출 지점**(요구사항 본문에 명시된 "클라이언트에 내려줘야 한다"의 실체). |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/response/PetCatalogResponse.kt` | 42-55 | `PetCatalogBackgroundsResponse` — nested 응답 DTO **참조 모델**. 다중 컬러 구조면 같은 패턴으로 `PetCatalogColorsResponse` 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 11-26 | `PetCatalogAdminCreateRequest` — 색상 요청 필드 + `@field:Valid`/`@field:NotBlank` 검증 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 28-41 | `PetCatalogAdminUpdateRequest` — 동상. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 43-57 | `PetCatalogBackgroundsRequest` — 요청 nested DTO **참조 모델**. 다중 컬러면 동일 패턴. 단일 hex면 `PetCatalogAdmin*Request`에 `val themeColor: String` 한 줄. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 75-94 | `PetCatalogAdminItemResponse` + `from()` — 어드민 응답에도 색상 표시. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 96-109 | `PetCatalogBackgroundsResponse`(어드민용) — 어드민 응답 nested DTO 참조 모델. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 30-44 | `create(...)` — 컨트롤러 자체는 `request.backgrounds.toDomain()` 라인 옆에 `request.colors.toDomain()`(또는 `request.themeColor`) 1줄 추가. 시그니처는 그대로. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 46-61 | `update(...)` — 동상. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/PetCatalogController.kt` | 18-22 | `getCatalog()` — 컨트롤러는 무변경. 응답 DTO의 `from(...)`이 색상까지 매핑하므로 자동 노출됨. **요구사항의 핵심 노출 엔드포인트.** |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/repository/PetCatalogRepository.kt` | 7-15 | 변경 없음. 색상은 정렬/조회 키가 아니므로 신규 쿼리 메서드 불필요. |
-| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogServiceTest.kt` | 24-51 | 테스트 fixture(`entity(...)`)가 backgrounds를 명시적으로 만들어 넣는 패턴 — 색상도 동일하게 fixture 보강 필요. mockk 단위 테스트라 stub만 수정. |
-| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/PetCatalogControllerIntegrationTest.kt` | (PR #308 diff 기준 +7라인) | 응답 JSON에 색상 필드가 노출되는지 통합 테스트로 검증. backgrounds와 동일 패턴으로 jsonPath 단언 추가. |
-| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminControllerIntegrationTest.kt` | (PR #308 diff 기준 +24라인) | 어드민 CRUD 통합 테스트 — 색상 필드 요청/응답 검증. |
-| `src/test/kotlin/notbe/tmtm/ddanddanserver/presentation/filter/PetCatalogVersionFilterTest.kt` | 전체 | 영향 없음. version 헤더만 검증하므로 색상과 무관. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/KakaoProcessor.kt` | 13-14 | `@ConditionalOnProperty(..., havingValue="false", matchIfMissing=true)` — Mock 활성 시 빈에서 제외 (이 조건 제거 필요) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/AppleProcessor.kt` | 22-23 | KakaoProcessor와 동일 패턴 (조건 제거 필요) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockKakaoProcessor.kt` | 8-9 | `@ConditionalOnProperty(..., havingValue="true")` — 그대로 유지 (mock-oauth.enabled=true인 환경에만 등록) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockAppleProcessor.kt` | 8-9 | 동일 (유지) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/OAuthProcessor.kt` | 5-9 | 인터페이스. `isMock(): Boolean` 또는 별도 마커 인터페이스(`MockOAuthProcessor`) 도입 후보 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/OAuthProcessorFactory.kt` | 8-23 | 핵심 변경 지점. `Map<OAuthType, OAuthProcessor>` 단일 맵 → real/mock 두 맵으로 분리. `getClient(type, useMock: Boolean)` 시그니처. mock=true인데 mock 빈이 없으면 real로 fallback |
+
+### Service / Controller 흐름
+| 파일 | 라인 | 역할 |
+|---|---|---|
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 24, 28-39 | `login(token, type, deviceToken)` 시그니처에 `useMock: Boolean = false` 파라미터 추가. line 33의 `oauthProcessorFactory.getClient(oAuthType)` 호출에 useMock 전달 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/AuthController.kt` | 19-30 | `/v1/auth/login` 핸들러에 `@RequestHeader(name="X-Mock-OAuth", required=false, defaultValue="false") useMock: Boolean` 추가. `authService.login(...)` 호출에 전달. `/reissue` 엔드포인트는 헤더 불필요 (JWT refresh만 검증) |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/request/LoginRequest.kt` | 7-14 | 변경 없음 (헤더로 받기 때문에 body는 그대로) |
+
+### 환경 설정
+| 파일 | 라인 | 역할 |
+|---|---|---|
+| `src/main/resources/application.yaml` | 7-8 | `mock-oauth.enabled: false` (default) — 변경 없음 |
+| `src/main/resources/application-dev.yaml` | 35-36 | `mock-oauth.enabled: true` — 변경 없음. 단, 의미가 바뀜 ("Mock processor 빈 등록 여부"로 격하). 주석 추가 권장 |
+| `src/main/resources/application-local.yaml` | 35-36 | 동일 (변경 없음) |
+| `src/main/resources/application-prod.yaml` | 35-36 | `mock-oauth.enabled: false` — 변경 없음 |
+
+### 필터 / Security
+| 파일 | 라인 | 역할 |
+|---|---|---|
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/filter/LoggingFilter.kt` | 31-44 | 모든 헤더를 평문 로깅. `X-Mock-OAuth`는 비밀값이 아니므로 마스킹 불필요. 변경 없음 |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/config/WebSecurityConfig.kt` | 106-117 | `loginFilterChain` (`@Order(1)`, `/v1/auth/**` permitAll) — 헤더 검사 없음, 변경 없음 |
+
+### 테스트
+| 파일 | 라인 | 역할 |
+|---|---|---|
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthServiceTest.kt` | 24-125 | `login(...)` 호출이 3개 테스트에서 모두 명시. useMock 파라미터 추가 시 default=false면 호환되지만, mock=true 경로 분기 테스트 신규 추가 필요 |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockKakaoProcessorTest.kt` | 7-35 | 단위 테스트 — 변경 없음 |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockAppleProcessorTest.kt` | 7-28 | 동일 |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/processor/KakaoProcessorTest.kt` | 17-148 | 단위 테스트 — 변경 없음 |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/processor/AppleProcessorTest.kt` | 14-83 | 동일 |
+| (신규) `OAuthProcessorFactoryTest.kt` | — | 신규 작성. mock=true인데 mock 빈 부재 시 real fallback 검증 / mock=true 정상 시 mock 반환 / mock=false면 real 반환 |
+| (신규) `AuthControllerIntegrationTest.kt` | — | `X-Mock-OAuth` 헤더 유무에 따라 processor 분기되는지 통합 검증 (없으면 신규 작성, 또는 AuthService 통합 테스트로 갈음) |
 
 ## 참조할 기존 패턴
 
-- **PR #308 `backgrounds` 추가 (commits `0439b7f`, `7e1bb8c`)** — 본 작업의 1:1 미러링 대상. backgrounds는 nested value object(`homeUrl`/`homeCompactUrl`/`friendCardUrl`) 3-필드 구조로, 도메인 → 엔티티 → 응답 DTO → 어드민 DTO → 시드의 5중 변경을 거쳤다. 색상도 nested 구조라면 동일 매핑이 적용된다. 또한 `7e1bb8c`에서 `home/homeCompact/friendCard` → `homeUrl/homeCompactUrl/friendCardUrl`로 `*Url` 접미사 컨벤션을 통일한 이력이 있다 — **색상 필드명도 동일 컨벤션 점검 필요** (예: `color` 단일이라면 `themeColor` / `colorCode`, hex 문자열이라면 접미사 없이 그대로 두는 게 맞는지).
-- **`PetCatalogBackgrounds` (도메인) / `PetCatalogBackgroundsEntity` (인프라) / `PetCatalogBackgroundsResponse` (응답·어드민)** — nested value object 3계층의 표준 패턴. 색상이 다중 컬러면 정확히 동일하게 3개 클래스를 만든다.
-- **`PetCatalogLevel` 매핑** — `Map<Int, PetCatalogLevel>` 방식은 색상에는 부적합. 색상은 펫당 1개(또는 고정 키셋 nested 1개)이므로 levels가 아닌 backgrounds 패턴을 따른다.
-- **`PetCatalogSeeder.buildBackgrounds(species)` (43-48)** — 시드 헬퍼 함수의 형태. 색상은 species → URL 매핑이 아니라 species → hex 매핑이므로 함수 시그니처는 비슷하되 본문은 단순 `when (species)` 룩업 또는 `PetSeed.color` 필드 추가가 자연스럽다.
-- **기존 도큐먼트 `$set` 마이그레이션 컨벤션 (PR #308 커밋 메시지 명시: "기존 5 docs는 별도 마이그레이션으로 \$set")** — 코드 시드는 신규 환경(빈 컬렉션)에서만 동작(`if (repository.count() > 0L) return`)이므로 dev/prod의 기존 5개 도큐먼트(CAT/HAMSTER/PENGUIN/DOG/MOLE)는 mongosh `$set`으로 별도 마이그레이션해야 한다. **MongoDB는 SnakeCaseFieldNamingStrategy 사용 — 마이그레이션 스크립트의 키는 snake_case로 작성** (MEMORY 항목: PR #308 사고 이력).
+- **`@ConditionalOnProperty` Factory + 단일 Map 패턴 (현재 OAuthProcessorFactory)** — `application/processor/OAuthProcessorFactory.kt:8-23`. 같은 OAuthType 키에 하나의 processor만 매핑. **본 요구사항으로 인해 이 패턴이 깨진다** (한 type당 2개 processor 등록 필요). Factory는 두 개의 맵(realMap, mockMap)으로 분리하는 방식이 가장 깔끔.
+- **`@RequestHeader` + default 값 사용 예시** — 현재 컨트롤러에는 `@RequestHeader` 사용처가 없다. Spring 표준 패턴이므로 `@RequestHeader(name = "X-Mock-OAuth", required = false, defaultValue = "false")` 사용. Spring이 String "true"/"false"를 Boolean으로 자동 바인딩.
+- **마커 인터페이스 vs 메서드 분기** — `OAuthProcessor` 인터페이스에 `isMock(): Boolean` 디폴트 메서드를 추가하거나, `MockOAuthProcessor : OAuthProcessor` 별도 마커 인터페이스로 구분. 마커 인터페이스가 SOLID 관점에서 더 명시적이고 Factory에서 `is MockOAuthProcessor`로 분류 가능.
 
 ## 위험 요소
 
-- **응답 DTO 호환성** — `PetCatalogResponse`에 nullable 아닌 필드를 추가하면 기존 응답 스키마가 변한다. 클라이언트(iOS)가 카탈로그를 아직 미사용 상태이므로 backgrounds처럼 wire 호환성 영향은 사실상 없다(PR #308 commit body 명시). 그래도 OpenAPI 스펙은 갱신되므로 swagger 노출은 신규 필드로 잡힌다.
-- **기존 DB 도큐먼트 마이그레이션** — `PetCatalogSeeder.seed()`는 `count() > 0L`이면 즉시 return하므로 시드 코드만 고치면 신규 환경에서만 색상이 채워진다. dev/prod의 기존 5 docs(`pet_catalog` 컬렉션)에는 색상 필드가 빠진 채로 남아 Kotlin 역직렬화 시 nullable이 아닌 필드는 예외를 던질 위험이 있다. **마이그레이션 mongosh 스크립트가 PR과 동시에 준비되어야 한다.** dev/prod 양쪽 모두 적용 필요.
-- **역직렬화 실패 시 서비스 전면 다운** — 색상 필드를 nullable 아닌 `String`/value object로 추가하고 마이그레이션을 누락하면, 첫 카탈로그 조회에서 `MappingException`/`NullValueException`이 발생하여 `GET /v1/pets/catalog`, `POST /v1/pets`(랜덤 펫 추가) 등 카탈로그 의존 API가 전부 실패한다. 대안: (a) 코드에 default 값 부여(생성자 기본값), (b) 필드를 nullable로 추가 후 데이터 백필 완료 시 non-null 전환, (c) 마이그레이션을 코드 배포보다 먼저 수행. PR #308에서는 (c)로 처리한 것으로 보임.
-- **`SnakeCaseFieldNamingStrategy` 키 표기 실수** — Kotlin 필드 `themeColor` ↔ MongoDB 필드 `theme_color`. mongosh 마이그레이션 시 `{ $set: { themeColor: "#FFCC00" } }`로 쓰면 DB에는 `themeColor`라는 별도 키가 생기고 Spring Data는 `theme_color`를 읽으려 해 null이 된다. MEMORY 항목(PR #308 사고)에서 동일 사고가 이미 발생했음.
-- **`PetCatalogService.currentVersion()` 캐시(`60s TTL`) 무효화** — service.create/update에서 `invalidateVersionCache()`를 호출하므로 어드민 API 경로의 일관성은 보장된다. 다만 **mongosh로 직접 마이그레이션할 경우 캐시가 자동 무효화되지 않는다** — 최대 60초간 stale `version`을 응답하므로 마이그레이션 직후 클라이언트가 새 색상을 받아도 헤더 `X-Pet-Catalog-Version`이 갱신되지 않을 수 있다. 운영 영향은 미미하나 인지 필요.
-- **어드민 요청 검증** — 색상이 hex 문자열이라면 단순 `@NotBlank`로는 잘못된 값(`"red"`, `"#GGG"`)을 막지 못한다. `@Pattern(regexp = "^#[0-9A-Fa-f]{6}$")` 등 hex 정규식 검증을 추가하는 것이 안전하다. 다중 컬러(객체)면 각 필드별로 동일 규칙 적용.
-- **시드 기본값 정확성** — 펫 5종의 "어떤 색"이 정답인지(디자이너/PM 공급값) 입력에 없다. 시드 코드의 default는 어드민이 추후 수정한다는 전제로 임시값을 박을 수도 있지만, 그렇게 되면 신규 dev 환경 첫 부팅 시 사용자 노출 색상이 misleading해진다. 디자인 공급값 필요.
+1. **prod 안전성 — Mock 빈 부재 시 fallback 정책**
+   - prod에서 `mock-oauth.enabled=false`이므로 `MockKakaoProcessor`/`MockAppleProcessor` 빈이 등록되지 않음.
+   - 악성 또는 실수로 `X-Mock-OAuth: true` 헤더가 와도 mock 맵이 비어 있으므로, **real로 fallback해야 안전**. (4xx로 reject하는 옵션도 가능하지만 클라이언트 실수에 의한 장애 위험이 큼.)
+   - 권장: `getClient(type, useMock)`에서 `useMock=true && mockMap[type]==null` → real 사용 + WARN 로그.
+
+2. **`OAuthProcessorFactory` 시그니처 변경의 파급**
+   - `getClient(type)` 호출처는 `AuthService.login` 단 1곳 (`AuthService.kt:33`). 변경 영향이 좁다.
+   - 기존 시그니처와의 호환을 위해 `getClient(type)` (default useMock=false) overload 유지 가능.
+
+3. **테스트 mock 셋업 변경**
+   - `AuthServiceTest.kt:57, 91, 115`의 `every { oauthProcessorFactory.getClient(OAuthType.KAKAO) } returns oauthProcessor` 가 시그니처 변경으로 컴파일 에러 가능 (useMock 파라미터 추가 시).
+   - kotlin default param이면 mockk이 `getClient(OAuthType.KAKAO, false)`로 매칭되므로 보통 OK. 단, 인자 매칭 strict 모드일 경우 `any<Boolean>()`으로 보완 필요.
+
+4. **Mock id 충돌 가능성 (dev DB)**
+   - dev DB에는 이미 `mock-kakao-XXX`, `mock-apple-XXX` 형태의 oauth_id를 가진 유저 데이터가 있음.
+   - Real 토큰의 카카오 id (예: 숫자 `12345`)와 Mock id (`mock-kakao-12345`)는 prefix가 다르므로 충돌 없음.
+   - **단, 실제 prod에서 가입한 유저의 oauth_id가 dev DB에 없다면**, dev에서 real 토큰으로 로그인 시 신규 회원가입 흐름(`loginNewUser`) 진입 → dev DB에 새 user 도큐먼트 생성. 이게 의도된 동작인지 확인 필요 (미해결 질문 참조).
+
+5. **`@ConditionalOnProperty` 제거 시 의도치 않은 빈 등록**
+   - `KakaoProcessor`/`AppleProcessor`에서 `@ConditionalOnProperty` 제거 시, Mock 빈도 함께 등록되는 dev/local에서 두 processor 모두 빈으로 떠 있음. Factory가 이를 두 맵으로 분리하지 않으면 `associateBy { type }` 시 마지막 한 개만 살아남는 silent 오류 발생.
+   - → Factory 변경(real/mock 분리 매핑)이 동시에 반드시 함께 들어가야 한다.
+
+6. **로깅 노이즈**
+   - dev에서 헤더 없이 호출하면 매 로그인마다 real OAuth API 호출이 일어남 (현재 mock만 쓰던 때보다 외부 의존도 증가). 카카오 API의 dev 토큰 만료/rate-limit에 노출.
 
 ## 미해결 질문
 
-1. **색상의 구조** — 단일 hex 1개(`themeColor: "#FFCC00"`)인가, primary/secondary 등 다중 컬러 nested object(`colors: { primary, secondary, background }`)인가, 컬러 팔레트 리스트(`colors: ["#FFCC00", "#AABBCC"]`)인가? — backgrounds처럼 `PetCatalogColors` value object를 만들지, 도메인 모델에 평탄한 단일 필드만 추가할지 결정에 직결.
-2. **필드명 컨벤션** — `colorCode` / `color` / `themeColor` / `colors` / `palette` 중 무엇? 단일 hex면 `themeColor`가 자연스럽고, nested면 `colors`가 자연스럽다. (`backgrounds`가 복수형 nested인 것과 정합) PR #308의 `*Url` 접미사 컨벤션 통일 이력에 비추어, hex string은 접미사 없이 두는 게 가독성에 맞다.
-3. **필수 vs 옵셔널** — 색상이 모든 펫에 강제되는 필수 메타데이터인지, 일부 펫만 색상이 정의되는 옵셔널인지? non-null 필드 추가는 마이그레이션 의무를 동반(기존 5 docs 백필 필수). nullable이면 코드는 안전하지만 클라이언트가 fallback UI를 가져야 한다.
-4. **기존 DB 데이터 백필 정책** — PR #308과 동일하게 mongosh `$set`으로 별도 마이그레이션할 것인가? 그렇다면 펫 5종(CAT/HAMSTER/PENGUIN/DOG/MOLE)의 색상 정답값은 누가 공급(디자이너/PM)하는가? 디자인 토큰 확정 전이라면 임시값으로 박고 어드민 API로 추후 갱신할지?
-5. **어드민 요청 검증 강도** — hex 정규식(`^#[0-9A-Fa-f]{6}$`) 적용? 3자리 단축형(`#FFF`) 허용? 알파 채널 8자리(`#FFCC0080`) 허용? `rgba(...)` 같은 CSS 표기 허용?
-6. **클라이언트 사용 시점** — 요구사항 본문은 "클라이언트에 내려줘야 한다"만 명시. iOS가 이번 스프린트에 실사용하는지(즉시 노출), wire만 먼저 깔고 추후 사용인지(PR #308과 동일한 wire-first 패턴)? 사용 시점에 따라 default 값의 품질 기준이 달라진다.
+1. **헤더값 형식** — Spring은 `@RequestHeader Boolean` 바인딩 시 `"true"`/`"false"` 문자열을 변환한다. `"1"`/`"0"` 또는 빈 문자열은 false로 처리됨. 명세에 "Boolean"이라 했으므로 `true`/`false` 문자열을 표준으로 한다. 클라이언트(iOS/Android)와 합의되었는지 확인 필요.
+2. **prod에서 `X-Mock-OAuth: true` 헤더 수신 시 정책** — fallback(real로 동작) vs reject(400). 안전성 관점에서 fallback 권장. 확정 필요.
+3. **dev DB에 신규 가입자 데이터 누적 우려** — dev에서 real 토큰으로 로그인 시 dev DB에 신규 유저가 생성된다. 이게 의도된 동작인가? (참고: 메모리에 "smoke 테스트는 고정 mock 토큰 재사용" 가이드가 있음 — real 토큰을 자주 쓰면 동일한 우려가 dev에도 적용).
+4. **Real/Mock 분리 패턴** — (a) `OAuthProcessor` 인터페이스에 `isMock(): Boolean = false` 디폴트 메서드 추가, (b) `MockOAuthProcessor` 마커 인터페이스 신설, (c) Factory가 빈 클래스명(Mock prefix) 기반 분류. 어떤 방식을 선호하는지 확정 필요. 권장: (b) — 가장 명시적이고 SOLID.
+5. **`X-Mock-OAuth` 헤더의 Swagger 문서화** — `/v1/auth/login` Operation에 `@Parameter(in = ParameterIn.HEADER, name = "X-Mock-OAuth", required = false)` 어노테이션 추가 필요 여부.
+6. **OAuthType.APPLE 어드민 토큰 흐름과의 독립성** — 본 변경은 `/v1/auth/login`에만 영향. 어드민 인증(`AdminJWTAuthFilter`)은 별도 흐름이므로 무영향. 명시 확인.
+7. **`reissueToken` 엔드포인트** — refresh 토큰만 검증하므로 mock/real 구분 불필요. 헤더 받지 않음으로 확정.

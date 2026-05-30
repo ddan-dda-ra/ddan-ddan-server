@@ -7,6 +7,7 @@ import notbe.tmtm.ddanddanserver.presentation.dto.request.RefreshTokenRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.response.LoginResponse
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -19,8 +20,9 @@ class AuthController(
     @PostMapping("/login")
     fun login(
         @RequestBody request: LoginRequest,
+        @RequestHeader(name = "X-Mock-OAuth", required = false, defaultValue = "false") useMock: Boolean,
     ): LoginResponse {
-        val result = authService.login(request.token, request.tokenType, request.deviceToken)
+        val result = authService.login(request.token, request.tokenType, request.deviceToken, useMock)
 
         return LoginResponse.fromDomain(
             accessToken = result.accessToken,

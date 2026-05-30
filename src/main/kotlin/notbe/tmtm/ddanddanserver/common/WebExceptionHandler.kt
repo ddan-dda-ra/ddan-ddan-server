@@ -100,6 +100,20 @@ class WebExceptionHandler {
             .body(ErrorResponse.fromErrorCode(ErrorCode.UNKNOWN_SERVER_ERROR))
     }
 
+    @ExceptionHandler(value = [UnsupportedOAuthModeException::class])
+    fun handleUnsupportedOAuthModeException(
+        exception: UnsupportedOAuthModeException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .badRequest()
+            .body(
+                ErrorResponse.fromErrorCode(
+                    errorCode = exception.errorCode,
+                    data = exception.data,
+                ),
+            )
+
     @ExceptionHandler(value = [AuthenticationException::class])
     fun handleAuthenticationException(
         exception: AuthenticationException,

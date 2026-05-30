@@ -4,69 +4,92 @@
 
 | 파일 | 동작 | 요약 |
 |---|---|---|
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/model/petcatalog/PetCatalog.kt` | 수정 | `PetCatalogItem`에 `val colorCode: String` 1줄 추가 (backgrounds 직후, isActive 직전). |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/entity/PetCatalogEntity.kt` | 수정 | `PetCatalogEntity`에 `val colorCode: String` 추가 + `toDomain()` / `fromDomain()` 매퍼 양방향 1줄씩 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/infrastructure/database/seed/PetCatalogSeeder.kt` | 수정 | `PetSeed`에 `colorCode` 필드 추가, `DEFAULT_PETS` 5개 항목에 색상 채움(CAT `#FD85FF`, HAMSTER `#46F8A2`, PENGUIN `#4E95FF`, DOG `#9B6CFF`, MOLE `#D0DAE4`), `seed()` 내 entity 생성부에 `colorCode = pet.colorCode` 1줄 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/PetCatalogService.kt` | 수정 | `create(...)` / `update(...)` 시그니처에 `colorCode: String` 파라미터 추가, 본문의 `PetCatalogEntity(...)` 및 `existing.copy(...)`에 `colorCode = colorCode` 1줄씩 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/response/PetCatalogResponse.kt` | 수정 | `PetCatalogItemResponse`에 `colorCode: String` 필드 + `from()` 매핑 1줄 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/dto/admin/PetCatalogAdminDto.kt` | 수정 | `import jakarta.validation.constraints.Pattern` 추가, top-level `private const val HEX_COLOR_REGEX = "^#[0-9A-Fa-f]{6}$"` 추가. `PetCatalogAdminCreateRequest` / `PetCatalogAdminUpdateRequest`에 `@field:NotBlank @field:Pattern(regexp = HEX_COLOR_REGEX, ...) val colorCode: String` 추가. `PetCatalogAdminItemResponse`에 `colorCode` 필드 + `from()` 매핑 추가. |
-| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/admin/PetCatalogAdminController.kt` | 수정 | `create()` / `update()`의 `petCatalogService.create/update` 호출 인자에 `colorCode = request.colorCode` 1줄씩 추가. |
-
-**무변경 파일(설계서 명시):**
-- `presentation/controller/PetCatalogController.kt` — 응답 DTO `from(...)`이 자동 매핑하므로 무변경.
-- `infrastructure/database/repository/PetCatalogRepository.kt` — 조회/정렬 키가 아니므로 무변경.
-- `presentation/filter/PetCatalogVersionFilter.kt` — 헤더만 다루므로 무변경.
-
-**생성 파일:** 없음 (단일 평탄 필드 추가이므로 신규 클래스 없음).
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockOAuthProcessor.kt` | 생성 | Mock processor 분류용 마커 인터페이스. `OAuthProcessor`를 상속하며 별도 메서드 없음. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/KakaoProcessor.kt` | 수정 | `@ConditionalOnProperty` 및 관련 import 제거. 항상 빈으로 등록되도록 변경. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/AppleProcessor.kt` | 수정 | `@ConditionalOnProperty` 및 관련 import 제거. 항상 빈으로 등록되도록 변경. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockKakaoProcessor.kt` | 수정 | 부모를 `OAuthProcessor` → `MockOAuthProcessor`로 변경. `@ConditionalOnProperty(... havingValue="true")` 유지. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/MockAppleProcessor.kt` | 수정 | 동상. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/processor/OAuthProcessorFactory.kt` | 수정 | `clientMap` 단일 맵 제거 → `realMap`/`mockMap` 두 맵으로 분리. `clients.partition { it is MockOAuthProcessor }`로 분류. `getClient(type, useMock)` 시그니처로 변경. `useMock=true && mock 없음` → `UnsupportedOAuthModeException` throw. `useMock=false && real 없음` → 기존 호환 `IllegalArgumentException` throw. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 수정 | `login(...)` 시그니처에 `useMock: Boolean = false` 파라미터 추가. factory 호출 `getClient(oAuthType, useMock)`로 변경. default `false` 유지로 기존 테스트 호환. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/presentation/controller/AuthController.kt` | 수정 | `@RequestHeader(name = "X-Mock-OAuth", required = false, defaultValue = "false") useMock: Boolean` 파라미터 추가. `RequestHeader` import 추가. `authService.login(...)` 호출에 useMock 전달. Swagger `@Parameter`는 사용자 확정에 따라 미적용. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/exception/ErrorCode.kt` | 수정 | `UNSUPPORTED_OAUTH_MODE("AC006", "요청한 OAuth 모드를 현재 환경에서 사용할 수 없습니다.")` 추가 (인증 카테고리 끝). |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/domain/exception/AuthenticationException.kt` | 수정 | `UnsupportedOAuthModeException(oAuthType: OAuthType) : AuthenticationException(ErrorCode.UNSUPPORTED_OAUTH_MODE, oAuthType)` 클래스 추가. |
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/common/WebExceptionHandler.kt` | 수정 | `handleUnsupportedOAuthModeException` 핸들러 추가 → HTTP 400. 부모 `AuthenticationException` 핸들러(401)보다 먼저 선언하여 명시적 우선순위. (Spring은 가장 구체적 타입 매칭이 기본이므로 안전.) `domain.exception.*` wildcard import로 신규 예외 자동 흡수. |
 
 ## 핵심 결정
 
-- 설계 대비 변경 사항 **없음**. 설계서(`_workspace/02_design.md`)의 변경 파일 목록 7개 파일 + 변경 내역과 1:1 일치.
-- 필드명 `colorCode` (camelCase), MongoDB는 `SnakeCaseFieldNamingStrategy`에 의해 `color_code`로 영속화. nested value object 신설 없이 평탄한 단일 `String` 필드.
-- hex 정규식 검증은 어드민 요청 DTO(`PetCatalogAdminCreateRequest`, `PetCatalogAdminUpdateRequest`)에만 위치. 도메인 모델은 plain `String` 운반.
+- **WebExceptionHandler 매핑 추가 위치**: 설계서는 "기존 `handleAuthenticationException` 직전 또는 직후"라고 했고, 설계서 본문에 "ExceptionHandler 매처 순서상 `UnsupportedOAuthModeException` 핸들러를 `AuthenticationException` 핸들러보다 먼저 평가하도록 별도 메서드로 추가"라고 명시되어 있으므로 401 핸들러 **직전**에 추가했다. Spring `@ExceptionHandler`는 가장 구체적인 타입을 우선 매칭하므로 순서가 동작에 영향을 주지는 않지만, 가독성을 위해 인접 배치.
+- **`UnsupportedOAuthModeException`의 import 추가**: `WebExceptionHandler`가 이미 `domain.exception.*` wildcard import를 사용하므로 별도 import 라인 추가 불필요. 자동으로 흡수됨.
+- **`AuthController` 호출처 영향**: AdminAuthController는 `AdminAuthService`를 사용하며 `AuthService`와 무관. 본 변경에 영향 없음.
+- **`AuthService.login` default 파라미터 `useMock: Boolean = false`**: 설계서 명세대로 default 유지. 기존 테스트(useMock 미명시 호출)와의 호환 + prod-safe default 보장.
+
+설계 대비 변경 사항: **없음.** 설계서를 그대로 따라 구현했다.
 
 ## 빌드 검증
 
-- `./gradlew compileKotlin`: ✅ 성공 (JDK 17 사용).
-- 초기에 시스템 기본 JDK 25로 실행 시 Gradle 8.8 + Kotlin 1.9.24 호환성 문제로 daemon 초기화 단계에서 `What went wrong: 25` 에러가 발생하여 `JAVA_HOME=/Users/.../azul-17.0.14`로 전환 후 정상 통과. 이는 환경 이슈이며 본 변경과는 무관.
-
-```
-> Task :checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :compileKotlin
-
-BUILD SUCCESSFUL in 13s
-1 actionable task: 1 executed
-```
+- compileKotlin: ✅
+  - 호스트 시스템 기본 `JAVA_HOME`이 JDK 25로 설정되어 있어 Kotlin 1.9.24 컴파일러(`JavaVersion.parse("25")` 미지원)와 호환성 문제가 발생했다. 프로젝트 타깃 JDK 17로 명시 실행하여 (`JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew compileKotlin`) 정상 빌드 확인.
+  - 본 PR 변경과 무관한 사전 환경 이슈. 출력에 경고만 존재(기존 `ErrorResponse.kt`의 KT-73255 annotation target 경고)하며 본 PR로 인한 새 경고/오류 없음.
 
 ## test-engineer에게 전달할 메모
 
-### 보강해야 할 기존 테스트 파일 (모두 main 변경에 의해 컴파일 깨짐 상태)
+### 1. `AuthServiceTest` 기존 호출 보강 필요
+- 기존 3개 테스트에서 `every { oauthProcessorFactory.getClient(OAuthType.KAKAO) } returns oauthProcessor` 형태로 stubbing. 시그니처 변경(`getClient(type, useMock: Boolean)`)으로 인해 컴파일은 통과해도 mockk 매칭 실패 가능. `getClient(OAuthType.KAKAO, false)` 또는 `getClient(OAuthType.KAKAO, any())`로 수정 필요.
+- 신규 케이스: `useMock=true` 전달 시 `verify { oauthProcessorFactory.getClient(OAuthType.KAKAO, true) }` 검증.
+- 신규 케이스: `useMock=false` (헤더 미지정/false)일 때 `verify { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) }` 검증.
 
-1. **`src/test/kotlin/.../application/service/PetCatalogServiceTest.kt`**
-   - `entity(...)` / fixture 헬퍼에서 `PetCatalogEntity(...)` 생성자 호출 시 `colorCode = "#FFCC00"` 등 임의 hex 추가 필요.
-   - `service.create(...)` / `service.update(...)` 호출부 4곳에 `colorCode = "#FFCC00"` 추가 필요.
-   - 신규 단언 권장:
-     - "create는 colorCode를 entity에 저장한다" — `saved.captured.colorCode shouldBe "#FFCC00"`.
-     - "update는 colorCode를 갱신한다" — `existing.copy(...)` 결과의 `colorCode` 단언.
+### 2. `OAuthProcessorFactoryTest` (신규)
+- 4가지 케이스 (설계서 테스트 계획 1번 참조):
+  - real/mock 함께 주입 시 정확히 분리되는지
+  - useMock=false인데 real 없음 → `IllegalArgumentException`
+  - useMock=true인데 mock 없음 (prod 시나리오) → `UnsupportedOAuthModeException` throw + `data == OAuthType.KAKAO`
+  - useMock=false면 real 우선 (mock 우회 불가)
+- Mockk으로 `MockOAuthProcessor` fake 만들 때 `mockk<MockOAuthProcessor>()` 또는 `object : MockOAuthProcessor { ... }`로 작성. `getProviderType()` stubbing만 필요.
+- `@PostConstruct init()`은 Spring이 호출. 단위 테스트에서는 인스턴스 생성 후 직접 `factory.init()` 호출해 분류 트리거.
 
-2. **`src/test/kotlin/.../presentation/controller/PetCatalogControllerIntegrationTest.kt`**
-   - `PetCatalogItem(...)` fixture에 `colorCode = "#FFCC00"` 추가.
-   - jsonPath 단언 추가: `jsonPath("$.pets[0].colorCode").value("#FFCC00")`.
+### 3. `AuthControllerIntegrationTest` (필수, `@SpringBootTest` + `MockMvc`)
+- CLAUDE.md MEMORY 항목 "Spring 어노테이션 핵심 코드는 통합 테스트 필수" 적용. `@RequestHeader Boolean` 바인딩과 `WebExceptionHandler` 매핑은 통합 테스트로만 검증 가능.
+- 시나리오 5종 (설계서 테스트 계획 3번 참조):
+  - 헤더 없음 → real 호출
+  - `X-Mock-OAuth: false` → real 호출
+  - `X-Mock-OAuth: true` → mock 호출 (nickname=`MockKakao_{token}`)
+  - `X-Mock-OAuth: true` + `mock-oauth.enabled=false` (별도 `@TestPropertySource`) → **400, errorCode=`AC006`**
+  - `X-Mock-OAuth: invalid` → Spring이 false로 바인딩 → real 호출
+- `KakaoAuthApi`/`AppleAuthApi`는 `@MockkBean`으로 stubbing하여 외부 API 차단 필수.
+- `mock-oauth.enabled=false` 시나리오는 별도 nested 클래스 또는 별도 파일로 구성 (컨텍스트 분리).
 
-3. **`src/test/kotlin/.../presentation/controller/admin/PetCatalogAdminControllerIntegrationTest.kt`**
-   - `item(...)` fixture에 `colorCode = "#FFCC00"` 추가.
-   - `PetCatalogAdminCreateRequest(...)` / `PetCatalogAdminUpdateRequest(...)` 빌더에 `colorCode = "#FFCC00"` 추가 (2곳).
-   - 단언 추가: `jsonPath("$.pets[0].colorCode").value("#FFCC00")` (GET list), `jsonPath("$.colorCode").value("#FFCC00")` (POST/PUT 응답).
-   - **신규 테스트 케이스 — hex 정규식 검증 실패**: `"red"`, `"#GGGGGG"`, `"#FFF"`, `"#FFCC0080"` 등 잘못된 colorCode로 POST 요청 시 400 응답 확인. `@field:Pattern`이 `WebExceptionHandler`로 어떻게 변환되는지 기존 backgrounds `@NotBlank` 실패 케이스와 동일 경로일 것.
-   - `verify { petCatalogService.create(...) }` 시그니처에 `colorCode = any()` 또는 명시값 인자 추가 필요.
+### 4. 주의: JDK 환경
+- 본 환경에서 default JAVA_HOME이 JDK 25 → Kotlin 1.9.24 컴파일러 비호환. 테스트 실행 시 `JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew test` 형태로 명시.
 
-### Mocking / 경계 케이스 포인트
+### 5. 기존 `MockKakaoProcessorTest`/`MockAppleProcessorTest`/`KakaoProcessorTest`/`AppleProcessorTest`
+- 마커 인터페이스로 부모만 변경되었고 시그니처 무영향. 단위 테스트는 생성자 직접 호출이라 `@Component`/`@ConditionalOnProperty`와 무관. 컴파일 확인만 필요.
 
-- **MockK relaxed mock 주의**: `PetCatalogService` 모킹 시 `create`/`update`가 추가 파라미터를 가져 기존 `every { ... }` 블록의 매처가 인자 개수 불일치로 실패할 수 있다. 모든 호출부에 `colorCode = any()` 명시 권장.
-- **Jackson 역직렬화 실패**: `colorCode`가 non-null `String`이라 어드민 요청 body에 필드 누락 시 `MissingKotlinParameterException` → 400으로 빠진다. 이 케이스도 통합 테스트로 검증 가능 (선택).
-- **시드 검증 (선택)**: `PetCatalogSeederTest`가 존재한다면 5종에 대해 `entity.colorCode`가 설계 표 5색과 일치하는지 단언 추가. (현재 파일 존재 미확인.)
+---
 
-### 외부 의존 / 마이그레이션 메모
+## 재실행 변경 이력
 
-- **mongosh 마이그레이션은 본 단계 구현 범위에 없음** (설계서 명시). PR 본문/배포 문서에 첨부할 운영 절차. 마이그레이션이 prod/dev 코드 배포보다 선행되지 않으면 기존 5개 도큐먼트의 `color_code` 누락으로 카탈로그 의존 API 전부가 다운된다 — 통합 테스트로는 잡히지 않는 위험.
-- **`SnakeCaseFieldNamingStrategy`**: Kotlin `colorCode` ↔ DB `color_code`. mongosh 스크립트는 반드시 snake_case 키 사용 (MEMORY 항목 PR #308 사고 재발 방지).
+### 2026-05-22 — 리뷰 05_review.md Major 3 대응
+
+**범위:** Major 3 (`AuthService.login`의 `useMock: Boolean = false` default 제거)만 처리. Critical 1·2, Major 1·2, Minor 항목 및 본 PR 범위 외 변경(`UserRegisteredEventListener` Discord, PetCatalog 등)은 손대지 않음.
+
+**변경 파일**
+
+| 파일 | 동작 | 요약 |
+|---|---|---|
+| `src/main/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthService.kt` | 수정 | `login(...)`의 `useMock: Boolean = false` → `useMock: Boolean` (default 제거). "호출자가 명시적으로 결정" 정책과 일관성 회복. 02_design.md 라인 411-415의 `OAuthProcessorFactory.getClient(type, useMock)` 결정과 시그니처 일관. |
+| `src/test/kotlin/notbe/tmtm/ddanddanserver/application/service/AuthServiceTest.kt` | 수정 | `authService.login(...)` 4개 호출 모두 `useMock = false` 명시 추가 (66, 97, 120, 152행). 142행 테스트 이름을 "useMock 미지정 시 default false로 factory에 전파된다" → "useMock=false가 전달되면 factory에 useMock=false로 전파된다"로 변경 (default 제거로 의미 변경). |
+
+**핵심 결정**
+
+- `AuthController.login`은 이미 `@RequestHeader(... defaultValue = "false") useMock: Boolean`로 항상 명시 전달이라 컨트롤러 측 영향 없음. `AuthControllerIntegrationTest`도 `authService.login(any(), any(), any(), capture(useMockSlot))`/`authService.login(any(), any(), any(), false|true)`로 4번째 인자를 항상 명시하므로 영향 없음. AdminAuthService 등 다른 `login` 호출자는 별도 서비스이므로 무관.
+- `AuthServiceTest`의 4개 default 의존 호출처만 보강. mockk stubbing은 이미 `getClient(OAuthType.KAKAO, false)`로 명시 등록되어 있었으므로 동작 변화 없음.
+
+**빌드 검증**
+
+- `./gradlew compileKotlin`: ✅ (`JAVA_HOME=$(/usr/libexec/java_home -v 17)` 명시 실행, BUILD SUCCESSFUL)
+- `./gradlew compileTestKotlin`: ✅ (BUILD SUCCESSFUL — `AuthServiceTest` 포함 모든 테스트 컴파일 통과)
+
+**미처리 항목 (의도적 제외)**
+
+- Critical 1·2, Major 1·2, Minor 모든 항목: 본 작업 지시 범위 외.
+- `_workspace_prev_colorcode/`, colorCode 관련 8 파일, Discord/PetCatalog 변경: 본 작업 지시 명시적 제외 ("본 PR 범위 외 변경은 건들지 말 것").
