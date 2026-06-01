@@ -7,6 +7,7 @@ import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
 import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.aggregation.Aggregation
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation
 import org.springframework.data.mongodb.core.aggregation.ConditionalOperators.Cond
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.stereotype.Repository
@@ -46,25 +47,39 @@ class UserStatRepositoryImpl(
         endDate: LocalDate,
         limit: Int,
     ): List<UserStatEntity> {
-        val matchCriteria = Aggregation.match(
+        val stages = dateRangePipeline(criteria, startDate, endDate) + Aggregation.limit(limit.toLong())
+        return aggregate(stages)
+    }
+
+    override fun findAllRankingByDateRange(
+        criteria: RankingCriteria,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): List<UserStatEntity> = aggregate(dateRangePipeline(criteria, startDate, endDate))
+
+    private fun dateRangePipeline(
+        criteria: RankingCriteria,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): List<AggregationOperation> = listOf(
+        Aggregation.match(
             Criteria
                 .where(DailyInfo::date.name)
                 .gte(startDate)
                 .lte(endDate),
-        )
-        val agg = Aggregation.newAggregation(
-            matchCriteria,
-            getGroupStage(),
-            getLookupUser(),
-            Aggregation.unwind("user", false),
-            getLookupPet(),
-            Aggregation.unwind("main_pet", false),
-            getSort(criteria),
-            Aggregation.limit(limit.toLong()),
-        )
-        return mongoTemplate.aggregate(agg, DailyInfo::class.java, UserStatEntity::class.java)
+        ),
+        getGroupStage(),
+        getLookupUser(),
+        Aggregation.unwind("user", false),
+        getLookupPet(),
+        Aggregation.unwind("main_pet", false),
+        getSort(criteria),
+    )
+
+    private fun aggregate(stages: List<AggregationOperation>): List<UserStatEntity> =
+        mongoTemplate
+            .aggregate(Aggregation.newAggregation(stages), DailyInfo::class.java, UserStatEntity::class.java)
             .mappedResults
-    }
 
     private fun getMatchCriteria(periodType: PeriodType) = Aggregation.match(
         Criteria
@@ -78,6 +93,8 @@ class UserStatRepositoryImpl(
         .`as`(UserStatEntity::totalCalories.toSnakeCase())
         .sum(Cond.`when`(DailyInfo::purposeAchieved.toSnakeCase()).then(1).otherwise(0))
         .`as`(UserStatEntity::totalSucceededDays.toSnakeCase())
+        .count()
+        .`as`(UserStatEntity::totalAttendanceDays.toSnakeCase())
 
     private fun getLookupUser() = Aggregation.lookup()
         .from("users")

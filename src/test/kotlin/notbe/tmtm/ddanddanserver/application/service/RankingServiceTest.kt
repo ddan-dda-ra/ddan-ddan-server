@@ -236,6 +236,7 @@ class RankingServiceTest {
         mainPet: Pet,
         totalCalories: Int,
         totalSucceededDays: Int,
+        totalAttendanceDays: Int = 0,
     ): UserStatEntity {
         val entity = mockk<UserStatEntity>()
         every { entity.toDomain() } returns
@@ -244,6 +245,7 @@ class RankingServiceTest {
                     mainPet = mainPet,
                     totalCalories = totalCalories,
                     totalSucceededDays = totalSucceededDays,
+                    totalAttendanceDays = totalAttendanceDays,
                 )
         return entity
     }

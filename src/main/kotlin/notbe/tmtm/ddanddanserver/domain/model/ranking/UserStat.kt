@@ -8,4 +8,5 @@ data class UserStat(
     val mainPet: Pet,
     val totalCalories: Int,
     val totalSucceededDays: Int,
+    val totalAttendanceDays: Int,
 )

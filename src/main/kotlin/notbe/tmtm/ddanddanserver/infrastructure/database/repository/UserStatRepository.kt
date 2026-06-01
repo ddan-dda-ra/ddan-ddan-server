@@ -18,6 +18,12 @@ interface UserStatRepository {
         endDate: LocalDate,
         limit: Int,
     ): List<UserStatEntity>
+
+    fun findAllRankingByDateRange(
+        criteria: RankingCriteria,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): List<UserStatEntity>
 }
 
 fun UserStatRepository.getAllRankingBy(
