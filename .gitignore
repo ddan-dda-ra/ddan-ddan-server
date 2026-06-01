@@ -45,3 +45,7 @@ out/
 /src/main/resources/fcm/*
 .mcp.json
 ddan-ddan-server.wiki/
+
+### harness workspace (로컬 전용, public 노출 금지)
+_workspace/
+_workspace_prev*/
