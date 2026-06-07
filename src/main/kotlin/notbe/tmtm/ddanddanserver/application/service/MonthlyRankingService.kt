@@ -50,7 +50,6 @@ class MonthlyRankingService(
                         prevStart,
                         "📈 ${prevStart.monthValue}월 칼로리 순위 상승왕 TOP $TOP_N",
                         COLOR_RANK_RISE,
-                        withFooter = false,
                     ),
                 )
             }.onFailure { logger().error("칼로리 순위 상승 embed 생성 실패: month={}", prevStart.month, it) }
@@ -68,11 +67,10 @@ class MonthlyRankingService(
                         prevStart,
                         "📈 ${prevStart.monthValue}월 목표달성 순위 상승왕 TOP $TOP_N",
                         COLOR_RANK_RISE_SUCCEEDED,
-                        withFooter = true,
                     ),
                 )
             }.onFailure { logger().error("목표달성 순위 상승 embed 생성 실패: month={}", prevStart.month, it) }
-        }
+        }.withFooter(prevStart)
 
         if (embeds.isEmpty()) {
             logger().error("월간 랭킹 발송 스킵: 생성된 embed 없음 month={}", prevStart.month)
@@ -88,8 +86,21 @@ class MonthlyRankingService(
         to: LocalDate,
     ): List<UserStatEntity> = userStatRepository.findRankingByDateRange(criteria, from, to, TOP_N)
 
-    private fun assignRanks(ranking: List<UserStatEntity>): Map<ObjectId, Int> =
-        ranking.mapIndexed { index, stat -> stat.user.id to (index + 1) }.toMap()
+    private fun assignRanks(
+        ranking: List<UserStatEntity>,
+        criteria: RankingCriteria,
+    ): Map<ObjectId, Int> {
+        var lastScore: Int? = null
+        var lastRank = 0
+
+        return ranking.mapIndexed { index, stat ->
+            val score = stat.score(criteria)
+            val rank = if (lastScore != null && score == lastScore) lastRank else index + 1
+            lastScore = score
+            lastRank = rank
+            stat.user.id to rank
+        }.toMap()
+    }
 
     private fun computeRankRisers(
         criteria: RankingCriteria,
@@ -100,9 +111,10 @@ class MonthlyRankingService(
     ): List<RankRise> {
         val prevPrevRanks = assignRanks(
             userStatRepository.findAllRankingByDateRange(criteria, prevPrevStart, prevPrevEnd),
+            criteria,
         )
         val prevRanking = userStatRepository.findAllRankingByDateRange(criteria, prevStart, prevEnd)
-        val prevRanks = assignRanks(prevRanking)
+        val prevRanks = assignRanks(prevRanking, criteria)
 
         return prevRanking
             .mapNotNull { stat ->
@@ -155,15 +167,22 @@ class MonthlyRankingService(
         month: LocalDate,
         title: String,
         color: Int,
-        withFooter: Boolean,
     ): DiscordHookApi.Embed =
         DiscordHookApi.Embed(
             title = title,
             color = color,
             description = risers.toRankRiseDescription(),
-            footer = if (withFooter) DiscordHookApi.Footer(text = footerText(month)) else null,
-            timestamp = if (withFooter) Instant.now().toString() else null,
         )
+
+    private fun List<DiscordHookApi.Embed>.withFooter(month: LocalDate): List<DiscordHookApi.Embed> {
+        if (isEmpty()) return this
+        return toMutableList().also { embeds ->
+            embeds[embeds.lastIndex] = embeds.last().copy(
+                footer = DiscordHookApi.Footer(text = footerText(month)),
+                timestamp = Instant.now().toString(),
+            )
+        }
+    }
 
     private fun List<UserStatEntity>.toCaloriesDescription(): String {
         if (isEmpty()) return "_지난 달 데이터가 없습니다._"
@@ -209,6 +228,13 @@ class MonthlyRankingService(
         val label = petCatalogService.getName(key) ?: key
         return "$label Lv.${stat.mainPet.getLevel()}"
     }
+
+    private fun UserStatEntity.score(criteria: RankingCriteria): Int =
+        when (criteria) {
+            RankingCriteria.TOTAL_CALORIES -> totalCalories
+            RankingCriteria.TOTAL_SUCCEEDED_DAYS -> totalSucceededDays
+            RankingCriteria.TOTAL_ATTENDANCE_DAYS -> totalAttendanceDays
+        }
 
     private fun medal(zeroBasedIndex: Int): String =
         when (zeroBasedIndex) {

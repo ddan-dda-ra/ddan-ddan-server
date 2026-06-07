@@ -280,7 +280,7 @@ class MonthlyRankingServiceTest : FunSpec({
         verify(exactly = 0) { discordHookApi.sendMessage(any()) }
     }
 
-    test("순위 상승왕 조회만 실패해도 나머지 4개 embed는 정상 발송된다 (부분 실패 격리)") {
+    test("순위 상승왕 조회만 실패해도 나머지 3개 embed는 정상 발송된다 (부분 실패 격리)") {
         every {
             userStatRepository.findRankingByDateRange(any(), any(), any(), any())
         } returns listOf(userStat("a", 100, 1, "CAT", 0, totalAttendanceDays = 5))
@@ -296,6 +296,10 @@ class MonthlyRankingServiceTest : FunSpec({
         verify(exactly = 1) { discordHookApi.sendMessage(any()) }
         // 칼로리/목표달성/출석 3개만 생성됨 (상승왕 2개는 실패로 누락)
         captured.captured.embeds!!.size shouldBe 3
+        captured.captured.embeds!![0].footer shouldBe null
+        captured.captured.embeds!![1].footer shouldBe null
+        captured.captured.embeds!![2].footer shouldNotBe null
+        captured.captured.embeds!![2].timestamp shouldNotBe null
     }
 
     test("한 TOP3 embed 생성이 실패해도 나머지 embed는 정상 발송된다 (부분 실패 격리)") {
@@ -356,14 +360,14 @@ class MonthlyRankingServiceTest : FunSpec({
         // → C delta=+2(상승), A delta=-1(하락), B delta=-1(하락) → C만 노출
         val a = ObjectId(); val b = ObjectId(); val c = ObjectId()
         val prevPrev = listOf(
-            userStat("A", 0, 0, "CAT", 0, userId = a),
-            userStat("B", 0, 0, "CAT", 0, userId = b),
-            userStat("C", 0, 0, "CAT", 0, userId = c),
+            userStat("A", 300, 0, "CAT", 0, userId = a),
+            userStat("B", 200, 0, "CAT", 0, userId = b),
+            userStat("C", 100, 0, "CAT", 0, userId = c),
         )
         val prev = listOf(
-            userStat("C", 0, 0, "CAT", 0, userId = c),
-            userStat("A", 0, 0, "CAT", 0, userId = a),
-            userStat("B", 0, 0, "CAT", 0, userId = b),
+            userStat("C", 300, 0, "CAT", 0, userId = c),
+            userStat("A", 200, 0, "CAT", 0, userId = a),
+            userStat("B", 100, 0, "CAT", 0, userId = b),
         )
         every { userStatRepository.findRankingByDateRange(any(), any(), any(), any()) } returns emptyList()
         stubRankRise(RankingCriteria.TOTAL_CALORIES, prevPrev, prev)
@@ -384,13 +388,13 @@ class MonthlyRankingServiceTest : FunSpec({
         // → A,B 모두 하락, D는 month-2 없음 → 상승자 없음
         val a = ObjectId(); val b = ObjectId(); val d = ObjectId()
         val prevPrev = listOf(
-            userStat("A", 0, 0, "CAT", 0, userId = a),
-            userStat("B", 0, 0, "CAT", 0, userId = b),
+            userStat("A", 200, 0, "CAT", 0, userId = a),
+            userStat("B", 100, 0, "CAT", 0, userId = b),
         )
         val prev = listOf(
-            userStat("D", 0, 0, "CAT", 0, userId = d),
-            userStat("A", 0, 0, "CAT", 0, userId = a),
-            userStat("B", 0, 0, "CAT", 0, userId = b),
+            userStat("D", 300, 0, "CAT", 0, userId = d),
+            userStat("A", 200, 0, "CAT", 0, userId = a),
+            userStat("B", 100, 0, "CAT", 0, userId = b),
         )
         every { userStatRepository.findRankingByDateRange(any(), any(), any(), any()) } returns emptyList()
         stubRankRise(RankingCriteria.TOTAL_CALORIES, prevPrev, prev)
@@ -411,16 +415,16 @@ class MonthlyRankingServiceTest : FunSpec({
         //   delta 동점(C,D=+2) → curRank ASC → C가 먼저(1위), D가 다음
         val a = ObjectId(); val b = ObjectId(); val c = ObjectId(); val d = ObjectId()
         val prevPrev = listOf(
-            userStat("A", 0, 0, "CAT", 0, userId = a),
-            userStat("B", 0, 0, "CAT", 0, userId = b),
-            userStat("C", 0, 0, "CAT", 0, userId = c),
-            userStat("D", 0, 0, "CAT", 0, userId = d),
+            userStat("A", 400, 0, "CAT", 0, userId = a),
+            userStat("B", 300, 0, "CAT", 0, userId = b),
+            userStat("C", 200, 0, "CAT", 0, userId = c),
+            userStat("D", 100, 0, "CAT", 0, userId = d),
         )
         val prev = listOf(
-            userStat("C", 0, 0, "CAT", 0, userId = c),
-            userStat("D", 0, 0, "CAT", 0, userId = d),
-            userStat("A", 0, 0, "CAT", 0, userId = a),
-            userStat("B", 0, 0, "CAT", 0, userId = b),
+            userStat("C", 400, 0, "CAT", 0, userId = c),
+            userStat("D", 300, 0, "CAT", 0, userId = d),
+            userStat("A", 200, 0, "CAT", 0, userId = a),
+            userStat("B", 100, 0, "CAT", 0, userId = b),
         )
         every { userStatRepository.findRankingByDateRange(any(), any(), any(), any()) } returns emptyList()
         stubRankRise(RankingCriteria.TOTAL_CALORIES, prevPrev, prev)
@@ -437,6 +441,31 @@ class MonthlyRankingServiceTest : FunSpec({
         riseDesc.indexOf("**C**") shouldBeLessThan riseDesc.indexOf("**D**")
     }
 
+    test("동점자는 같은 순위로 계산되어 tie-break 순서 변경만으로 순위 상승왕에 노출되지 않는다") {
+        val a = ObjectId(); val b = ObjectId(); val c = ObjectId()
+        val prevPrev = listOf(
+            userStat("A", 100, 0, "CAT", 0, userId = a),
+            userStat("B", 100, 0, "CAT", 0, userId = b),
+            userStat("C", 100, 0, "CAT", 0, userId = c),
+        )
+        val prev = listOf(
+            userStat("C", 100, 0, "CAT", 0, userId = c),
+            userStat("A", 100, 0, "CAT", 0, userId = a),
+            userStat("B", 100, 0, "CAT", 0, userId = b),
+        )
+        every { userStatRepository.findRankingByDateRange(any(), any(), any(), any()) } returns emptyList()
+        stubRankRise(RankingCriteria.TOTAL_CALORIES, prevPrev, prev)
+        stubRankRise(RankingCriteria.TOTAL_SUCCEEDED_DAYS, emptyList(), emptyList())
+        val captured = slot<DiscordHookApi.Request>()
+        every { discordHookApi.sendMessage(capture(captured)) } returns Unit
+
+        service.sendPreviousMonthRanking()
+
+        val riseDesc = captured.captured.embeds!![3].description!!
+        riseDesc shouldContain "지난 달 순위 상승자가 없습니다"
+        riseDesc shouldNotContain "**C**"
+    }
+
     test("순위 상승자가 TOP3을 넘으면 상위 3명만 노출된다") {
         // month-2: 꼴찌권(E=5,D=4,C=3,B=2,A=1)
         // month-1: E=1,D=2,C=3,B=4,A=5  → E +4, D +2, C 0, B -2, A -4
@@ -448,18 +477,18 @@ class MonthlyRankingServiceTest : FunSpec({
         // → B +1, C +1, D +1, E +1, A -4 → 상승자 4명(B,C,D,E) → TOP3컷 → 3명만
         val a = ObjectId(); val b = ObjectId(); val c = ObjectId(); val d = ObjectId(); val e = ObjectId()
         val prevPrev = listOf(
-            userStat("A", 0, 0, "CAT", 0, userId = a),
-            userStat("B", 0, 0, "CAT", 0, userId = b),
-            userStat("C", 0, 0, "CAT", 0, userId = c),
-            userStat("D", 0, 0, "CAT", 0, userId = d),
-            userStat("E", 0, 0, "CAT", 0, userId = e),
+            userStat("A", 500, 0, "CAT", 0, userId = a),
+            userStat("B", 400, 0, "CAT", 0, userId = b),
+            userStat("C", 300, 0, "CAT", 0, userId = c),
+            userStat("D", 200, 0, "CAT", 0, userId = d),
+            userStat("E", 100, 0, "CAT", 0, userId = e),
         )
         val prev = listOf(
-            userStat("B", 0, 0, "CAT", 0, userId = b),
-            userStat("C", 0, 0, "CAT", 0, userId = c),
-            userStat("D", 0, 0, "CAT", 0, userId = d),
-            userStat("E", 0, 0, "CAT", 0, userId = e),
-            userStat("A", 0, 0, "CAT", 0, userId = a),
+            userStat("B", 500, 0, "CAT", 0, userId = b),
+            userStat("C", 400, 0, "CAT", 0, userId = c),
+            userStat("D", 300, 0, "CAT", 0, userId = d),
+            userStat("E", 200, 0, "CAT", 0, userId = e),
+            userStat("A", 100, 0, "CAT", 0, userId = a),
         )
         every { userStatRepository.findRankingByDateRange(any(), any(), any(), any()) } returns emptyList()
         stubRankRise(RankingCriteria.TOTAL_CALORIES, prevPrev, prev)

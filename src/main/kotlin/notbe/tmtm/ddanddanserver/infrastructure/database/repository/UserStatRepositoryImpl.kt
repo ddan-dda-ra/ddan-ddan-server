@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.repository
 
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
 import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
@@ -7,10 +8,12 @@ import notbe.tmtm.ddanddanserver.infrastructure.database.entity.UserStatEntity
 import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.aggregation.Aggregation
+import org.springframework.data.mongodb.core.aggregation.AggregationOptions
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation
 import org.springframework.data.mongodb.core.aggregation.ConditionalOperators.Cond
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.stereotype.Repository
+import java.time.Duration
 import java.time.LocalDate
 import kotlin.reflect.KProperty
 
@@ -55,7 +58,41 @@ class UserStatRepositoryImpl(
         criteria: RankingCriteria,
         startDate: LocalDate,
         endDate: LocalDate,
-    ): List<UserStatEntity> = aggregate(dateRangePipeline(criteria, startDate, endDate))
+    ): List<UserStatEntity> {
+        val start = System.nanoTime()
+        val beforeHeap = usedHeapBytes()
+
+        return aggregate(
+            stages = dateRangePipeline(criteria, startDate, endDate),
+            options = AggregationOptions
+                .builder()
+                .allowDiskUse(true)
+                .maxTime(Duration.ofSeconds(FULL_RANKING_MAX_TIME_SECONDS))
+                .build(),
+        ).also { result ->
+            val durationMs = Duration.ofNanos(System.nanoTime() - start).toMillis()
+            val heapDeltaBytes = usedHeapBytes() - beforeHeap
+            logger().info(
+                "전체 기간 랭킹 집계 완료: criteria={}, startDate={}, endDate={}, resultCount={}, durationMs={}, heapDeltaBytes={}",
+                criteria,
+                startDate,
+                endDate,
+                result.size,
+                durationMs,
+                heapDeltaBytes,
+            )
+            if (result.size >= FULL_RANKING_RESULT_WARN_THRESHOLD) {
+                logger().warn(
+                    "전체 기간 랭킹 집계 결과 수가 임계치 이상입니다: criteria={}, startDate={}, endDate={}, resultCount={}, threshold={}",
+                    criteria,
+                    startDate,
+                    endDate,
+                    result.size,
+                    FULL_RANKING_RESULT_WARN_THRESHOLD,
+                )
+            }
+        }
+    }
 
     private fun dateRangePipeline(
         criteria: RankingCriteria,
@@ -76,10 +113,18 @@ class UserStatRepositoryImpl(
         getSort(criteria),
     )
 
-    private fun aggregate(stages: List<AggregationOperation>): List<UserStatEntity> =
-        mongoTemplate
-            .aggregate(Aggregation.newAggregation(stages), DailyInfo::class.java, UserStatEntity::class.java)
+    private fun aggregate(
+        stages: List<AggregationOperation>,
+        options: AggregationOptions? = null,
+    ): List<UserStatEntity> {
+        val aggregation = Aggregation
+            .newAggregation(stages)
+            .let { if (options == null) it else it.withOptions(options) }
+
+        return mongoTemplate
+            .aggregate(aggregation, DailyInfo::class.java, UserStatEntity::class.java)
             .mappedResults
+    }
 
     private fun getMatchCriteria(periodType: PeriodType) = Aggregation.match(
         Criteria
@@ -121,4 +166,13 @@ class UserStatRepositoryImpl(
             .replace(Regex("([a-z])([A-Z])"), "$1_$2")
             .lowercase()
 
+    private fun usedHeapBytes(): Long {
+        val runtime = Runtime.getRuntime()
+        return runtime.totalMemory() - runtime.freeMemory()
+    }
+
+    companion object {
+        private const val FULL_RANKING_MAX_TIME_SECONDS = 30L
+        private const val FULL_RANKING_RESULT_WARN_THRESHOLD = 10_000
+    }
 }
