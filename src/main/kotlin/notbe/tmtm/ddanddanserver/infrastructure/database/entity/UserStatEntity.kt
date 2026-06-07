@@ -9,6 +9,7 @@ data class UserStatEntity(
     val mainPet: Pet,
     val totalCalories: Int,
     val totalSucceededDays: Int,
+    val totalAttendanceDays: Int,
 ) {
     companion object {
         fun fromDomain(userStat: UserStat): UserStatEntity =
@@ -17,6 +18,7 @@ data class UserStatEntity(
                 mainPet = userStat.mainPet,
                 totalCalories = userStat.totalCalories,
                 totalSucceededDays = userStat.totalSucceededDays,
+                totalAttendanceDays = userStat.totalAttendanceDays,
             )
     }
 
@@ -26,6 +28,7 @@ data class UserStatEntity(
             mainPet = mainPet,
             totalCalories = totalCalories,
             totalSucceededDays = totalSucceededDays,
+            totalAttendanceDays = totalAttendanceDays,
         )
 
 }

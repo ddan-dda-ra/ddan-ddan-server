@@ -130,12 +130,14 @@ class UserRankingTest {
         mainPet: Pet,
         totalCalories: Int,
         totalSucceededDays: Int,
+        totalAttendanceDays: Int = 0,
     ): UserStat {
         return UserStat(
             user = user,
             mainPet = mainPet,
             totalCalories = totalCalories,
             totalSucceededDays = totalSucceededDays,
+            totalAttendanceDays = totalAttendanceDays,
         )
     }
 }

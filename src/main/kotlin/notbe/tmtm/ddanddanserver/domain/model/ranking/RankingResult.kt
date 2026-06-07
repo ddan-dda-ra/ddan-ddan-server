@@ -32,6 +32,7 @@ data class RankingResult private constructor(
                 when (criteria) {
                     RankingCriteria.TOTAL_CALORIES -> { it -> it.totalCalories }
                     RankingCriteria.TOTAL_SUCCEEDED_DAYS -> { it -> it.totalSucceededDays }
+                    RankingCriteria.TOTAL_ATTENDANCE_DAYS -> { it -> it.totalAttendanceDays }
                 }
 
             return userStats

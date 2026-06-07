@@ -75,6 +75,32 @@ class RankingResultTest {
     }
 
     @Test
+    fun `총 출석일 기준으로 올바른 순서의 랭킹을 생성해야 한다`() {
+        // given - 출석일 5 / 3 / 1 순서로 정렬되어야 한다
+        val userStats =
+            listOf(
+                createUserStat(user1, pet1, 100, 1, totalAttendanceDays = 5), // 1위
+                createUserStat(user2, pet2, 100, 1, totalAttendanceDays = 3), // 2위
+                createUserStat(user3, pet3, 100, 1, totalAttendanceDays = 1), // 3위
+            )
+
+        // when
+        val result = RankingResult.create(userStats, RankingCriteria.TOTAL_ATTENDANCE_DAYS, user2.id)
+
+        // then
+        assertEquals(3, result.rankings.size)
+        assertEquals(1, result.rankings[0].rank)
+        assertEquals(user1, result.rankings[0].userStat.user)
+        assertEquals(2, result.rankings[1].rank)
+        assertEquals(user2, result.rankings[1].userStat.user)
+        assertEquals(3, result.rankings[2].rank)
+        assertEquals(user3, result.rankings[2].userStat.user)
+
+        assertEquals(2, result.myRanking.rank)
+        assertEquals(user2, result.myRanking.userStat.user)
+    }
+
+    @Test
     fun `동점자가 있는 랭킹을 올바르게 처리해야 한다`() {
         // given
         val userStats =
@@ -207,12 +233,14 @@ class RankingResultTest {
         mainPet: Pet,
         totalCalories: Int,
         totalSucceededDays: Int,
+        totalAttendanceDays: Int = 0,
     ): UserStat {
         return UserStat(
             user = user,
             mainPet = mainPet,
             totalCalories = totalCalories,
             totalSucceededDays = totalSucceededDays,
+            totalAttendanceDays = totalAttendanceDays,
         )
     }
 }

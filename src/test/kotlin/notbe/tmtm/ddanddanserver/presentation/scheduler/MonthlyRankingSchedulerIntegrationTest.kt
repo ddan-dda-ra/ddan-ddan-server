@@ -86,10 +86,18 @@ class MonthlyRankingSchedulerIntegrationTest {
                 3,
             )
         }
+        verify(exactly = 1) {
+            userStatRepository.findRankingByDateRange(
+                RankingCriteria.TOTAL_ATTENDANCE_DAYS,
+                any(),
+                any(),
+                3,
+            )
+        }
         verify(exactly = 1) { discordHookApi.sendMessage(any()) }
 
-        // wiring + phase 주입까지 동작하는지 확인
-        assertEquals(2, captured.captured.embeds!!.size)
-        assertTrue(captured.captured.embeds!![1].footer!!.text.contains("TEST"))
+        // wiring + phase 주입까지 동작하는지 확인 (embed 5개, footer는 마지막 embed)
+        assertEquals(5, captured.captured.embeds!!.size)
+        assertTrue(captured.captured.embeds!!.last().footer!!.text.contains("TEST"))
     }
 }
