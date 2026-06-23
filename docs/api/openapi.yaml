@@ -1,0 +1,1664 @@
+openapi: 3.1.0
+servers:
+- url: https://dev-ddan-ddan-api.ddmz.org/
+  description: Development API server URL
+- url: https://ddan-ddan-api.ddmz.org/
+  description: Production API server URL
+- url: http://localhost:8080/
+  description: Local API server URL
+security:
+- JWT: []
+tags:
+- name: Admin · 유저
+  description: 운영자용 유저 조회
+- name: Admin · 인증
+  description: 운영자 로그인
+- name: Admin · 펫 카탈로그
+  description: 운영자용 펫 카탈로그 CRUD
+- name: Admin · 통계
+  description: 운영자용 통계 대시보드
+- name: 펫 카탈로그
+  description: 사용 가능한 펫 메타데이터 + 미디어 URL 제공
+paths:
+  /v1/users/me:
+    get:
+      tags:
+      - 유저
+      summary: 내 정보 조회
+      description: 내 정보를 조회합니다.
+      operationId: getMyInfo
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+    put:
+      tags:
+      - 유저
+      summary: 내 정보 수정
+      description: 내 정보를 수정합니다.
+      operationId: updateMyInfo
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+    delete:
+      tags:
+      - 유저
+      summary: 회원 탈퇴
+      description: 회원 탈퇴합니다.
+      operationId: deleteMyInfo
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithDrawRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /v1/admin/pet-catalog/{type}:
+    put:
+      tags:
+      - Admin · 펫 카탈로그
+      summary: 펫 카탈로그 수정
+      operationId: update
+      parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetCatalogAdminUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetCatalogAdminItemResponse"
+    delete:
+      tags:
+      - Admin · 펫 카탈로그
+      summary: 펫 카탈로그 비활성화 (soft delete)
+      operationId: softDelete
+      parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetCatalogAdminItemResponse"
+  /v1/users/me/main-pet:
+    get:
+      tags:
+      - 유저
+      summary: 메인 펫 조회
+      description: 메인 펫을 조회합니다.
+      operationId: getMainPet
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserMainPetResponse"
+    post:
+      tags:
+      - 유저
+      summary: 메인 펫 설정
+      description: 메인 펫을 설정합니다.
+      operationId: setMainPet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetMainPetRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserMainPetResponse"
+  /v1/pets/{petId}/play:
+    post:
+      tags:
+      - 펫
+      summary: 펫 놀아주기
+      description: 장난감을 사용해 펫과 놀아주어 성장시킵니다.
+      operationId: playPet
+      parameters:
+      - name: petId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserPetResponse"
+  /v1/pets/{petId}/food:
+    post:
+      tags:
+      - 펫
+      summary: 펫 먹이 지급
+      description: 펫에게 먹이를 지급해 성장시킵니다.
+      operationId: feedPet
+      parameters:
+      - name: petId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserPetResponse"
+  /v1/pets/me:
+    get:
+      tags:
+      - 펫
+      summary: 내가 소유한 펫 조회
+      description: 내가 소유한 펫을 모두 조회합니다.
+      operationId: getMyPets
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetsResponse"
+    post:
+      tags:
+      - 펫
+      summary: 펫 추가
+      description: 펫을 추가합니다.
+      operationId: addMyPet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddPetRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetResponse"
+  /v1/pets/me/random:
+    post:
+      tags:
+      - 펫
+      summary: 랜덤 펫 추가
+      description: 랜덤으로 펫을 추가합니다.
+      operationId: addRandomPet
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetResponse"
+  /v1/pets/me/gacha:
+    post:
+      tags:
+      - 펫
+      summary: 티켓 랜덤 펫 뽑기
+      description: "티켓 하나를 소모하여, 랜덤으로 펫을 추가합니다."
+      operationId: gachaRandomPet
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetResponse"
+  /v1/friends/invite-codes:
+    post:
+      tags:
+      - 친구
+      summary: 초대코드 생성
+      description: 새로운 초대코드를 생성합니다.
+      operationId: generateInviteCode
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InviteCodeResponse"
+  /v1/friends/by-invite/{code}:
+    post:
+      tags:
+      - 친구
+      summary: 초대코드로 친구 추가
+      description: 초대코드를 사용하여 친구를 추가합니다.
+      operationId: addFriendByInviteCode
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FriendshipResponse"
+  /v1/cheers/{friendId}:
+    post:
+      tags:
+      - 응원하기
+      summary: 친구 응원하기
+      description: "친구에게 응원을 보냅니다. 하루에 한 번만 가능하며, 친구 관계인 사용자에게만 응원할 수 있습니다."
+      operationId: cheerFriend
+      parameters:
+      - name: friendId
+        in: path
+        description: 응원할 친구의 사용자 ID
+        required: true
+        schema:
+          type: string
+        example: 64a1b2c3d4e5f6789012346
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CheerResponse"
+  /v1/auth/reissue:
+    post:
+      tags:
+      - 로그인 & 인증
+      operationId: refresh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+  /v1/auth/login:
+    post:
+      tags:
+      - 로그인 & 인증
+      operationId: login
+      parameters:
+      - name: X-Mock-OAuth
+        in: header
+        required: false
+        schema:
+          type: boolean
+          default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+  /v1/admin/pet-catalog:
+    get:
+      tags:
+      - Admin · 펫 카탈로그
+      summary: 전체 펫 카탈로그 조회 (비활성 포함)
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetCatalogAdminListResponse"
+    post:
+      tags:
+      - Admin · 펫 카탈로그
+      summary: 펫 카탈로그 신규 등록
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetCatalogAdminCreateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetCatalogAdminItemResponse"
+  /v1/admin/auth/login:
+    post:
+      tags:
+      - Admin · 인증
+      summary: 운영자 로그인
+      description: ID/PW 검증 후 어드민 access token 발급 (1일 만료)
+      operationId: login_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AdminLoginResponse"
+  /v1/users/me/settings:
+    patch:
+      tags:
+      - 유저
+      summary: 유저 설정 수정
+      description: 유저 설정을 수정합니다.
+      operationId: updateUserSetting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserSettingResponse"
+  /v1/users/me/daily-calorie:
+    patch:
+      tags:
+      - 유저
+      summary: 일일 칼로리 갱신 & 먹이 지급
+      description: 일일 칼로리를 갱신하고 먹이를 지급합니다.
+      operationId: updateDailyCalorieAndRewardFood
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalorieRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserDailyInfoResponse"
+  /v1/users/{userId}:
+    get:
+      tags:
+      - 유저
+      summary: 유저 조회
+      description: 특정 유저의 정보를 조회합니다.
+      operationId: getUser
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserProfileResponse"
+  /v1/ranking:
+    get:
+      tags:
+      - 랭킹
+      summary: 랭킹 조회
+      description: 랭킹을 조회합니다.
+      operationId: getRanking
+      parameters:
+      - name: criteria
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - TOTAL_CALORIES
+          - TOTAL_SUCCEEDED_DAYS
+          - TOTAL_ATTENDANCE_DAYS
+      - name: periodType
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - DAILY
+          - WEEKLY
+          - MONTHLY
+          - YEARLY
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RankingResponse"
+  /v1/pets/{petId}:
+    get:
+      tags:
+      - 펫
+      summary: 펫 조회
+      description: 특정 펫을 조회합니다.
+      operationId: getPet
+      parameters:
+      - name: petId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetResponse"
+  /v1/pets/catalog:
+    get:
+      tags:
+      - 펫 카탈로그
+      summary: 펫 카탈로그 조회
+      description: 활성 펫 목록과 카탈로그 버전 반환. 클라이언트는 응답의 version 또는 X-Pet-Catalog-Version
+        헤더로 stale 캐시 감지 가능.
+      operationId: getCatalog
+      responses:
+        "200":
+          description: 성공
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PetCatalogResponse"
+  /v1/friends/me:
+    get:
+      tags:
+      - 친구
+      summary: 내 친구 목록 조회
+      description: 내 친구 목록을 조회합니다.
+      operationId: getMyFriends
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FriendListResponse"
+  /v1/friends/invite-codes/{code}:
+    get:
+      tags:
+      - 친구
+      summary: 초대코드로 초대자 정보 조회
+      description: 초대코드를 사용하여 초대자 정보를 조회합니다. (친구 추가 없음)
+      operationId: getInviterByCode
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InviterResponse"
+  /v1/admin/users:
+    get:
+      tags:
+      - Admin · 유저
+      summary: 유저 목록·검색 (페이징)
+      operationId: list_1
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+          maximum: 100
+          minimum: 1
+      - name: keyword
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          default: LATEST_LOGIN
+          enum:
+          - LATEST_LOGIN
+          - JOINED
+          - JOINED_ASC
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserAdminListResponse"
+  /v1/admin/users/{id}:
+    get:
+      tags:
+      - Admin · 유저
+      summary: 유저 상세
+      operationId: detail
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserAdminDetailResponse"
+  /v1/admin/users/{id}/daily-calories:
+    get:
+      tags:
+      - Admin · 유저
+      summary: 유저 일별 칼로리 기록 조회
+      description: 기간 미지정 시 최근 30일. from/to는 YYYY-MM-DD 형식. 최대 조회 기간 366일.
+      operationId: dailyCalories
+      parameters:
+      - name: id
+        in: path
+        description: 유저 ObjectId hex string
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        description: 조회 시작일 YYYY-MM-DD (미지정 시 to-29일)
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        description: 조회 종료일 YYYY-MM-DD (미지정 시 오늘)
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: 성공
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DailyCaloriesAdminListResponse"
+        "400":
+          description: 기간 파라미터 오류 (from > to 또는 366일 초과)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DailyCaloriesAdminListResponse"
+        "404":
+          description: 유저 미존재
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DailyCaloriesAdminListResponse"
+  /v1/admin/stats/dashboard:
+    get:
+      tags:
+      - Admin · 통계
+      summary: 통계 대시보드
+      description: "전체/신규/활성 유저, 펫 분포, 일별 가입 추이를 한 번에 반환. 날짜는 KST(Asia/Seoul) 기준.\
+        \ 가입 시각은 ObjectId timestamp 사용."
+      operationId: dashboard
+      parameters:
+      - name: seriesDays
+        in: query
+        description: "가입 추이 시리즈 길이(일). default 14, max 90"
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 14
+          maximum: 90
+          minimum: 1
+      responses:
+        "200":
+          description: 통계 대시보드 조회 성공
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StatsAdminResponse"
+        "400":
+          description: seriesDays 파라미터 오류 (1~90 범위 외)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StatsAdminResponse"
+  /v1/friends/{friendId}:
+    delete:
+      tags:
+      - 친구
+      summary: 친구 삭제
+      description: 친구 관계를 삭제합니다.
+      operationId: removeFriend
+      parameters:
+      - name: friendId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    UserRequest:
+      type: object
+      description: User 요청 DTO
+      properties:
+        name:
+          type: string
+          description: User 이름
+          example: 딴딴한 유저
+        purposeCalorie:
+          type: integer
+          format: int32
+          description: User 목표 칼로리
+          example: 100
+          maximum: 1000
+          minimum: 100
+      required:
+      - name
+      - purposeCalorie
+    UserResponse:
+      type: object
+      description: User 응답 DTO
+      properties:
+        id:
+          type: string
+          description: User 식별 ID
+          example: ABCDEF1234567
+        name:
+          type: string
+          description: User 표기 이름
+          example: UserName
+        purposeCalorie:
+          type: integer
+          format: int32
+          description: User 목표 칼로리
+          example: 100
+          maximum: 1000
+          minimum: 100
+        foodQuantity:
+          type: integer
+          format: int32
+          description: User 음식 수량
+          example: 5
+        toyQuantity:
+          type: integer
+          format: int32
+          description: User 장난감 수량
+          example: 2
+        tickets:
+          type: integer
+          format: int32
+          description: User 티켓 수량
+          example: 0
+        setting:
+          $ref: "#/components/schemas/UserSettingResponse"
+          description: User 설정 정보
+      required:
+      - foodQuantity
+      - id
+      - purposeCalorie
+      - setting
+      - tickets
+      - toyQuantity
+    UserSettingResponse:
+      type: object
+      description: UserSetting 응답 DTO
+      properties:
+        isAppPushOn:
+          type: boolean
+          description: 앱 푸시 여부
+          example: true
+      required:
+      - isAppPushOn
+    PetCatalogAdminUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        backgrounds:
+          $ref: "#/components/schemas/PetCatalogBackgroundsRequest"
+        colorCode:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+        isActive:
+          type: boolean
+        displayOrder:
+          type: integer
+          format: int32
+          minimum: 0
+        levels:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PetCatalogLevelRequest"
+          minProperties: 1
+      required:
+      - backgrounds
+      - colorCode
+      - displayOrder
+      - isActive
+      - levels
+      - name
+    PetCatalogBackgroundsRequest:
+      type: object
+      properties:
+        homeUrl:
+          type: string
+          minLength: 1
+        homeCompactUrl:
+          type: string
+          minLength: 1
+        friendCardUrl:
+          type: string
+          minLength: 1
+      required:
+      - friendCardUrl
+      - homeCompactUrl
+      - homeUrl
+    PetCatalogLevelRequest:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+          minLength: 1
+        lottieDefaultUrl:
+          type: string
+          minLength: 1
+        lottiePlayEatUrl:
+          type: string
+          minLength: 1
+      required:
+      - imageUrl
+      - lottieDefaultUrl
+      - lottiePlayEatUrl
+    PetCatalogAdminItemResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        backgrounds:
+          $ref: "#/components/schemas/PetCatalogBackgroundsResponse"
+        colorCode:
+          type: string
+        isActive:
+          type: boolean
+        displayOrder:
+          type: integer
+          format: int32
+        levels:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PetCatalogLevelResponse"
+      required:
+      - backgrounds
+      - colorCode
+      - displayOrder
+      - isActive
+      - levels
+      - name
+      - type
+    PetCatalogBackgroundsResponse:
+      type: object
+      properties:
+        homeUrl:
+          type: string
+        homeCompactUrl:
+          type: string
+        friendCardUrl:
+          type: string
+      required:
+      - friendCardUrl
+      - homeCompactUrl
+      - homeUrl
+    PetCatalogLevelResponse:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+        lottieDefaultUrl:
+          type: string
+        lottiePlayEatUrl:
+          type: string
+      required:
+      - imageUrl
+      - lottieDefaultUrl
+      - lottiePlayEatUrl
+    SetMainPetRequest:
+      type: object
+      description: 메인 펫 설정 요청 DTO
+      properties:
+        petId:
+          type: string
+          description: 펫 ID
+          example: 1234567890
+      required:
+      - petId
+    PetResponse:
+      type: object
+      description: 펫 정보 응답 DTO
+      properties:
+        id:
+          type: string
+          description: Pet 식별 ID
+          example: ABCDEF1234567
+        type:
+          type: string
+          description: Pet 종류 (PetCatalog.type)
+          example: DOG
+        level:
+          type: integer
+          format: int32
+          description: Pet 레벨
+          example: 1
+        expPercent:
+          type: number
+          format: double
+          description: 현재 레벨에 해당하는 경험치 퍼센트
+          example: 15.5
+      required:
+      - expPercent
+      - id
+      - level
+      - type
+    UserMainPetResponse:
+      type: object
+      description: 메인 펫 정보 응답 DTO
+      properties:
+        mainPet:
+          $ref: "#/components/schemas/PetResponse"
+          description: 메인 펫 정보
+    UserPetResponse:
+      type: object
+      description: 유저 & 펫 응답 DTO
+      properties:
+        user:
+          $ref: "#/components/schemas/UserResponse"
+          description: 유저
+        pet:
+          $ref: "#/components/schemas/PetResponse"
+          description: 펫
+      required:
+      - pet
+      - user
+    AddPetRequest:
+      type: object
+      description: 펫 추가 요청 DTO
+      properties:
+        petType:
+          type: string
+          description: 펫 종류 (PetCatalog.type)
+          example: DOG
+          minLength: 1
+      required:
+      - petType
+    InviteCodeResponse:
+      type: object
+      description: 초대코드 응답 DTO
+      properties:
+        code:
+          type: string
+          description: 초대코드
+          example: ABC12345
+        expiresAt:
+          type: string
+          format: date-time
+          description: 만료 시간
+          example: 2024-07-02T15:30:00
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 시간
+          example: 2024-07-01T15:30:00
+      required:
+      - code
+      - createdAt
+      - expiresAt
+    FriendUserInfo:
+      type: object
+      description: 친구 사용자 정보 DTO
+      properties:
+        id:
+          type: string
+          description: 사용자 ID
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: 사용자 이름
+          example: 홍길동
+        mainPetType:
+          type: string
+          description: 주 펫 종류 (PetCatalog.type)
+          example: DOG
+        petLevel:
+          type: integer
+          format: int32
+          description: 펫 레벨
+          example: 1
+      required:
+      - id
+    FriendshipResponse:
+      type: object
+      description: 친구 응답 DTO
+      properties:
+        id:
+          type: string
+          description: 친구 관계 ID
+          example: 507f1f77bcf86cd799439011
+        friendUser:
+          $ref: "#/components/schemas/FriendUserInfo"
+          description: 친구 사용자 정보
+        createdAt:
+          type: string
+          format: date-time
+          description: 친구 관계 생성 시간
+          example: 2024-07-01T15:30:00
+        acceptedAt:
+          type: string
+          format: date-time
+          description: 친구 관계 수락 시간
+          example: 2024-07-01T15:30:00
+      required:
+      - createdAt
+      - friendUser
+      - id
+    CheerResponse:
+      type: object
+      description: 응원하기 응답 DTO
+      properties:
+        cheerId:
+          type: string
+          description: 응원 ID
+          example: 64a1b2c3d4e5f6789012345
+        cheereeId:
+          type: string
+          description: 응원받은 사용자 ID
+          example: 64a1b2c3d4e5f6789012346
+        date:
+          type: string
+          format: date
+          description: 응원한 날짜
+          example: 2024-08-23
+        createdAt:
+          type: string
+          format: date-time
+          description: 응원한 시각
+          example: 2024-08-23T10:30:00
+      required:
+      - cheerId
+      - cheereeId
+      - createdAt
+      - date
+    RefreshTokenRequest:
+      type: object
+      description: Token Refresh 요청 DTO
+      properties:
+        refreshToken:
+          type: string
+          description: 리프레시 토큰
+          example: REFRESH_TOKEN
+      required:
+      - refreshToken
+    LoginResponse:
+      type: object
+      description: 로그인 응답 DTO
+      properties:
+        accessToken:
+          type: string
+          description: 엑세스 토큰
+          example: ACCESS_TOKEN
+        refreshToken:
+          type: string
+          description: 리프레시 토큰
+          example: REFRESH_TOKEN
+        user:
+          $ref: "#/components/schemas/UserResponse"
+        isOnboardingComplete:
+          type: boolean
+          description: 회원 온보딩 완료 여부
+      required:
+      - accessToken
+      - isOnboardingComplete
+      - refreshToken
+      - user
+    LoginRequest:
+      type: object
+      description: OAuth 로그인 요청 DTO
+      properties:
+        token:
+          type: string
+          description: OAuth 로그인 토큰
+          example: KakaoToken
+        tokenType:
+          type: string
+          description: OAuth 타입
+          enum:
+          - KAKAO
+          - APPLE
+          example: KAKAO
+        deviceToken:
+          type: string
+          description: 디바이스 토큰
+          example: DeviceToken
+      required:
+      - token
+      - tokenType
+    PetCatalogAdminCreateRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        backgrounds:
+          $ref: "#/components/schemas/PetCatalogBackgroundsRequest"
+        colorCode:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+        isActive:
+          type: boolean
+        displayOrder:
+          type: integer
+          format: int32
+          minimum: 0
+        levels:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PetCatalogLevelRequest"
+          minProperties: 1
+      required:
+      - backgrounds
+      - colorCode
+      - displayOrder
+      - isActive
+      - levels
+      - name
+      - type
+    AdminLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - password
+      - username
+    AdminLoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+      required:
+      - accessToken
+    UserSettingRequest:
+      type: object
+      description: UserSetting 요청 DTO
+      properties:
+        isAppPushOn:
+          type: boolean
+          description: 앱 푸시 여부
+          example: true
+    CalorieRequest:
+      type: object
+      description: 칼로리 요청 DTO
+      properties:
+        calorie:
+          type: integer
+          format: int32
+          description: 칼로리
+          example: 100
+      required:
+      - calorie
+    DailyInfoResponse:
+      type: object
+      description: 일일 정보 응답 DTO
+      properties:
+        id:
+          type: string
+          description: 일일 정보 식별 ID
+          example: ABCDEF1234567
+        userId:
+          type: string
+          description: 유저 식별 ID
+          example: ABCDEF1234567
+        date:
+          type: string
+          format: date
+          description: 일자
+          example: 2021-01-01
+        calorie:
+          type: integer
+          format: int32
+          description: 일일 칼로리
+          example: 100
+      required:
+      - calorie
+      - date
+      - id
+      - userId
+    UserDailyInfoResponse:
+      type: object
+      description: User & DailyInfo 응답 DTO
+      properties:
+        user:
+          $ref: "#/components/schemas/UserResponse"
+          description: User
+        dailyInfo:
+          $ref: "#/components/schemas/DailyInfoResponse"
+          description: DailyInfo
+        rewardedFoodQuantity:
+          type: integer
+          format: int32
+          description: 지급한 먹이 수량
+        rewardedToyQuantity:
+          type: integer
+          format: int32
+          description: 지급한 장난감 수량
+      required:
+      - dailyInfo
+      - rewardedFoodQuantity
+      - rewardedToyQuantity
+      - user
+    ObjectId:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int32
+        date:
+          type: string
+          format: date-time
+    UserProfileResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        mainPet:
+          $ref: "#/components/schemas/PetResponse"
+        todayCalorie:
+          type: integer
+          format: int32
+        monthlyReceivedCheerCount:
+          type: integer
+          format: int32
+        isFriend:
+          type: boolean
+        isCheeredToday:
+          type: boolean
+      required:
+      - isCheeredToday
+      - isFriend
+      - mainPet
+      - monthlyReceivedCheerCount
+      - todayCalorie
+      - userId
+      - userName
+    RankingResponse:
+      type: object
+      description: 랭킹 조회 응답 DTO
+      properties:
+        criteria:
+          type: string
+          description: 랭킹 조회 기준
+          enum:
+          - TOTAL_CALORIES
+          - TOTAL_SUCCEEDED_DAYS
+          - TOTAL_ATTENDANCE_DAYS
+          example: "TOTAL_CALORIES, TOTAL_SUCCEEDED_DAYS"
+        periodType:
+          type: string
+          description: 랭킹 조회 기간
+          enum:
+          - DAILY
+          - WEEKLY
+          - MONTHLY
+          - YEARLY
+          example: "DAILY, WEEKLY, MONTHLY, YEARLY"
+        ranking:
+          type: array
+          description: 랭킹 조회 결과
+          items:
+            $ref: "#/components/schemas/RankingUserStatResponse"
+        myRanking:
+          $ref: "#/components/schemas/RankingUserStatResponse"
+          description: 내 랭킹 정보
+      required:
+      - criteria
+      - myRanking
+      - periodType
+      - ranking
+    RankingUserStatResponse:
+      type: object
+      description: 유저 랭킹 정보 DTO
+      properties:
+        rank:
+          type: integer
+          format: int32
+          description: 랭킹
+          example: 1
+        userId:
+          type: string
+          description: 유저 ID
+          example: userid
+        userName:
+          type: string
+          description: 유저 이름
+          example: 홍길동
+        mainPetType:
+          type: string
+          description: 주 펫 종류 (PetCatalog.type)
+          example: DOG
+        petLevel:
+          type: integer
+          format: int32
+          description: 펫 레벨
+          example: 1
+        totalCalories:
+          type: integer
+          format: int32
+          description: 총 칼로리
+          example: 1000
+        totalSucceededDays:
+          type: integer
+          format: int32
+          description: 총 성공 일수
+          example: 10
+      required:
+      - mainPetType
+      - petLevel
+      - rank
+      - totalCalories
+      - totalSucceededDays
+      - userId
+      - userName
+    PetsResponse:
+      type: object
+      description: 유저가 소유한 펫 응답 DTO
+      properties:
+        ownerUserId:
+          type: string
+          description: Pet 소유 User 식별 ID
+        pets:
+          type: array
+          description: Pets
+          items:
+            $ref: "#/components/schemas/PetResponse"
+      required:
+      - ownerUserId
+      - pets
+    PetCatalogItemResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        backgrounds:
+          $ref: "#/components/schemas/PetCatalogBackgroundsResponse"
+        colorCode:
+          type: string
+        isActive:
+          type: boolean
+        displayOrder:
+          type: integer
+          format: int32
+        levels:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PetCatalogLevelResponse"
+      required:
+      - backgrounds
+      - colorCode
+      - displayOrder
+      - isActive
+      - levels
+      - name
+      - type
+    PetCatalogResponse:
+      type: object
+      properties:
+        version:
+          type: string
+        pets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PetCatalogItemResponse"
+      required:
+      - pets
+      - version
+    FriendListResponse:
+      type: object
+      description: 친구 목록 응답 DTO
+      properties:
+        friends:
+          type: array
+          description: 친구 목록
+          items:
+            $ref: "#/components/schemas/FriendUserInfo"
+        totalCount:
+          type: integer
+          format: int32
+          description: 총 친구 수
+          example: 5
+      required:
+      - friends
+      - totalCount
+    InviterResponse:
+      type: object
+      description: 초대자 정보 응답 DTO
+      properties:
+        inviterUser:
+          $ref: "#/components/schemas/FriendUserInfo"
+          description: 초대자 사용자 정보
+      required:
+      - inviterUser
+    PageMetaResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+      required:
+      - page
+      - size
+      - totalElements
+      - totalPages
+    UserAdminListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserAdminSummaryResponse"
+        page:
+          $ref: "#/components/schemas/PageMetaResponse"
+      required:
+      - page
+      - users
+    UserAdminSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        mainPetId:
+          type: string
+        mainPetType:
+          type: string
+        tickets:
+          type: integer
+          format: int32
+        purposeCalorie:
+          type: integer
+          format: int32
+        lastLoginAt:
+          type: string
+      required:
+      - id
+      - lastLoginAt
+      - purposeCalorie
+      - tickets
+    UserAdminDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        mainPetId:
+          type: string
+        mainPetType:
+          type: string
+        purposeCalorie:
+          type: integer
+          format: int32
+        foodQuantity:
+          type: integer
+          format: int32
+        toyQuantity:
+          type: integer
+          format: int32
+        purposeStrict:
+          type: integer
+          format: int32
+        tickets:
+          type: integer
+          format: int32
+        isAppPushOn:
+          type: boolean
+        lastLoginAt:
+          type: string
+      required:
+      - foodQuantity
+      - id
+      - isAppPushOn
+      - lastLoginAt
+      - purposeCalorie
+      - purposeStrict
+      - tickets
+      - toyQuantity
+    DailyCaloriesAdminItemResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        calorie:
+          type: integer
+          format: int32
+        purposeAchieved:
+          type: boolean
+        toyGiven:
+          type: boolean
+        petType:
+          type: string
+      required:
+      - calorie
+      - date
+      - purposeAchieved
+      - toyGiven
+    DailyCaloriesAdminListResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyCaloriesAdminItemResponse"
+      required:
+      - from
+      - records
+      - to
+      - userId
+    DailyCountResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        count:
+          type: integer
+          format: int64
+      required:
+      - count
+      - date
+    PetCountResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        count:
+          type: integer
+          format: int64
+      required:
+      - count
+      - type
+    StatsAdminResponse:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          format: int64
+        newUsersToday:
+          type: integer
+          format: int64
+        newUsersThisWeek:
+          type: integer
+          format: int64
+        newUsersThisMonth:
+          type: integer
+          format: int64
+        activeUsersToday:
+          type: integer
+          format: int64
+        activeUsersThisWeek:
+          type: integer
+          format: int64
+        totalPets:
+          type: integer
+          format: int64
+        petDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/PetCountResponse"
+        signupSeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyCountResponse"
+      required:
+      - activeUsersThisWeek
+      - activeUsersToday
+      - newUsersThisMonth
+      - newUsersThisWeek
+      - newUsersToday
+      - petDistribution
+      - signupSeries
+      - totalPets
+      - totalUsers
+    PetCatalogAdminListResponse:
+      type: object
+      properties:
+        pets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PetCatalogAdminItemResponse"
+      required:
+      - pets
+    WithDrawRequest:
+      type: object
+      description: 탈퇴 요청 DTO
+      properties:
+        cause:
+          type: string
+          description: 탈퇴 사유
+          example: 사유
+      required:
+      - cause
+  securitySchemes:
+    JWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
