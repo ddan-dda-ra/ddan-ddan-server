@@ -11,12 +11,13 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/v1/pets")
-@Tag(name = "펫 카탈로그", description = "사용 가능한 펫 메타데이터 + 미디어 URL 제공")
+@Tag(name = "펫 카탈로그", description = "사용 가능한 펫 메타데이터와 레벨별 미디어 URL 제공")
 class PetCatalogController(
     private val petCatalogService: PetCatalogService,
 ) {
     @Operation(summary = "펫 카탈로그 조회", description = "활성 펫 목록과 카탈로그 버전 반환. 클라이언트는 응답의 version 또는 X-Pet-Catalog-Version 헤더로 stale 캐시 감지 가능.")
     @ApiResponse(responseCode = "200", description = "성공")
+    @ApiResponse(responseCode = "401", description = "인증 필요")
     @GetMapping("/catalog")
     fun getCatalog(): PetCatalogResponse = PetCatalogResponse.from(petCatalogService.getActiveCatalog())
 }

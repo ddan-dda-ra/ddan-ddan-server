@@ -4,10 +4,8 @@ import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogDuplicateKeyExceptio
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogInactiveException
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
-import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogBackgroundsEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
@@ -53,7 +51,6 @@ class PetCatalogService(
     fun create(
         type: String,
         name: String,
-        backgrounds: PetCatalogBackgrounds,
         colorCode: String,
         isActive: Boolean,
         displayOrder: Int,
@@ -66,7 +63,6 @@ class PetCatalogService(
                     PetCatalogEntity(
                         type = type,
                         name = name,
-                        backgrounds = PetCatalogBackgroundsEntity.fromDomain(backgrounds),
                         colorCode = colorCode,
                         isActive = isActive,
                         displayOrder = displayOrder,
@@ -86,7 +82,6 @@ class PetCatalogService(
     fun update(
         type: String,
         name: String,
-        backgrounds: PetCatalogBackgrounds,
         colorCode: String,
         isActive: Boolean,
         displayOrder: Int,
@@ -97,7 +92,6 @@ class PetCatalogService(
             repository.save(
                 existing.copy(
                     name = name,
-                    backgrounds = PetCatalogBackgroundsEntity.fromDomain(backgrounds),
                     colorCode = colorCode,
                     isActive = isActive,
                     displayOrder = displayOrder,

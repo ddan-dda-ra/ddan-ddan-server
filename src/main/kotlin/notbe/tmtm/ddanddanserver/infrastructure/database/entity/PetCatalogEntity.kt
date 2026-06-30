@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
-import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import org.bson.types.ObjectId
@@ -17,7 +16,6 @@ data class PetCatalogEntity(
     @Indexed(unique = true)
     val type: String,
     val name: String,
-    val backgrounds: PetCatalogBackgroundsEntity,
     val colorCode: String,
     val isActive: Boolean = true,
     val displayOrder: Int = 0,
@@ -29,7 +27,6 @@ data class PetCatalogEntity(
         PetCatalogItem(
             type = type,
             name = name,
-            backgrounds = backgrounds.toDomain(),
             colorCode = colorCode,
             isActive = isActive,
             displayOrder = displayOrder,
@@ -41,33 +38,10 @@ data class PetCatalogEntity(
             PetCatalogEntity(
                 type = item.type,
                 name = item.name,
-                backgrounds = PetCatalogBackgroundsEntity.fromDomain(item.backgrounds),
                 colorCode = item.colorCode,
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,
                 levels = item.levels.mapValues { PetCatalogLevelEntity.fromDomain(it.value) },
-            )
-    }
-}
-
-data class PetCatalogBackgroundsEntity(
-    val homeUrl: String,
-    val homeCompactUrl: String,
-    val friendCardUrl: String,
-) {
-    fun toDomain(): PetCatalogBackgrounds =
-        PetCatalogBackgrounds(
-            homeUrl = homeUrl,
-            homeCompactUrl = homeCompactUrl,
-            friendCardUrl = friendCardUrl,
-        )
-
-    companion object {
-        fun fromDomain(backgrounds: PetCatalogBackgrounds): PetCatalogBackgroundsEntity =
-            PetCatalogBackgroundsEntity(
-                homeUrl = backgrounds.homeUrl,
-                homeCompactUrl = backgrounds.homeCompactUrl,
-                friendCardUrl = backgrounds.friendCardUrl,
             )
     }
 }

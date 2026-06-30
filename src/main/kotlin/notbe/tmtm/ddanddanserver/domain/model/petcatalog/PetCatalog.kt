@@ -10,17 +10,10 @@ data class PetCatalog(
 data class PetCatalogItem(
     val type: String,
     val name: String,
-    val backgrounds: PetCatalogBackgrounds,
     val colorCode: String,
     val isActive: Boolean,
     val displayOrder: Int,
     val levels: Map<Int, PetCatalogLevel>,
-)
-
-data class PetCatalogBackgrounds(
-    val homeUrl: String,
-    val homeCompactUrl: String,
-    val friendCardUrl: String,
 )
 
 data class PetCatalogLevel(

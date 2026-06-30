@@ -9,9 +9,7 @@ import io.mockk.slot
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogDuplicateKeyException
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogNotFoundException
-import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogBackgroundsEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
@@ -31,12 +29,6 @@ class PetCatalogServiceTest : FunSpec({
         PetCatalogEntity(
             type = key,
             name = key,
-            backgrounds =
-                PetCatalogBackgroundsEntity(
-                    homeUrl = "https://cdn/$key/backgrounds/home.png",
-                    homeCompactUrl = "https://cdn/$key/backgrounds/home_compact.png",
-                    friendCardUrl = "https://cdn/$key/backgrounds/friend_card.png",
-                ),
             colorCode = colorCode,
             isActive = isActive,
             displayOrder = order,
@@ -145,13 +137,6 @@ class PetCatalogServiceTest : FunSpec({
             ),
         )
 
-    fun sampleBackgrounds(): PetCatalogBackgrounds =
-        PetCatalogBackgrounds(
-            homeUrl = "https://cdn/x/backgrounds/home.png",
-            homeCompactUrl = "https://cdn/x/backgrounds/home_compact.png",
-            friendCardUrl = "https://cdn/x/backgrounds/friend_card.png",
-        )
-
     test("create는 신규 펫을 저장하고 versionCache를 invalidate한다") {
         // Given — cache를 미리 채움
         val initialVersion = Instant.parse("2026-05-01T00:00:00Z")
@@ -169,7 +154,7 @@ class PetCatalogServiceTest : FunSpec({
             )
         }
 
-        val result = service.create("QUOKKA", "쿼카", sampleBackgrounds(), "#FFCC00", true, 5, sampleLevels())
+        val result = service.create("QUOKKA", "쿼카", "#FFCC00", true, 5, sampleLevels())
 
         // Then — save + cache invalidate(다음 currentVersion이 새 값으로 조회)
         result.type shouldBe "QUOKKA"
@@ -184,7 +169,7 @@ class PetCatalogServiceTest : FunSpec({
         } throws org.springframework.dao.DuplicateKeyException("E11000 duplicate key error")
 
         shouldThrow<PetCatalogDuplicateKeyException> {
-            service.create("CAT", "고양이2", sampleBackgrounds(), "#FFCC00", true, 0, sampleLevels())
+            service.create("CAT", "고양이2", "#FFCC00", true, 0, sampleLevels())
         }
     }
 
@@ -199,7 +184,6 @@ class PetCatalogServiceTest : FunSpec({
             service.update(
                 type = "CAT",
                 name = "갱신된고양이",
-                backgrounds = sampleBackgrounds(),
                 colorCode = "#FFCC00",
                 isActive = false,
                 displayOrder = 99,
@@ -215,7 +199,7 @@ class PetCatalogServiceTest : FunSpec({
         every { repository.findByType("UNKNOWN") } returns null
 
         shouldThrow<PetCatalogNotFoundException> {
-            service.update("UNKNOWN", "x", sampleBackgrounds(), "#FFCC00", true, 0, sampleLevels())
+            service.update("UNKNOWN", "x", "#FFCC00", true, 0, sampleLevels())
         }
     }
 
@@ -249,7 +233,6 @@ class PetCatalogServiceTest : FunSpec({
         service.create(
             type = "DOG",
             name = "강아지",
-            backgrounds = sampleBackgrounds(),
             colorCode = "#9B6CFF",
             isActive = true,
             displayOrder = 3,
@@ -270,7 +253,6 @@ class PetCatalogServiceTest : FunSpec({
             service.update(
                 type = "DOG",
                 name = "강아지",
-                backgrounds = sampleBackgrounds(),
                 colorCode = "#9B6CFF",
                 isActive = true,
                 displayOrder = 3,

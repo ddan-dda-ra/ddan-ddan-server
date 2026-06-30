@@ -5,15 +5,13 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import org.junit.jupiter.api.BeforeEach
 import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
-import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminCreateRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminUpdateRequest
-import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogBackgroundsRequest
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogLevelRequest
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
@@ -69,12 +67,6 @@ class PetCatalogAdminControllerIntegrationTest {
         PetCatalogItem(
             type = key,
             name = "이름-$key",
-            backgrounds =
-                PetCatalogBackgrounds(
-                    homeUrl = "https://cdn/x/backgrounds/home.png",
-                    homeCompactUrl = "https://cdn/x/backgrounds/home_compact.png",
-                    friendCardUrl = "https://cdn/x/backgrounds/friend_card.png",
-                ),
             colorCode = colorCode,
             isActive = isActive,
             displayOrder = order,
@@ -89,13 +81,6 @@ class PetCatalogAdminControllerIntegrationTest {
                 ),
         )
 
-    private fun sampleBackgroundsRequest(): PetCatalogBackgroundsRequest =
-        PetCatalogBackgroundsRequest(
-            homeUrl = "u/backgrounds/home.png",
-            homeCompactUrl = "u/backgrounds/home_compact.png",
-            friendCardUrl = "u/backgrounds/friend_card.png",
-        )
-
     @Test
     fun `GET v1 admin pet-catalog는 비활성 포함 전체를 반환한다`() {
         every { petCatalogService.getAllForAdmin() } returns
@@ -107,20 +92,20 @@ class PetCatalogAdminControllerIntegrationTest {
             .andExpect(jsonPath("$.pets[0].type").value("CAT"))
             .andExpect(jsonPath("$.pets[0].isActive").value(true))
             .andExpect(jsonPath("$.pets[0].colorCode").value("#FFCC00"))
-            .andExpect(jsonPath("$.pets[0].backgrounds.homeUrl").value("https://cdn/x/backgrounds/home.png"))
+            .andExpect(jsonPath("$.pets[0].backgrounds").doesNotExist())
             .andExpect(jsonPath("$.pets[1].type").value("HIDDEN"))
             .andExpect(jsonPath("$.pets[1].isActive").value(false))
+            .andExpect(jsonPath("$.pets[1].backgrounds").doesNotExist())
     }
 
     @Test
     fun `POST v1 admin pet-catalog는 신규 펫을 등록한다`() {
-        every { petCatalogService.create(any(), any(), any(), any(), any(), any(), any()) } returns
+        every { petCatalogService.create(any(), any(), any(), any(), any(), any()) } returns
             item("QUOKKA", 5, colorCode = "#FFCC00")
         val request =
             PetCatalogAdminCreateRequest(
                 type = "QUOKKA",
                 name = "쿼카",
-                backgrounds = sampleBackgroundsRequest(),
                 colorCode = "#FFCC00",
                 isActive = true,
                 displayOrder = 5,
@@ -138,8 +123,9 @@ class PetCatalogAdminControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.type").value("QUOKKA"))
             .andExpect(jsonPath("$.colorCode").value("#FFCC00"))
+            .andExpect(jsonPath("$.backgrounds").doesNotExist())
 
-        verify { petCatalogService.create("QUOKKA", "쿼카", any(), "#FFCC00", true, 5, any()) }
+        verify { petCatalogService.create("QUOKKA", "쿼카", "#FFCC00", true, 5, any()) }
     }
 
     @Test
@@ -151,12 +137,6 @@ class PetCatalogAdminControllerIntegrationTest {
                 mapOf(
                     "type" to "QUOKKA",
                     "name" to "쿼카",
-                    "backgrounds" to
-                        mapOf(
-                            "homeUrl" to "u/backgrounds/home.png",
-                            "homeCompactUrl" to "u/backgrounds/home_compact.png",
-                            "friendCardUrl" to "u/backgrounds/friend_card.png",
-                        ),
                     "colorCode" to invalid,
                     "isActive" to true,
                     "displayOrder" to 5,
@@ -180,18 +160,17 @@ class PetCatalogAdminControllerIntegrationTest {
         }
 
         verify(exactly = 0) {
-            petCatalogService.create(any(), any(), any(), any(), any(), any(), any())
+            petCatalogService.create(any(), any(), any(), any(), any(), any())
         }
     }
 
     @Test
     fun `PUT v1 admin pet-catalog는 펫을 수정한다`() {
-        every { petCatalogService.update(any(), any(), any(), any(), any(), any(), any()) } returns
+        every { petCatalogService.update(any(), any(), any(), any(), any(), any()) } returns
             item("CAT", 99, false, colorCode = "#9B6CFF")
         val request =
             PetCatalogAdminUpdateRequest(
                 name = "갱신",
-                backgrounds = sampleBackgroundsRequest(),
                 colorCode = "#9B6CFF",
                 isActive = false,
                 displayOrder = 99,
@@ -207,8 +186,9 @@ class PetCatalogAdminControllerIntegrationTest {
             .andExpect(jsonPath("$.isActive").value(false))
             .andExpect(jsonPath("$.displayOrder").value(99))
             .andExpect(jsonPath("$.colorCode").value("#9B6CFF"))
+            .andExpect(jsonPath("$.backgrounds").doesNotExist())
 
-        verify { petCatalogService.update("CAT", "갱신", any(), "#9B6CFF", false, 99, any()) }
+        verify { petCatalogService.update("CAT", "갱신", "#9B6CFF", false, 99, any()) }
     }
 
     @Test
@@ -219,6 +199,7 @@ class PetCatalogAdminControllerIntegrationTest {
             .perform(delete("/v1/admin/pet-catalog/CAT"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.isActive").value(false))
+            .andExpect(jsonPath("$.backgrounds").doesNotExist())
 
         verify { petCatalogService.softDelete("CAT") }
     }

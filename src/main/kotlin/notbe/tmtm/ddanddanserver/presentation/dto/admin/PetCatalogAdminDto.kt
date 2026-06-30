@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.Pattern
-import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 
@@ -16,8 +15,6 @@ data class PetCatalogAdminCreateRequest(
     val type: String,
     @field:NotBlank
     val name: String,
-    @field:Valid
-    val backgrounds: PetCatalogBackgroundsRequest,
     @field:Pattern(regexp = HEX_COLOR_REGEX, message = "colorCode는 #으로 시작하는 6자리 hex(예: #FFCC00) 여야 합니다")
     val colorCode: String,
     val isActive: Boolean = true,
@@ -33,8 +30,6 @@ data class PetCatalogAdminCreateRequest(
 data class PetCatalogAdminUpdateRequest(
     @field:NotBlank
     val name: String,
-    @field:Valid
-    val backgrounds: PetCatalogBackgroundsRequest,
     @field:Pattern(regexp = HEX_COLOR_REGEX, message = "colorCode는 #으로 시작하는 6자리 hex(예: #FFCC00) 여야 합니다")
     val colorCode: String,
     val isActive: Boolean,
@@ -45,22 +40,6 @@ data class PetCatalogAdminUpdateRequest(
     val levels: Map<Int, PetCatalogLevelRequest>,
 ) {
     fun levelsToDomain(): Map<Int, PetCatalogLevel> = levels.mapValues { it.value.toDomain() }
-}
-
-data class PetCatalogBackgroundsRequest(
-    @field:NotBlank
-    val homeUrl: String,
-    @field:NotBlank
-    val homeCompactUrl: String,
-    @field:NotBlank
-    val friendCardUrl: String,
-) {
-    fun toDomain(): PetCatalogBackgrounds =
-        PetCatalogBackgrounds(
-            homeUrl = homeUrl,
-            homeCompactUrl = homeCompactUrl,
-            friendCardUrl = friendCardUrl,
-        )
 }
 
 data class PetCatalogLevelRequest(
@@ -82,7 +61,6 @@ data class PetCatalogLevelRequest(
 data class PetCatalogAdminItemResponse(
     val type: String,
     val name: String,
-    val backgrounds: PetCatalogBackgroundsResponse,
     val colorCode: String,
     val isActive: Boolean,
     val displayOrder: Int,
@@ -93,26 +71,10 @@ data class PetCatalogAdminItemResponse(
             PetCatalogAdminItemResponse(
                 type = item.type,
                 name = item.name,
-                backgrounds = PetCatalogBackgroundsResponse.from(item.backgrounds),
                 colorCode = item.colorCode,
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,
                 levels = item.levels.mapValues { PetCatalogLevelResponse.from(it.value) },
-            )
-    }
-}
-
-data class PetCatalogBackgroundsResponse(
-    val homeUrl: String,
-    val homeCompactUrl: String,
-    val friendCardUrl: String,
-) {
-    companion object {
-        fun from(backgrounds: PetCatalogBackgrounds): PetCatalogBackgroundsResponse =
-            PetCatalogBackgroundsResponse(
-                homeUrl = backgrounds.homeUrl,
-                homeCompactUrl = backgrounds.homeCompactUrl,
-                friendCardUrl = backgrounds.friendCardUrl,
             )
     }
 }

@@ -1,6 +1,10 @@
 package notbe.tmtm.ddanddanserver.presentation.controller.admin
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
@@ -8,6 +12,7 @@ import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminCreateReq
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminItemResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminListResponse
 import notbe.tmtm.ddanddanserver.presentation.dto.admin.PetCatalogAdminUpdateRequest
+import notbe.tmtm.ddanddanserver.presentation.dto.response.ErrorResponse
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -24,10 +29,42 @@ class PetCatalogAdminController(
     private val petCatalogService: PetCatalogService,
 ) {
     @Operation(summary = "전체 펫 카탈로그 조회 (비활성 포함)")
+    @ApiResponse(responseCode = "200", description = "성공")
+    @ApiResponse(
+        responseCode = "401",
+        description = "인증 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "403",
+        description = "관리자 권한 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
     @GetMapping
     fun list(): PetCatalogAdminListResponse = PetCatalogAdminListResponse.from(petCatalogService.getAllForAdmin())
 
     @Operation(summary = "펫 카탈로그 신규 등록")
+    @ApiResponse(responseCode = "200", description = "등록 성공")
+    @ApiResponse(
+        responseCode = "400",
+        description = "요청 값 검증 실패",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "401",
+        description = "인증 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "403",
+        description = "관리자 권한 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "409",
+        description = "중복된 펫 카탈로그 타입",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
     @PostMapping
     fun create(
         @RequestBody @Valid request: PetCatalogAdminCreateRequest,
@@ -36,7 +73,6 @@ class PetCatalogAdminController(
             petCatalogService.create(
                 type = request.type,
                 name = request.name,
-                backgrounds = request.backgrounds.toDomain(),
                 colorCode = request.colorCode,
                 isActive = request.isActive,
                 displayOrder = request.displayOrder,
@@ -45,8 +81,30 @@ class PetCatalogAdminController(
         )
 
     @Operation(summary = "펫 카탈로그 수정")
+    @ApiResponse(responseCode = "200", description = "수정 성공")
+    @ApiResponse(
+        responseCode = "400",
+        description = "요청 값 검증 실패",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "401",
+        description = "인증 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "403",
+        description = "관리자 권한 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "404",
+        description = "펫 카탈로그 항목 없음",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
     @PutMapping("/{type}")
     fun update(
+        @Parameter(description = "수정할 펫 카탈로그 타입", required = true)
         @PathVariable type: String,
         @RequestBody @Valid request: PetCatalogAdminUpdateRequest,
     ): PetCatalogAdminItemResponse =
@@ -54,7 +112,6 @@ class PetCatalogAdminController(
             petCatalogService.update(
                 type = type,
                 name = request.name,
-                backgrounds = request.backgrounds.toDomain(),
                 colorCode = request.colorCode,
                 isActive = request.isActive,
                 displayOrder = request.displayOrder,
@@ -63,8 +120,25 @@ class PetCatalogAdminController(
         )
 
     @Operation(summary = "펫 카탈로그 비활성화 (soft delete)")
+    @ApiResponse(responseCode = "200", description = "비활성화 성공")
+    @ApiResponse(
+        responseCode = "401",
+        description = "인증 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "403",
+        description = "관리자 권한 필요",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
+    @ApiResponse(
+        responseCode = "404",
+        description = "펫 카탈로그 항목 없음",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    )
     @DeleteMapping("/{type}")
     fun softDelete(
+        @Parameter(description = "비활성화할 펫 카탈로그 타입", required = true)
         @PathVariable type: String,
     ): PetCatalogAdminItemResponse = PetCatalogAdminItemResponse.from(petCatalogService.softDelete(type))
 }

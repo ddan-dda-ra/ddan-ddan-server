@@ -1,7 +1,6 @@
 package notbe.tmtm.ddanddanserver.presentation.dto.response
 
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
-import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogBackgrounds
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 
@@ -21,7 +20,6 @@ data class PetCatalogResponse(
 data class PetCatalogItemResponse(
     val type: String,
     val name: String,
-    val backgrounds: PetCatalogBackgroundsResponse,
     val colorCode: String,
     val isActive: Boolean,
     val displayOrder: Int,
@@ -32,26 +30,10 @@ data class PetCatalogItemResponse(
             PetCatalogItemResponse(
                 type = item.type,
                 name = item.name,
-                backgrounds = PetCatalogBackgroundsResponse.from(item.backgrounds),
                 colorCode = item.colorCode,
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,
                 levels = item.levels.mapValues { PetCatalogLevelResponse.from(it.value) },
-            )
-    }
-}
-
-data class PetCatalogBackgroundsResponse(
-    val homeUrl: String,
-    val homeCompactUrl: String,
-    val friendCardUrl: String,
-) {
-    companion object {
-        fun from(backgrounds: PetCatalogBackgrounds): PetCatalogBackgroundsResponse =
-            PetCatalogBackgroundsResponse(
-                homeUrl = backgrounds.homeUrl,
-                homeCompactUrl = backgrounds.homeCompactUrl,
-                friendCardUrl = backgrounds.friendCardUrl,
             )
     }
 }

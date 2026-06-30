@@ -2,7 +2,6 @@ package notbe.tmtm.ddanddanserver.infrastructure.database.seed
 
 import jakarta.annotation.PostConstruct
 import notbe.tmtm.ddanddanserver.common.util.logger
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogBackgroundsEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
@@ -23,7 +22,6 @@ class PetCatalogSeeder(
                 PetCatalogEntity(
                     type = pet.type,
                     name = pet.name,
-                    backgrounds = buildBackgrounds(pet.species),
                     colorCode = pet.colorCode,
                     isActive = true,
                     displayOrder = index,
@@ -40,13 +38,6 @@ class PetCatalogSeeder(
             logger().info("PetCatalog seed skipped: 이미 다른 인스턴스가 시드 데이터를 등록했습니다", e)
         }
     }
-
-    private fun buildBackgrounds(species: String): PetCatalogBackgroundsEntity =
-        PetCatalogBackgroundsEntity(
-            homeUrl = "$CDN_BASE/$species/backgrounds/home.png",
-            homeCompactUrl = "$CDN_BASE/$species/backgrounds/home_compact.png",
-            friendCardUrl = "$CDN_BASE/$species/backgrounds/friend_card.png",
-        )
 
     private fun buildLevels(species: String): Map<Int, PetCatalogLevelEntity> =
         (1..MAX_LEVEL).associateWith { level ->
