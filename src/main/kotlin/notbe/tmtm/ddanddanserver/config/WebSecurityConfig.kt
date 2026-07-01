@@ -1,10 +1,8 @@
 package notbe.tmtm.ddanddanserver.config
 
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
-import notbe.tmtm.ddanddanserver.domain.exception.AdminUnauthorizedException
 import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.domain.exception.UnauthorizedException
-import notbe.tmtm.ddanddanserver.presentation.filter.AdminJWTAuthFilter
 import notbe.tmtm.ddanddanserver.presentation.filter.AppVersionFilter
 import notbe.tmtm.ddanddanserver.presentation.filter.JWTAuthFilter
 import org.springframework.context.annotation.Bean
@@ -16,9 +14,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
-import org.springframework.web.cors.CorsConfiguration
-import org.springframework.web.cors.CorsConfigurationSource
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.servlet.HandlerExceptionResolver
 
 @Configuration
@@ -27,51 +22,7 @@ class WebSecurityConfig(
     private val environment: Environment,
 ) {
     @Bean
-    @Order(0)
-    fun adminFilterChain(
-        http: HttpSecurity,
-        jwtTokenProvider: JWTTokenProvider,
-        handlerExceptionResolver: HandlerExceptionResolver,
-    ): SecurityFilterChain =
-        http
-            .securityMatcher("/v1/admin/**")
-            .csrf { it.disable() }
-            .cors { it.configurationSource(adminCorsConfigurationSource()) }
-            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-            .authorizeHttpRequests {
-                it.anyRequest().authenticated()
-            }.addFilterBefore(
-                AdminJWTAuthFilter(jwtTokenProvider, handlerExceptionResolver),
-                UsernamePasswordAuthenticationFilter::class.java,
-            ).exceptionHandling {
-                it
-                    .accessDeniedHandler { request, response, _ ->
-                        handlerExceptionResolver.resolveException(request, response, null, AdminUnauthorizedException())
-                    }.authenticationEntryPoint { request, response, _ ->
-                        handlerExceptionResolver.resolveException(request, response, null, AdminUnauthorizedException())
-                    }
-            }.build()
-
-    private fun adminCorsConfigurationSource(): CorsConfigurationSource {
-        val configuration = CorsConfiguration().apply {
-            allowedOrigins =
-                listOf(
-                    "https://admin-ddan-ddan.ddmz.org",
-                    "http://localhost:3000",
-                    "http://localhost:3001",
-                )
-            allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            allowedHeaders = listOf("*")
-            allowCredentials = true
-            maxAge = 3600L
-        }
-        return UrlBasedCorsConfigurationSource().apply {
-            registerCorsConfiguration("/**", configuration)
-        }
-    }
-
-    @Bean
-    @Order(2)
+    @Order(1)
     fun apiFilterChain(
         http: HttpSecurity,
         jwtTokenProvider: JWTTokenProvider,
@@ -100,7 +51,7 @@ class WebSecurityConfig(
             }.build()
 
     @Bean
-    @Order(1)
+    @Order(0)
     fun loginFilterChain(httpSecurity: HttpSecurity): SecurityFilterChain =
         httpSecurity
             .securityMatcher("/v1/auth/**", "/swagger-ui/index.html")

@@ -23,16 +23,11 @@ class WebSecurityConfigOrderTest : FunSpec({
                 method.name to (method.getAnnotation(Order::class.java)?.value ?: error("${method.name} has no @Order"))
             }
 
-    test("adminFilterChain은 가장 작은 Order를 가진다") {
-        orders["adminFilterChain"]!! shouldBeLessThan orders["loginFilterChain"]!!
-        orders["adminFilterChain"]!! shouldBeLessThan orders["apiFilterChain"]!!
-    }
-
     test("loginFilterChain은 apiFilterChain보다 Order가 작아야 한다 (좁은 /v1/auth 매처가 광범위 /v1 매처보다 먼저 매치되도록)") {
         orders["loginFilterChain"]!! shouldBeLessThan orders["apiFilterChain"]!!
     }
 
-    test("등록된 SecurityFilterChain이 정확히 3개여야 한다 (admin·login·api)") {
-        orders.keys shouldBe setOf("adminFilterChain", "loginFilterChain", "apiFilterChain")
+    test("등록된 SecurityFilterChain이 정확히 2개여야 한다") {
+        orders.keys shouldBe setOf("loginFilterChain", "apiFilterChain")
     }
 })

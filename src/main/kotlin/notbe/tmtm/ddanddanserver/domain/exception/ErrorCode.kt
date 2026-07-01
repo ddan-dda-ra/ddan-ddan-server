@@ -109,11 +109,4 @@ enum class ErrorCode(
     PET_CATALOG_INACTIVE("PC003", "비활성화된 펫 종류입니다."),
     PET_CATALOG_INVALID("PC004", "펫 카탈로그 입력값이 올바르지 않습니다."),
 
-    /**
-     * 어드민 인증 오류
-     * @see notbe.tmtm.ddanddanserver.domain.exception.AdminAuthException
-     */
-    ADMIN_UNAUTHORIZED("AA002", "어드민 인증이 필요합니다."),
-    ADMIN_INVALID_TOKEN("AA003", "유효하지 않은 어드민 토큰입니다."),
-    ADMIN_EXPIRED_TOKEN("AA004", "만료된 어드민 토큰입니다."),
 }

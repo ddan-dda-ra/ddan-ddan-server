@@ -27,7 +27,6 @@
 - [친구](docs/api/friends.md)
 - [랭킹](docs/api/ranking.md)
 - [응원](docs/api/cheers.md)
-- [운영자 API](docs/api/admin.md)
 
 ## 문서 관리 규칙
 

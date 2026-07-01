@@ -16,11 +16,5 @@ interface DailyInfoRepository : MongoRepository<DailyInfo, ObjectId> {
         purposeAchieved: Boolean,
     ): List<DailyInfo>
 
-    fun findAllByUserIdAndDateBetweenOrderByDateDesc(
-        userId: ObjectId,
-        from: LocalDate,
-        to: LocalDate,
-    ): List<DailyInfo>
-
     fun deleteAllByUserId(userId: ObjectId)
 }
