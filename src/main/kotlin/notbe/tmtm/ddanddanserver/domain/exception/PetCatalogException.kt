@@ -9,10 +9,6 @@ class PetCatalogNotFoundException(
     data: Any? = null,
 ) : PetCatalogException(ErrorCode.PET_CATALOG_NOT_FOUND, data)
 
-class PetCatalogDuplicateKeyException(
-    data: Any? = null,
-) : PetCatalogException(ErrorCode.PET_CATALOG_DUPLICATE_KEY, data)
-
 class PetCatalogInactiveException(
     data: Any? = null,
 ) : PetCatalogException(ErrorCode.PET_CATALOG_INACTIVE, data)

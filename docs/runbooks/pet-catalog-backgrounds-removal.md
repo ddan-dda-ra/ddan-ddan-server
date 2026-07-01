@@ -22,10 +22,9 @@ db.pet_catalog.find({}, { updated_at: 1 }).sort({ updated_at: -1 }).limit(1)
 
 ## 3. API smoke
 
-사용자와 관리자 JWT로 다음 API를 호출합니다.
+사용자 JWT로 다음 API를 호출합니다.
 
 - `GET /v1/pets/catalog`
-- `GET /v1/admin/pet-catalog`
 
 응답에서 다음을 확인합니다.
 
@@ -36,7 +35,7 @@ db.pet_catalog.find({}, { updated_at: 1 }).sort({ updated_at: -1 }).limit(1)
 
 ## 4. 백업
 
-migration 직전에 `pet_catalog` 컬렉션을 별도 컬렉션 또는 export 파일로 백업합니다. 관리자에서 등록한 커스텀 데이터가 있을 수 있으므로 기본 시더로 복구할 수 있다고 가정하지 않습니다.
+migration 직전에 `pet_catalog` 컬렉션을 별도 컬렉션 또는 export 파일로 백업합니다. 별도 관리 서버에서 등록한 커스텀 데이터가 있을 수 있으므로 기본 시더로 복구할 수 있다고 가정하지 않습니다.
 
 백업의 문서 수가 1단계에서 기록한 전체 문서 수와 같은지 확인합니다.
 
@@ -78,7 +77,7 @@ db.pet_catalog.find({}, { updated_at: 1 }).sort({ updated_at: -1 }).limit(1)
 migration 완료 후 다시 `GET /v1/pets/catalog`를 호출합니다.
 
 - 응답 body의 `revision`이 활성 카탈로그의 새 max `updated_at`과 동일함
-- 일반/관리자 응답에 `backgrounds`가 없음
+- 일반 응답에 `backgrounds`가 없음
 
 필요하면 같은 확인값으로 migration을 다시 실행해 대상 0건인 멱등 상태를 확인합니다. 이때 `PET_CATALOG_MIGRATION_EXPECTED_TARGET=0`으로 변경합니다.
 

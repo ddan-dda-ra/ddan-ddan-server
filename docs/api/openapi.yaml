@@ -13,8 +13,6 @@ tags:
   description: 운영자용 유저 조회
 - name: Admin · 인증
   description: 운영자 로그인
-- name: Admin · 펫 카탈로그
-  description: 운영자용 펫 카탈로그 CRUD
 - name: Admin · 통계
   description: 운영자용 통계 대시보드
 - name: 펫 카탈로그
@@ -68,56 +66,6 @@ paths:
       responses:
         "200":
           description: OK
-  /v1/admin/pet-catalog/{type}:
-    put:
-      tags:
-      - Admin · 펫 카탈로그
-      summary: 펫 카탈로그 수정
-      operationId: update
-      parameters:
-      - name: type
-        in: path
-        description: 수정할 펫 카탈로그 타입
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PetCatalogAdminUpdateRequest"
-        required: true
-      responses:
-        "200":
-          description: 수정 성공
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/PetCatalogAdminItemResponse"
-        "400":
-          description: 요청 값 검증 실패
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: 인증 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: 관리자 권한 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: 펫 카탈로그 항목 없음
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
   /v1/users/me/main-pet:
     get:
       tags:
@@ -351,73 +299,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LoginResponse"
-  /v1/admin/pet-catalog:
-    get:
-      tags:
-      - Admin · 펫 카탈로그
-      summary: 전체 펫 카탈로그 조회 (비활성 포함)
-      operationId: list
-      responses:
-        "200":
-          description: 성공
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/PetCatalogAdminListResponse"
-        "401":
-          description: 인증 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: 관리자 권한 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    post:
-      tags:
-      - Admin · 펫 카탈로그
-      summary: 펫 카탈로그 신규 등록
-      operationId: create
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PetCatalogAdminCreateRequest"
-        required: true
-      responses:
-        "200":
-          description: 등록 성공
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/PetCatalogAdminItemResponse"
-        "400":
-          description: 요청 값 검증 실패
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: 인증 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: 관리자 권한 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: 중복된 펫 카탈로그 타입
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
   /v1/admin/auth/login:
     post:
       tags:
@@ -840,58 +721,6 @@ components:
           example: true
       required:
       - isAppPushOn
-    PetCatalogAdminUpdateRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-        colorCode:
-          type: string
-          pattern: "^#[0-9A-Fa-f]{6}$"
-        isActive:
-          type: boolean
-        displayOrder:
-          type: integer
-          format: int32
-          minimum: 0
-        levels:
-          type: array
-          items:
-            $ref: "#/components/schemas/PetCatalogLevelRequest"
-          minItems: 5
-          maxItems: 5
-      required:
-      - colorCode
-      - displayOrder
-      - isActive
-      - levels
-      - name
-    PetCatalogLevelRequest:
-      type: object
-      properties:
-        level:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 5
-        imageUrl:
-          type: string
-          description: absolute SVG, PNG 또는 WebP URL
-          minLength: 1
-        lottieDefaultUrl:
-          type: string
-          description: absolute JSON URL
-          minLength: 1
-        lottiePlayEatUrl:
-          type: string
-          description: absolute JSON URL
-          minLength: 1
-      required:
-      - imageUrl
-      - level
-      - lottieDefaultUrl
-      - lottiePlayEatUrl
     ErrorResponse:
       type: object
       description: 에러 응답 DTO
@@ -907,33 +736,6 @@ components:
       required:
       - code
       - message
-    PetCatalogAdminItemResponse:
-      type: object
-      properties:
-        type:
-          type: string
-        name:
-          type: string
-        colorCode:
-          type: string
-        isActive:
-          type: boolean
-        displayOrder:
-          type: integer
-          format: int32
-        levels:
-          type: array
-          items:
-            $ref: "#/components/schemas/PetCatalogLevelResponse"
-          minItems: 5
-          maxItems: 5
-      required:
-      - colorCode
-      - displayOrder
-      - isActive
-      - levels
-      - name
-      - type
     PetCatalogLevelResponse:
       type: object
       properties:
@@ -1175,37 +977,6 @@ components:
       required:
       - token
       - tokenType
-    PetCatalogAdminCreateRequest:
-      type: object
-      properties:
-        type:
-          type: string
-          minLength: 1
-        name:
-          type: string
-          minLength: 1
-        colorCode:
-          type: string
-          pattern: "^#[0-9A-Fa-f]{6}$"
-        isActive:
-          type: boolean
-        displayOrder:
-          type: integer
-          format: int32
-          minimum: 0
-        levels:
-          type: array
-          items:
-            $ref: "#/components/schemas/PetCatalogLevelRequest"
-          minItems: 5
-          maxItems: 5
-      required:
-      - colorCode
-      - displayOrder
-      - isActive
-      - levels
-      - name
-      - type
     AdminLoginRequest:
       type: object
       properties:
@@ -1683,15 +1454,6 @@ components:
       - signupSeries
       - totalPets
       - totalUsers
-    PetCatalogAdminListResponse:
-      type: object
-      properties:
-        pets:
-          type: array
-          items:
-            $ref: "#/components/schemas/PetCatalogAdminItemResponse"
-      required:
-      - pets
     WithDrawRequest:
       type: object
       description: 탈퇴 요청 DTO

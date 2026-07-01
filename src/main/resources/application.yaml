@@ -7,12 +7,6 @@ spring:
 mock-oauth:
   enabled: false
 
-pet-catalog:
-  asset:
-    allowed-hosts:
-      - ddan-ddan-cdn.ddmz.org
-    local-http-hosts: []
-
 springdoc:
   swagger-ui:
     operations-sorter: alpha

@@ -26,7 +26,7 @@ class WebExceptionHandler {
     fun handlePetCatalogNotFound(exception: PetCatalogNotFoundException): ResponseEntity<ErrorResponse> =
         petCatalogError(HttpStatus.NOT_FOUND, exception)
 
-    @ExceptionHandler(value = [PetCatalogDuplicateKeyException::class, PetCatalogInactiveException::class])
+    @ExceptionHandler(value = [PetCatalogInactiveException::class])
     fun handlePetCatalogConflict(exception: PetCatalogException): ResponseEntity<ErrorResponse> =
         petCatalogError(HttpStatus.CONFLICT, exception)
 
