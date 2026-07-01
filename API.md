@@ -22,6 +22,8 @@
 - [인증](docs/api/auth.md)
 - [사용자](docs/api/users.md)
 - [펫 및 펫 카탈로그](docs/api/pets.md)
+- [펫 카탈로그 클라이언트 구현 가이드](docs/pet-catalog-client-implementation-guide.md)
+- [펫 카탈로그 클라이언트 구현 프롬프트](docs/prompts/pet-catalog-client-implementation-prompt.md)
 - [iOS 펫 카탈로그 handoff](docs/ios-pet-catalog-handoff.md)
 - [펫 카탈로그 backgrounds 제거 runbook](docs/runbooks/pet-catalog-backgrounds-removal.md)
 - [친구](docs/api/friends.md)
