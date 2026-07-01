@@ -2,282 +2,157 @@ package notbe.tmtm.ddanddanserver.application.service
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogDuplicateKeyException
+import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogInactiveException
+import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogInvalidException
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogNotFoundException
+import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogAssetUrl
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
+import org.springframework.dao.DuplicateKeyException
 import java.time.Instant
 
 class PetCatalogServiceTest : FunSpec({
     lateinit var repository: PetCatalogRepository
+    lateinit var policy: PetCatalogAssetUrlPolicy
     lateinit var service: PetCatalogService
 
+    fun levels() = (1..5).map { PetCatalogLevel(it, "https://cdn.test/$it.svg", "https://cdn.test/$it.json", "https://cdn.test/${it}_play.json") }
+    fun command(type: String = "CAT", active: Boolean = false, levels: List<PetCatalogLevel> = levels()) =
+        UpsertPetCatalogCommand(type, " 고양이 ", " #aabbcc ", active, 1, levels)
     fun entity(
-        key: String,
-        order: Int,
-        isActive: Boolean = true,
-        colorCode: String = "#FFCC00",
-        updatedAt: Instant = Instant.parse("2026-05-04T00:00:00Z"),
-    ): PetCatalogEntity =
-        PetCatalogEntity(
-            type = key,
-            name = key,
-            colorCode = colorCode,
-            isActive = isActive,
-            displayOrder = order,
-            levels =
-                (1..5).associateWith {
-                    PetCatalogLevelEntity(
-                        imageUrl = "https://cdn/$key/$it.png",
-                        lottieDefaultUrl = "https://cdn/$key/${it}_default.json",
-                        lottiePlayEatUrl = "https://cdn/$key/${it}_play_eat.json",
-                    )
-                },
-            createdAt = updatedAt,
-            updatedAt = updatedAt,
-        )
+        type: String,
+        active: Boolean = true,
+        order: Int = 1,
+        updatedAt: Instant = Instant.parse("2026-07-01T00:00:00Z"),
+    ) = PetCatalogEntity(
+        type = type, name = type, colorCode = "#AABBCC", isActive = active, displayOrder = order,
+        levels = (1..5).associateWith { PetCatalogLevelEntity("https://cdn.test/$it.svg", "https://cdn.test/$it.json", "https://cdn.test/${it}_play.json") },
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+    )
 
     beforeEach {
         repository = mockk()
-        service = PetCatalogService(repository)
+        policy = mockk()
+        every { policy.validate(any<PetCatalogAssetUrl>()) } returns Unit
+        service = PetCatalogService(repository, policy)
     }
 
-    test("getActiveCatalog는 displayOrder 순서대로 활성 펫만 반환한다") {
-        val entities =
-            listOf(
-                entity("CAT", order = 0),
-                entity("DOG", order = 1),
-            )
-        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAsc() } returns entities
-        every { repository.findAll() } returns entities
+    test("공개 카탈로그는 활성 항목만 반환하고 revision은 active updatedAt 최댓값이다") {
+        val older = Instant.parse("2026-07-01T00:00:00Z")
+        val newer = Instant.parse("2026-07-02T03:04:05Z")
+        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc() } returns
+            listOf(entity("CAT", updatedAt = older), entity("DOG", order = 2, updatedAt = newer))
 
-        val result = service.getActiveCatalog()
+        val result = service.getCatalog()
 
-        result.pets.map { it.type } shouldBe listOf("CAT", "DOG")
+        result.pets.map { it.type } shouldContainExactly listOf("CAT", "DOG")
+        result.revision shouldBe newer
     }
 
-    test("getActiveCatalog의 version은 currentVersion과 동일하다 (헤더와 응답 body 버전 일치 보장)") {
-        val activeOldUpdatedAt = Instant.parse("2026-05-01T00:00:00Z")
-        val inactiveNewUpdatedAt = Instant.parse("2026-05-04T12:00:00Z")
-        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAsc() } returns
-            listOf(entity("CAT", order = 0, updatedAt = activeOldUpdatedAt))
-        every { repository.findAll() } returns
-            listOf(
-                entity("CAT", order = 0, updatedAt = activeOldUpdatedAt),
-                entity("HIDDEN", order = 99, isActive = false, updatedAt = inactiveNewUpdatedAt),
-            )
+    test("활성 카탈로그가 비어 있으면 revision은 Instant EPOCH이다") {
+        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc() } returns emptyList()
 
-        val catalog = service.getActiveCatalog()
-
-        // 비활성 펫이 가장 최신 updatedAt이라도 헤더(currentVersion)와 응답 body version이 일치
-        catalog.version shouldBe service.currentVersion()
-        catalog.version shouldBe inactiveNewUpdatedAt
+        service.getCatalog().revision shouldBe Instant.EPOCH
     }
 
-    test("데이터가 비어있으면 catalog version은 Instant EPOCH이다") {
-        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAsc() } returns emptyList()
-        every { repository.findAll() } returns emptyList()
+    test("비활성 항목의 더 최신 updatedAt은 public revision에 영향을 주지 않는다") {
+        val activeUpdatedAt = Instant.parse("2026-07-01T00:00:00Z")
+        val inactiveUpdatedAt = Instant.parse("2026-07-03T00:00:00Z")
+        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc() } returns
+            listOf(entity("CAT", updatedAt = activeUpdatedAt))
+        every { repository.findAllByOrderByDisplayOrderAscTypeAsc() } returns
+            listOf(entity("CAT", updatedAt = activeUpdatedAt), entity("FOX", active = false, updatedAt = inactiveUpdatedAt))
 
-        service.getActiveCatalog().version shouldBe Instant.EPOCH
+        service.getAllForAdmin()
+        service.getCatalog().revision shouldBe activeUpdatedAt
     }
 
-    test("currentVersion은 max(updatedAt)을 반환한다") {
-        val newest = Instant.parse("2026-05-04T18:00:00Z")
-        every { repository.findAll() } returns
-            listOf(
-                entity("CAT", order = 0, updatedAt = Instant.parse("2026-05-01T00:00:00Z")),
-                entity("DOG", order = 1, updatedAt = newest),
-            )
-
-        service.currentVersion() shouldBe newest
+    test("관리자 카탈로그는 비활성 항목을 포함한다") {
+        every { repository.findAllByOrderByDisplayOrderAscTypeAsc() } returns listOf(entity("CAT"), entity("FOX", false, 2))
+        service.getAllForAdmin().map { it.isActive } shouldContainExactly listOf(true, false)
     }
 
-    test("currentVersion은 60초 TTL 캐시로 동일 시점 반복 호출 시 repository를 한 번만 조회한다") {
-        every { repository.findAll() } returns listOf(entity("CAT", order = 0))
-
-        repeat(5) { service.currentVersion() }
-
-        verify(exactly = 1) { repository.findAll() }
-    }
-
-    test("데이터가 없으면 currentVersion은 Instant EPOCH를 반환한다") {
-        every { repository.findAll() } returns emptyList()
-
-        service.currentVersion() shouldBe Instant.EPOCH
-    }
-
-    // --- Admin operations ---
-
-    test("getAllForAdmin은 비활성 펫도 포함하여 반환한다") {
-        every { repository.findAllByOrderByDisplayOrderAsc() } returns
-            listOf(
-                entity("CAT", order = 0, isActive = true),
-                entity("HIDDEN", order = 1, isActive = false),
-            )
-
-        val result = service.getAllForAdmin()
-
-        result.map { it.type } shouldBe listOf("CAT", "HIDDEN")
-        result[1].isActive shouldBe false
-    }
-
-    fun sampleLevels(): Map<Int, PetCatalogLevel> =
-        mapOf(
-            1 to PetCatalogLevel(
-                imageUrl = "https://cdn/x/1.png",
-                lottieDefaultUrl = "https://cdn/x/1_default.json",
-                lottiePlayEatUrl = "https://cdn/x/1_play_eat.json",
-            ),
-        )
-
-    test("create는 신규 펫을 저장하고 versionCache를 invalidate한다") {
-        // Given — cache를 미리 채움
-        val initialVersion = Instant.parse("2026-05-01T00:00:00Z")
-        every { repository.findAll() } returns listOf(entity("CAT", order = 0, updatedAt = initialVersion))
-        service.currentVersion() shouldBe initialVersion
-
-        // When — create
+    test("생성은 type 이름 색상을 canonical 형태로 저장하고 레벨을 정렬한다") {
         val saved = slot<PetCatalogEntity>()
         every { repository.save(capture(saved)) } answers { saved.captured }
-        val newVersion = Instant.parse("2026-05-04T12:00:00Z")
-        every { repository.findAll() } answers {
-            listOf(
-                entity("CAT", order = 0, updatedAt = initialVersion),
-                entity("QUOKKA", order = 5, updatedAt = newVersion),
-            )
-        }
-
-        val result = service.create("QUOKKA", "쿼카", "#FFCC00", true, 5, sampleLevels())
-
-        // Then — save + cache invalidate(다음 currentVersion이 새 값으로 조회)
-        result.type shouldBe "QUOKKA"
-        result.name shouldBe "쿼카"
-        saved.captured.type shouldBe "QUOKKA"
-        service.currentVersion() shouldBe newVersion
+        val result = service.create(command(" cat ", levels = levels().reversed()))
+        result.type shouldBe "CAT"
+        result.name shouldBe "고양이"
+        result.colorCode shouldBe "#AABBCC"
+        result.levels.map { it.level } shouldContainExactly (1..5).toList()
+        saved.captured.levels.keys shouldBe (1..5).toSet()
     }
 
-    test("create 시 DB unique index 충돌(DuplicateKeyException)을 PetCatalogDuplicateKeyException으로 변환한다") {
-        every {
-            repository.save(any())
-        } throws org.springframework.dao.DuplicateKeyException("E11000 duplicate key error")
-
-        shouldThrow<PetCatalogDuplicateKeyException> {
-            service.create("CAT", "고양이2", "#FFCC00", true, 0, sampleLevels())
-        }
+    test("생성 중 DB type 충돌은 PC002 예외로 변환한다") {
+        every { repository.save(any()) } throws DuplicateKeyException("duplicate")
+        shouldThrow<PetCatalogDuplicateKeyException> { service.create(command()) }
     }
 
-    test("update는 기존 펫의 필드를 갱신한다") {
-        val existing = entity("CAT", order = 0, isActive = true)
+    test("수정은 canonical path type으로 조회하고 비활성 항목을 활성화한다") {
+        val before = Instant.parse("2020-01-01T00:00:00Z")
+        val existing = entity("CAT", false, updatedAt = before)
+        val saved = slot<PetCatalogEntity>()
         every { repository.findByType("CAT") } returns existing
-        val saved = slot<PetCatalogEntity>()
         every { repository.save(capture(saved)) } answers { saved.captured }
-        every { repository.findAll() } answers { listOf(saved.captured) }
+        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc() } answers { listOf(saved.captured) }
 
-        val result =
-            service.update(
-                type = "CAT",
-                name = "갱신된고양이",
-                colorCode = "#FFCC00",
-                isActive = false,
-                displayOrder = 99,
-                levels = sampleLevels(),
-            )
+        service.update(" cat ", command(active = true)).isActive shouldBe true
 
-        result.name shouldBe "갱신된고양이"
-        result.isActive shouldBe false
-        result.displayOrder shouldBe 99
+        service.getCatalog().revision shouldBe saved.captured.updatedAt
+        (saved.captured.updatedAt > before) shouldBe true
+        verify { repository.findByType("CAT") }
     }
 
-    test("update 시 존재하지 않는 키이면 PetCatalogNotFoundException") {
-        every { repository.findByType("UNKNOWN") } returns null
-
-        shouldThrow<PetCatalogNotFoundException> {
-            service.update("UNKNOWN", "x", "#FFCC00", true, 0, sampleLevels())
-        }
-    }
-
-    test("softDelete는 isActive=false로 갱신하고 동일 펫을 반환한다") {
-        val existing = entity("CAT", order = 0, isActive = true)
+    test("활성 항목을 수정하면 public revision이 변경된다") {
+        val before = Instant.parse("2020-01-01T00:00:00Z")
+        val existing = entity("CAT", true, updatedAt = before)
+        val saved = slot<PetCatalogEntity>()
         every { repository.findByType("CAT") } returns existing
-        val saved = slot<PetCatalogEntity>()
         every { repository.save(capture(saved)) } answers { saved.captured }
+        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc() } returns listOf(existing) andThenAnswer { listOf(saved.captured) }
 
-        val result = service.softDelete("CAT")
+        val oldRevision = service.getCatalog().revision
+        service.update("CAT", command(active = true))
+        val newRevision = service.getCatalog().revision
 
-        result.isActive shouldBe false
-        saved.captured.isActive shouldBe false
+        oldRevision shouldBe before
+        newRevision shouldBe saved.captured.updatedAt
+        (newRevision > oldRevision) shouldBe true
     }
 
-    test("softDelete 시 이미 비활성인 펫은 save 호출 없이 그대로 반환한다") {
-        val existing = entity("HIDDEN", order = 0, isActive = false)
-        every { repository.findByType("HIDDEN") } returns existing
-
-        val result = service.softDelete("HIDDEN")
-
-        result.isActive shouldBe false
+    test("활성 항목을 비활성화하면 PC004 예외가 발생하고 저장하지 않는다") {
+        every { repository.findByType("CAT") } returns entity("CAT", true)
+        shouldThrow<PetCatalogInvalidException> { service.update("CAT", command(active = false)) }
         verify(exactly = 0) { repository.save(any()) }
     }
 
-    test("create는 colorCode를 entity에 저장한다") {
-        every { repository.findAll() } returns emptyList()
-        val saved = slot<PetCatalogEntity>()
-        every { repository.save(capture(saved)) } answers { saved.captured }
-
-        service.create(
-            type = "DOG",
-            name = "강아지",
-            colorCode = "#9B6CFF",
-            isActive = true,
-            displayOrder = 3,
-            levels = sampleLevels(),
-        )
-
-        saved.captured.colorCode shouldBe "#9B6CFF"
+    test("path type과 command type이 다르면 PC004 예외가 발생한다") {
+        every { repository.findByType("CAT") } returns entity("CAT", false)
+        shouldThrow<PetCatalogInvalidException> { service.update("CAT", command("DOG")) }
     }
 
-    test("update는 colorCode를 갱신한다") {
-        val existing = entity("DOG", order = 3, isActive = true, colorCode = "#000000")
-        every { repository.findByType("DOG") } returns existing
-        val saved = slot<PetCatalogEntity>()
-        every { repository.save(capture(saved)) } answers { saved.captured }
-        every { repository.findAll() } answers { listOf(saved.captured) }
-
-        val result =
-            service.update(
-                type = "DOG",
-                name = "강아지",
-                colorCode = "#9B6CFF",
-                isActive = true,
-                displayOrder = 3,
-                levels = sampleLevels(),
-            )
-
-        saved.captured.colorCode shouldBe "#9B6CFF"
-        result.colorCode shouldBe "#9B6CFF"
+    test("수정 대상이 없으면 canonical type을 담은 PC001 예외가 발생한다") {
+        every { repository.findByType("CAT") } returns null
+        shouldThrow<PetCatalogNotFoundException> { service.update(" cat ", command()) }
     }
 
-    test("create/update/softDelete 후 versionCache가 invalidate되어 currentVersion이 다시 조회한다") {
-        // 첫 currentVersion으로 캐시 채움
-        val initialVersion = Instant.parse("2026-05-01T00:00:00Z")
-        every { repository.findAll() } returns listOf(entity("CAT", order = 0, updatedAt = initialVersion))
-        service.currentVersion() shouldBe initialVersion
+    test("활성 여부 확인은 canonical type을 조회하고 비활성이면 PC003 예외가 발생한다") {
+        every { repository.findByType("CAT") } returns entity("CAT", false)
+        shouldThrow<PetCatalogInactiveException> { service.requireActive(" cat ") }
+    }
 
-        // softDelete 동작
-        every { repository.findByType("CAT") } returns entity("CAT", order = 0, isActive = true, updatedAt = initialVersion)
-        val newVersion = Instant.parse("2026-05-04T12:00:00Z")
-        every { repository.save(any()) } returns entity("CAT", order = 0, isActive = false, updatedAt = newVersion)
-        every { repository.findAll() } returns listOf(entity("CAT", order = 0, isActive = false, updatedAt = newVersion))
-
-        service.softDelete("CAT")
-
-        // 캐시가 invalidate되어 새 version 반환
-        service.currentVersion() shouldBe newVersion
+    test("랜덤 선택은 제외 type도 canonicalize하고 활성 목록만 사용한다") {
+        every { repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc() } returns listOf(entity("CAT"), entity("DOG"))
+        service.pickRandomActiveExcluding(listOf(" cat ")) shouldBe "DOG"
     }
 })

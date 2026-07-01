@@ -16,3 +16,7 @@ class PetCatalogDuplicateKeyException(
 class PetCatalogInactiveException(
     data: Any? = null,
 ) : PetCatalogException(ErrorCode.PET_CATALOG_INACTIVE, data)
+
+class PetCatalogInvalidException(
+    data: Any? = null,
+) : PetCatalogException(ErrorCode.PET_CATALOG_INVALID, data)

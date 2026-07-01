@@ -7,7 +7,6 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.application.service.AuthService
-import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
 import notbe.tmtm.ddanddanserver.domain.model.auth.AuthResult
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
@@ -50,9 +49,6 @@ class AuthControllerIntegrationTest {
         @Bean
         fun authService(): AuthService = mockk(relaxed = true)
 
-        // PetCatalogVersionFilter가 글로벌이라 컨텍스트에 PetCatalogService도 필요
-        @Bean
-        fun petCatalogService(): PetCatalogService = mockk(relaxed = true)
     }
 
     @Autowired

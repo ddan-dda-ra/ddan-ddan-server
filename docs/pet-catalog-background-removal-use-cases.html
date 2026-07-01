@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>펫 카탈로그 배경 제거 — 서버 동작 유즈 케이스</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #637087;
+      --paper: #f5f8ff;
+      --surface: #ffffff;
+      --line: #dbe3f1;
+      --blue: #4e95ff;
+      --violet: #7667e8;
+      --mint: #46d997;
+      --pink: #e96fee;
+      --amber: #e6a23c;
+      --danger: #d95765;
+      --navy: #223154;
+      --shadow: 0 18px 50px rgba(34, 49, 84, .10);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 9% 4%, rgba(253, 133, 255, .16), transparent 22rem),
+        radial-gradient(circle at 92% 16%, rgba(78, 149, 255, .17), transparent 26rem),
+        var(--paper);
+      font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      line-height: 1.62;
+    }
+
+    a { color: inherit; }
+
+    .page {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 40px 0 90px;
+    }
+
+    .utility {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 44px;
+      color: var(--muted);
+      font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--navy);
+    }
+
+    .brand-mark {
+      display: grid;
+      grid-template-columns: repeat(2, 8px);
+      gap: 3px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+    }
+
+    .brand-mark i { width: 8px; height: 8px; border-radius: 50%; }
+    .brand-mark i:nth-child(1) { background: var(--pink); }
+    .brand-mark i:nth-child(2) { background: var(--mint); }
+    .brand-mark i:nth-child(3) { background: var(--blue); }
+    .brand-mark i:nth-child(4) { background: var(--violet); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+      gap: 34px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--violet);
+      font: 800 13px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      margin-top: 0;
+      font-family: "Arial Rounded MT Bold", Pretendard, "Apple SD Gothic Neo", sans-serif;
+      letter-spacing: -.035em;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin-bottom: 20px;
+      font-size: clamp(44px, 7vw, 86px);
+      line-height: .98;
+    }
+
+    .hero-copy {
+      max-width: 720px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .verdict {
+      position: relative;
+      overflow: hidden;
+      padding: 26px;
+      color: white;
+      background: var(--navy);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .verdict::after {
+      content: "";
+      position: absolute;
+      right: -35px;
+      bottom: -60px;
+      width: 180px;
+      height: 180px;
+      border: 24px solid rgba(70, 217, 151, .2);
+      border-radius: 50%;
+    }
+
+    .verdict-label {
+      display: block;
+      margin-bottom: 14px;
+      color: #aebbd5;
+      font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .1em;
+    }
+
+    .verdict strong {
+      display: block;
+      position: relative;
+      z-index: 1;
+      font-size: 27px;
+      line-height: 1.25;
+    }
+
+    .verdict p {
+      position: relative;
+      z-index: 1;
+      margin: 14px 0 0;
+      color: #cbd4e7;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 38px 0 80px;
+    }
+
+    .status-card {
+      min-height: 154px;
+      padding: 20px;
+      background: rgba(255, 255, 255, .78);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      backdrop-filter: blur(10px);
+    }
+
+    .status-card .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 28px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+    .done { color: #13895b; }
+    .pending { color: #a96810; }
+    .unknown { color: #6b7280; }
+    .status-card strong { display: block; font-size: 17px; }
+    .status-card small { display: block; margin-top: 5px; color: var(--muted); }
+
+    section { margin-top: 82px; }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 26px;
+      align-items: start;
+      margin-bottom: 28px;
+      padding-top: 18px;
+      border-top: 2px solid var(--navy);
+    }
+
+    .section-index {
+      color: var(--violet);
+      font: 800 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .08em;
+    }
+
+    h2 { margin-bottom: 8px; font-size: clamp(30px, 4vw, 46px); line-height: 1.08; }
+    .section-head p { max-width: 760px; margin: 0; color: var(--muted); }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      position: relative;
+      padding: 28px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .pipeline::before {
+      content: "";
+      position: absolute;
+      top: 65px;
+      left: 8%;
+      right: 8%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--blue), var(--violet), var(--mint));
+      opacity: .35;
+    }
+
+    .pipe-step { position: relative; z-index: 1; min-width: 0; }
+    .pipe-node {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      margin-bottom: 18px;
+      color: white;
+      background: var(--navy);
+      border: 6px solid white;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px var(--line);
+      font: 800 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .pipe-step h3 { margin-bottom: 6px; font-size: 17px; }
+    .pipe-step p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .field-river {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .field {
+      padding: 7px 11px;
+      color: #31405f;
+      background: #edf3ff;
+      border: 1px solid #d9e5fb;
+      border-radius: 999px;
+      font: 700 12px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .field.color { background: #e9fbf3; border-color: #c9eedc; }
+    .field.removed {
+      position: relative;
+      color: #9a6670;
+      background: #fff0f2;
+      border-color: #f4ccd2;
+      text-decoration: line-through 2px;
+      transform: rotate(-3deg) translateY(5px);
+    }
+
+    .use-cases { display: grid; gap: 18px; }
+
+    .use-case {
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr);
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .use-case-tag {
+      padding: 24px 18px;
+      color: white;
+      background: var(--navy);
+      font: 800 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .04em;
+    }
+
+    .use-case-body { padding: 24px 28px 28px; }
+    .use-case h3 { margin-bottom: 8px; font-size: 22px; }
+    .use-case .lead { margin: 0 0 18px; color: var(--muted); }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      overflow: hidden;
+      margin-top: 16px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .step { padding: 16px; background: #fbfcff; font-size: 13px; }
+    .step b { display: block; margin-bottom: 5px; color: var(--violet); font: 800 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .split > * { min-width: 0; }
+
+    pre {
+      overflow: auto;
+      max-width: 100%;
+      margin: 0;
+      padding: 22px;
+      color: #dce8ff;
+      background: #1d2945;
+      border-radius: 16px;
+      font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
+      tab-size: 2;
+    }
+
+    .code-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .comment { color: #8fa2c7; }
+    .key { color: #9bc3ff; }
+    .value { color: #8fe0b9; }
+    .removed-line { color: #ff9dac; text-decoration: line-through; opacity: .75; }
+
+    .matrix-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+    table { width: 100%; min-width: 820px; border-collapse: collapse; background: var(--surface); }
+    th, td { padding: 17px 18px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); background: #f7f9fd; font-size: 12px; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 800; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .badge.green { color: #087047; background: #ddf7eb; }
+    .badge.amber { color: #8a550c; background: #fff0d3; }
+    .badge.gray { color: #546074; background: #edf0f5; }
+
+    .callouts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .callout {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--blue);
+      border-radius: 16px;
+    }
+    .callout.warn { border-top-color: var(--amber); }
+    .callout.danger { border-top-color: var(--danger); }
+    .callout h3 { margin-bottom: 9px; font-size: 18px; }
+    .callout p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .evidence {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .evidence-card {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+    .evidence-card h3 { margin-bottom: 14px; font-size: 18px; }
+    .evidence-card ul { margin: 0; padding-left: 19px; color: var(--muted); }
+    .evidence-card code { color: var(--violet); font-weight: 800; }
+
+    .final-check {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 28px;
+      align-items: center;
+      padding: 34px;
+      color: white;
+      background: linear-gradient(135deg, #223154, #3b3f79);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+    }
+    .final-check h2 { margin-bottom: 12px; }
+    .final-check p { margin: 0; color: #d0d8eb; }
+    .checklist { display: grid; gap: 9px; }
+    .check-item { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+    .check-icon { color: #77e8b3; font-weight: 900; }
+    .check-icon.wait { color: #ffd080; }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 34px;
+      padding-top: 18px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+    @media (max-width: 900px) {
+      .hero, .final-check { grid-template-columns: 1fr; }
+      .status-grid { grid-template-columns: 1fr 1fr; }
+      .pipeline { grid-template-columns: 1fr; }
+      .pipeline::before { top: 45px; bottom: 45px; left: 47px; right: auto; width: 3px; height: auto; }
+      .pipe-step { padding-left: 55px; min-height: 84px; }
+      .pipe-node { position: absolute; left: 0; top: 0; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .callouts { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .page { width: min(100% - 24px, 1180px); padding-top: 24px; }
+      .utility { align-items: flex-start; flex-direction: column; margin-bottom: 30px; }
+      h1 { font-size: 44px; }
+      .status-grid, .split, .evidence { grid-template-columns: 1fr; }
+      .section-head { grid-template-columns: 1fr; gap: 8px; }
+      .use-case { grid-template-columns: 1fr; }
+      .use-case-tag { padding: 12px 20px; }
+      .steps { grid-template-columns: 1fr; }
+      footer { flex-direction: column; }
+    }
+
+    @media print {
+      body { background: white; }
+      .page { width: 100%; padding: 0; }
+      .verdict, .final-check, pre { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .use-case, .callout, .evidence-card { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="utility">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        ddan-ddan / server behavior report
+      </div>
+      <span>develop · ddc6ba7 · 2026-06-30</span>
+    </div>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Pet catalog / backgrounds removal</p>
+        <h1>배경은 서버를<br>떠났습니다.</h1>
+        <p class="hero-copy">펫 카탈로그 응답에서 배경 URL을 제거하고, 클라이언트가 <strong>colorCode</strong>로 전용 배경을 그리도록 책임을 이동한 작업을 코드·API·DB·운영 유즈 케이스로 정리했습니다.</p>
+      </div>
+      <aside class="verdict" aria-label="최종 판단">
+        <span class="verdict-label">VERDICT</span>
+        <strong>dev·prod 반영과 DB 정리 완료.</strong>
+        <p>두 환경 모두 신버전 배포 후 backgrounds 8건을 제거했고, name 필드와 전체 문서 수를 보존했습니다.</p>
+      </aside>
+    </header>
+
+    <div class="status-grid" aria-label="작업 상태 요약">
+      <div class="status-card">
+        <span class="status done"><i class="dot"></i> 완료</span>
+        <strong>develop 반영</strong>
+        <small>commit ddc6ba7</small>
+      </div>
+      <div class="status-card">
+        <span class="status done"><i class="dot"></i> 완료</span>
+        <strong>API 계약 제거</strong>
+        <small>일반·관리자 요청/응답</small>
+      </div>
+      <div class="status-card">
+        <span class="status done"><i class="dot"></i> 완료</span>
+        <strong>운영 배포</strong>
+        <small>dev · prod 신버전 확인</small>
+      </div>
+      <div class="status-card">
+        <span class="status done"><i class="dot"></i> 완료</span>
+        <strong>DB 물리 정리</strong>
+        <small>각 환경 8건, 잔여 0</small>
+      </div>
+    </div>
+
+    <section id="flow">
+      <div class="section-head">
+        <span class="section-index">01 / DATA FLOW</span>
+        <div>
+          <h2>필드는 어디에서 사라지는가</h2>
+          <p>DB에 과거 <code>backgrounds</code>가 남아 있어도 새 엔티티가 이를 모델링하지 않고, 명시적인 도메인→응답 변환을 거치므로 클라이언트 JSON에는 포함되지 않습니다.</p>
+        </div>
+      </div>
+
+      <div class="pipeline" aria-label="펫 카탈로그 데이터 흐름">
+        <div class="pipe-step">
+          <span class="pipe-node">01</span>
+          <h3>MongoDB</h3>
+          <p><code>pet_catalog</code>에서 활성 문서를 조회합니다.</p>
+        </div>
+        <div class="pipe-step">
+          <span class="pipe-node">02</span>
+          <h3>Entity</h3>
+          <p><code>PetCatalogEntity</code>에는 배경 필드가 없습니다.</p>
+        </div>
+        <div class="pipe-step">
+          <span class="pipe-node">03</span>
+          <h3>Domain</h3>
+          <p><code>PetCatalogItem</code>도 색상과 레벨 미디어만 유지합니다.</p>
+        </div>
+        <div class="pipe-step">
+          <span class="pipe-node">04</span>
+          <h3>Response DTO</h3>
+          <p>일반·관리자 DTO 모두 배경 URL을 직렬화하지 않습니다.</p>
+        </div>
+        <div class="pipe-step">
+          <span class="pipe-node">05</span>
+          <h3>Client</h3>
+          <p><code>colorCode</code>를 사용해 펫별 배경을 직접 구성합니다.</p>
+        </div>
+        <div class="field-river" style="grid-column: 1 / -1">
+          <span class="field">type</span>
+          <span class="field">name</span>
+          <span class="field color">colorCode → client background</span>
+          <span class="field">isActive</span>
+          <span class="field">displayOrder</span>
+          <span class="field">levels</span>
+          <span class="field removed">backgrounds</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="use-cases">
+      <div class="section-head">
+        <span class="section-index">02 / USE CASES</span>
+        <div>
+          <h2>실제 동작을 사용자 흐름으로 보기</h2>
+          <p>앱 실행부터 관리자 변경, 레거시 DB 문서 처리까지 다섯 가지 흐름으로 정리했습니다.</p>
+        </div>
+      </div>
+
+      <div class="use-cases">
+        <article class="use-case">
+          <div class="use-case-tag">UC-01<br>앱 카탈로그 조회</div>
+          <div class="use-case-body">
+            <h3>사용자가 앱을 열어 펫 목록을 본다</h3>
+            <p class="lead">클라이언트는 활성 펫만 받고, 서버 배경 URL 대신 각 펫의 <code>colorCode</code>로 화면 배경을 생성합니다.</p>
+            <div class="steps">
+              <div class="step"><b>REQUEST</b><code>GET /v1/pets/catalog</code></div>
+              <div class="step"><b>QUERY</b><code>isActive=true</code>, 표시 순서 정렬</div>
+              <div class="step"><b>RESPONSE</b>색상 + 레벨 미디어, 배경 없음</div>
+              <div class="step"><b>CLIENT</b><code>colorCode</code> 기반 배경 렌더링</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="use-case">
+          <div class="use-case-tag">UC-02<br>캐시 갱신</div>
+          <div class="use-case-body">
+            <h3>클라이언트가 카탈로그 변경을 감지한다</h3>
+            <p class="lead">응답 body의 <code>revision</code>을 저장값과 비교합니다. 값이 달라지면 새 카탈로그를 반영하고 URL이 달라진 에셋만 다운로드합니다.</p>
+            <div class="steps">
+              <div class="step"><b>REVISION SOURCE</b>활성 카탈로그 중 최대 <code>updatedAt</code></div>
+              <div class="step"><b>RESPONSE</b>항상 <code>200</code>과 전체 body</div>
+              <div class="step"><b>COMPARE</b>저장한 <code>revision</code>과 비교</div>
+              <div class="step"><b>CLIENT ACTION</b>변경된 URL의 에셋만 다운로드</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="use-case">
+          <div class="use-case-tag">UC-03<br>관리자 CRUD</div>
+          <div class="use-case-body">
+            <h3>운영자가 펫을 생성하거나 수정한다</h3>
+            <p class="lead">관리자 POST/PUT 요청에서도 배경 객체를 받지 않습니다. 색상은 <code>#RRGGBB</code> 형식으로 검증하고, 레벨별 이미지·Lottie URL은 계속 관리합니다.</p>
+            <div class="steps">
+              <div class="step"><b>CREATE</b><code>POST /v1/admin/pet-catalog</code></div>
+              <div class="step"><b>UPDATE</b><code>PUT /v1/admin/pet-catalog/{type}</code></div>
+              <div class="step"><b>ACTIVATE</b><code>false → true</code>만 허용</div>
+              <div class="step"><b>OUTPUT</b>모든 관리자 응답에도 배경 없음</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="use-case">
+          <div class="use-case-tag">UC-04<br>레거시 DB</div>
+          <div class="use-case-body">
+            <h3>기존 문서에 backgrounds가 남아 있다</h3>
+            <p class="lead">신버전 코드가 먼저 배포되면 과거 MongoDB 필드는 응답으로 새어 나오지 않습니다. 다만 “DB에서도 제거”라는 완료 조건을 만족하려면 안전장치가 있는 수동 migration을 실행해야 합니다.</p>
+            <div class="steps">
+              <div class="step"><b>READ</b>미매핑 과거 필드는 응답 DTO에 전달되지 않음</div>
+              <div class="step"><b>MIGRATION</b><code>$unset backgrounds</code></div>
+              <div class="step"><b>VERSION</b><code>updatedAt</code>을 같은 시각으로 갱신</div>
+              <div class="step"><b>VERIFY</b>잔여 0건, 전체 문서 수 불변</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="use-case">
+          <div class="use-case-tag">UC-05<br>초기 시딩</div>
+          <div class="use-case-body">
+            <h3>비어 있는 DB로 서버가 처음 시작한다</h3>
+            <p class="lead">컬렉션이 비어 있을 때만 기본 5종을 생성합니다. 신규 문서에는 처음부터 <code>backgrounds</code>가 없으며, DB에 데이터가 하나라도 있으면 시더는 기존 구성을 건드리지 않습니다.</p>
+            <div class="steps">
+              <div class="step"><b>CHECK</b><code>repository.count() &gt; 0</code>이면 종료</div>
+              <div class="step"><b>EMPTY DB</b>기본 5종 insert</div>
+              <div class="step"><b>FIELDS</b>색상·순서·levels 저장</div>
+              <div class="step"><b>NO UPDATE</b>기존 문서의 <code>updatedAt</code> 수정 없음</div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="contract">
+      <div class="section-head">
+        <span class="section-index">03 / CONTRACT</span>
+        <div>
+          <h2>클라이언트가 받는 JSON</h2>
+          <p>배경의 책임은 URL 세 개에서 색상 한 개로 단순화됩니다. 레벨별 펫 이미지와 애니메이션 URL은 그대로 유지됩니다.</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div>
+          <div class="code-label"><span>GET /v1/pets/catalog</span><span>200 OK</span></div>
+          <pre><code>{
+  <span class="key">"version"</span>: <span class="value">"2026-06-30T08:30:00Z"</span>,
+  <span class="key">"pets"</span>: [{
+    <span class="key">"type"</span>: <span class="value">"CAT"</span>,
+    <span class="key">"name"</span>: <span class="value">"고양이"</span>,
+    <span class="key">"colorCode"</span>: <span class="value">"#FD85FF"</span>,
+    <span class="key">"isActive"</span>: true,
+    <span class="key">"displayOrder"</span>: 0,
+    <span class="key">"levels"</span>: {
+      <span class="key">"1"</span>: {
+        <span class="key">"imageUrl"</span>: <span class="value">".../cat/level1.png"</span>,
+        <span class="key">"lottieDefaultUrl"</span>: <span class="value">"..._default.json"</span>,
+        <span class="key">"lottiePlayEatUrl"</span>: <span class="value">"..._play_eat.json"</span>
+      }
+    }
+  }]
+}
+
+<span class="removed-line">"backgrounds": { ... }</span> <span class="comment">// 존재하지 않음</span></code></pre>
+        </div>
+        <div>
+          <div class="code-label"><span>관리자 생성 요청</span><span>backgrounds 불필요</span></div>
+          <pre><code>{
+  <span class="key">"type"</span>: <span class="value">"CAT"</span>,
+  <span class="key">"name"</span>: <span class="value">"고양이"</span>,
+  <span class="key">"colorCode"</span>: <span class="value">"#FD85FF"</span>,
+  <span class="key">"isActive"</span>: true,
+  <span class="key">"displayOrder"</span>: 0,
+  <span class="key">"levels"</span>: {
+    <span class="key">"1"</span>: {
+      <span class="key">"imageUrl"</span>: <span class="value">"https://.../level1.png"</span>,
+      <span class="key">"lottieDefaultUrl"</span>: <span class="value">"https://.../default.json"</span>,
+      <span class="key">"lottiePlayEatUrl"</span>: <span class="value">"https://.../play-eat.json"</span>
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="matrix">
+      <div class="section-head">
+        <span class="section-index">04 / COMPLETION MATRIX</span>
+        <div>
+          <h2>완료 범위와 남은 운영 작업</h2>
+          <p>“코드에서 제거”와 “운영 데이터에서 제거”는 서로 다른 완료 조건입니다.</p>
+        </div>
+      </div>
+
+      <div class="matrix-wrap">
+        <table>
+          <thead>
+            <tr><th>영역</th><th>적용 내용</th><th>상태</th><th>판단 근거</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>일반 API</td><td><code>pets[].backgrounds</code> 제거</td><td><span class="badge green">완료</span></td><td>응답 DTO와 통합 테스트</td></tr>
+            <tr><td>관리자 API</td><td>요청·목록·생성·수정·삭제 응답에서 제거</td><td><span class="badge green">완료</span></td><td>Admin DTO·Controller·통합 테스트</td></tr>
+            <tr><td>도메인/엔티티</td><td>배경 타입과 Mongo 필드 모델 제거</td><td><span class="badge green">완료</span></td><td><code>PetCatalogItem</code>, <code>PetCatalogEntity</code></td></tr>
+            <tr><td>시더</td><td>신규 문서에서 배경 URL 생성 중단</td><td><span class="badge green">완료</span></td><td>기존 5종·빈 DB 초기화 방식 유지</td></tr>
+            <tr><td>OpenAPI</td><td>배경 스키마 제거, 관리자 오류 응답 정합화</td><td><span class="badge green">완료</span></td><td>스냅샷 검색 결과 0건</td></tr>
+            <tr><td>운영 배포</td><td>실행 중인 모든 인스턴스를 신버전으로 교체</td><td><span class="badge green">완료</span></td><td>dev·prod commit ddc6ba7 이미지 확인</td></tr>
+            <tr><td>기존 DB 문서</td><td><code>backgrounds</code> 필드 물리 삭제</td><td><span class="badge green">완료</span></td><td>환경별 8건 제거, 잔여 0·전체 8 유지</td></tr>
+            <tr><td>기존 CDN 객체</td><td>과거 배경 파일 삭제</td><td><span class="badge gray">범위 제외</span></td><td>복구 가능성을 위해 의도적으로 유지</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="risks">
+      <div class="section-head">
+        <span class="section-index">05 / NOTES</span>
+        <div>
+          <h2>운영자가 알아야 할 세 가지</h2>
+          <p>코드가 맞아도 순서가 틀리면 롤링 배포 중 구버전 인스턴스가 실패할 수 있습니다.</p>
+        </div>
+      </div>
+
+      <div class="callouts">
+        <article class="callout">
+          <h3>안전 순서 완료</h3>
+          <p>각 환경에서 신버전 배포와 API smoke를 먼저 통과한 뒤 백업·migration·잔여 검증을 순서대로 수행했습니다.</p>
+        </article>
+        <article class="callout">
+          <h3>name 보존 확인</h3>
+          <p>dev와 prod 모두 migration 전후 <code>name</code> 불일치가 0건이며, 전체 카탈로그 문서 수도 8건으로 유지됐습니다.</p>
+        </article>
+        <article class="callout">
+          <h3>문서 한 곳은 정정 필요</h3>
+          <p>현재 runbook의 “기본 8종·SVG” 표현은 시더 변경 제외 결정과 맞지 않습니다. 실제 코드는 기본 5종·PNG를 유지합니다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <div class="section-head">
+        <span class="section-index">06 / EVIDENCE</span>
+        <div>
+          <h2>확인한 코드와 테스트</h2>
+          <p>2026-06-30 현재 <code>develop</code>의 커밋 <code>ddc6ba7</code> 기준입니다.</p>
+        </div>
+      </div>
+
+      <div class="evidence">
+        <article class="evidence-card">
+          <h3>정적 확인</h3>
+          <ul>
+            <li><code>src/main/kotlin</code>에서 <code>backgrounds</code> 검색 결과 0건</li>
+            <li><code>docs/api/openapi.yaml</code>에서 배경 스키마 검색 결과 0건</li>
+            <li>일반·관리자 응답 DTO가 명시적으로 남은 필드만 매핑</li>
+          </ul>
+        </article>
+        <article class="evidence-card">
+          <h3>자동 테스트</h3>
+          <ul>
+            <li>일반 카탈로그 응답의 <code>backgrounds</code> 부재 검증</li>
+            <li>관리자 GET/POST/PUT/DELETE 응답의 부재 검증</li>
+            <li>관련 통합 테스트 재실행: <strong>BUILD SUCCESSFUL</strong></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="final-check">
+        <div>
+          <p class="eyebrow" style="color:#8fe0b9">Final answer</p>
+          <h2>코드·dev·prod·DB까지 배경 제거가 완료됐습니다.</h2>
+          <p>두 환경 모두 backgrounds 잔여 0건, 전체 문서 수 8건 유지, name 보존을 확인했습니다.</p>
+        </div>
+        <div class="checklist" aria-label="최종 체크리스트">
+          <div class="check-item"><span class="check-icon">✓</span><span>일반 API 응답 제거</span></div>
+          <div class="check-item"><span class="check-icon">✓</span><span>관리자 요청·응답 제거</span></div>
+          <div class="check-item"><span class="check-icon">✓</span><span>도메인·엔티티·시더 제거</span></div>
+          <div class="check-item"><span class="check-icon">✓</span><span>dev·prod 운영 배포 확인</span></div>
+          <div class="check-item"><span class="check-icon">✓</span><span>MongoDB migration 및 백업 완료</span></div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>Generated from ddan-ddan-server source and integration tests.</span>
+      <span>파일: docs/pet-catalog-background-removal-use-cases.html</span>
+    </footer>
+  </main>
+</body>
+</html>

@@ -22,6 +22,24 @@ import java.io.IOException
 class WebExceptionHandler {
     val logger = logger()
 
+    @ExceptionHandler(value = [PetCatalogNotFoundException::class])
+    fun handlePetCatalogNotFound(exception: PetCatalogNotFoundException): ResponseEntity<ErrorResponse> =
+        petCatalogError(HttpStatus.NOT_FOUND, exception)
+
+    @ExceptionHandler(value = [PetCatalogDuplicateKeyException::class, PetCatalogInactiveException::class])
+    fun handlePetCatalogConflict(exception: PetCatalogException): ResponseEntity<ErrorResponse> =
+        petCatalogError(HttpStatus.CONFLICT, exception)
+
+    @ExceptionHandler(value = [PetCatalogInvalidException::class])
+    fun handlePetCatalogInvalid(exception: PetCatalogInvalidException): ResponseEntity<ErrorResponse> =
+        petCatalogError(HttpStatus.BAD_REQUEST, exception)
+
+    private fun petCatalogError(
+        status: HttpStatus,
+        exception: PetCatalogException,
+    ): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(status).body(ErrorResponse.fromErrorCode(exception.errorCode, exception.data))
+
     @ExceptionHandler(value = [CustomException::class])
     fun handleDomainException(
         exception: CustomException,

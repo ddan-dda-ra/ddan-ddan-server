@@ -5,9 +5,9 @@ import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 
 interface PetCatalogRepository : MongoRepository<PetCatalogEntity, ObjectId> {
-    fun findAllByIsActiveTrueOrderByDisplayOrderAsc(): List<PetCatalogEntity>
+    fun findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc(): List<PetCatalogEntity>
 
-    fun findAllByOrderByDisplayOrderAsc(): List<PetCatalogEntity>
+    fun findAllByOrderByDisplayOrderAscTypeAsc(): List<PetCatalogEntity>
 
     fun findByType(type: String): PetCatalogEntity?
 

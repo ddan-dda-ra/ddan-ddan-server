@@ -1,6 +1,5 @@
 package notbe.tmtm.ddanddanserver.infrastructure.database.entity
 
-import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import org.bson.types.ObjectId
@@ -24,13 +23,13 @@ data class PetCatalogEntity(
     val updatedAt: Instant = Instant.now(),
 ) {
     fun toDomain(): PetCatalogItem =
-        PetCatalogItem(
+        PetCatalogItem.create(
             type = type,
             name = name,
             colorCode = colorCode,
             isActive = isActive,
             displayOrder = displayOrder,
-            levels = levels.mapValues { it.value.toDomain() },
+            levels = levels.map { (level, value) -> value.toDomain(level) },
         )
 
     companion object {
@@ -41,7 +40,7 @@ data class PetCatalogEntity(
                 colorCode = item.colorCode,
                 isActive = item.isActive,
                 displayOrder = item.displayOrder,
-                levels = item.levels.mapValues { PetCatalogLevelEntity.fromDomain(it.value) },
+                levels = item.levels.associate { it.level to PetCatalogLevelEntity.fromDomain(it) },
             )
     }
 }
@@ -51,8 +50,9 @@ data class PetCatalogLevelEntity(
     val lottieDefaultUrl: String,
     val lottiePlayEatUrl: String,
 ) {
-    fun toDomain(): PetCatalogLevel =
+    fun toDomain(level: Int): PetCatalogLevel =
         PetCatalogLevel(
+            level = level,
             imageUrl = imageUrl,
             lottieDefaultUrl = lottieDefaultUrl,
             lottiePlayEatUrl = lottiePlayEatUrl,
@@ -67,9 +67,3 @@ data class PetCatalogLevelEntity(
             )
     }
 }
-
-fun List<PetCatalogEntity>.toDomain(): PetCatalog =
-    PetCatalog(
-        version = this.maxOfOrNull { it.updatedAt } ?: Instant.EPOCH,
-        pets = this.map { it.toDomain() },
-    )

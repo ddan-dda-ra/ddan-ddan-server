@@ -2,6 +2,7 @@ package notbe.tmtm.ddanddanserver.application.service
 
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogDuplicateKeyException
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogInactiveException
+import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogInvalidException
 import notbe.tmtm.ddanddanserver.domain.exception.PetCatalogNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalog
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
@@ -11,138 +12,94 @@ import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelE
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
-import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.atomic.AtomicReference
+
+data class UpsertPetCatalogCommand(
+    val type: String,
+    val name: String,
+    val colorCode: String,
+    val isActive: Boolean,
+    val displayOrder: Int,
+    val levels: List<PetCatalogLevel>,
+)
 
 @Service
 class PetCatalogService(
     private val repository: PetCatalogRepository,
+    private val assetUrlPolicy: PetCatalogAssetUrlPolicy,
 ) {
-    private val versionCache = AtomicReference<CachedVersion?>()
-
-    fun getActiveCatalog(): PetCatalog {
-        val entities: List<PetCatalogEntity> = repository.findAllByIsActiveTrueOrderByDisplayOrderAsc()
+    fun getCatalog(): PetCatalog {
+        val entities = repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc()
         return PetCatalog(
-            version = currentVersion(),
+            revision = entities.maxOfOrNull { it.updatedAt } ?: Instant.EPOCH,
             pets = entities.map { it.toDomain() },
         )
     }
 
-    fun currentVersion(): Instant {
+    fun getAllForAdmin(): List<PetCatalogItem> =
+        repository.findAllByOrderByDisplayOrderAscTypeAsc().map { it.toDomain() }
+
+    fun create(command: UpsertPetCatalogCommand): PetCatalogItem {
+        val item = command.toDomain()
         val now = Instant.now()
-        val cached = versionCache.get()
-        if (cached != null && Duration.between(cached.cachedAt, now) < CACHE_TTL) {
-            return cached.version
+        val entity =
+            PetCatalogEntity(
+                type = item.type,
+                name = item.name,
+                colorCode = item.colorCode,
+                isActive = item.isActive,
+                displayOrder = item.displayOrder,
+                levels = item.levels.associate { it.level to PetCatalogLevelEntity.fromDomain(it) },
+                createdAt = now,
+                updatedAt = now,
+            )
+        return try {
+            repository.save(entity).toDomain()
+        } catch (exception: DuplicateKeyException) {
+            throw PetCatalogDuplicateKeyException(item.type)
         }
-        val fresh =
-            repository.findAll().maxOfOrNull { it.updatedAt }
-                ?: Instant.EPOCH
-        if (!versionCache.compareAndSet(cached, CachedVersion(version = fresh, cachedAt = now))) {
-            return versionCache.get()?.version ?: fresh
-        }
-        return fresh
-    }
-
-    // --- Admin operations ---
-
-    fun getAllForAdmin(): List<PetCatalogItem> = repository.findAllByOrderByDisplayOrderAsc().map { it.toDomain() }
-
-    fun create(
-        type: String,
-        name: String,
-        colorCode: String,
-        isActive: Boolean,
-        displayOrder: Int,
-        levels: Map<Int, PetCatalogLevel>,
-    ): PetCatalogItem {
-        val now = Instant.now()
-        val saved =
-            try {
-                repository.save(
-                    PetCatalogEntity(
-                        type = type,
-                        name = name,
-                        colorCode = colorCode,
-                        isActive = isActive,
-                        displayOrder = displayOrder,
-                        levels = levels.mapValues { PetCatalogLevelEntity.fromDomain(it.value) },
-                        createdAt = now,
-                        updatedAt = now,
-                    ),
-                )
-            } catch (e: DuplicateKeyException) {
-                // DB의 unique index가 race를 차단 — 이를 도메인 예외로 변환
-                throw PetCatalogDuplicateKeyException(type)
-            }
-        invalidateVersionCache()
-        return saved.toDomain()
     }
 
     fun update(
-        type: String,
-        name: String,
-        colorCode: String,
-        isActive: Boolean,
-        displayOrder: Int,
-        levels: Map<Int, PetCatalogLevel>,
+        pathType: String,
+        command: UpsertPetCatalogCommand,
     ): PetCatalogItem {
-        val existing = repository.findByType(type) ?: throw PetCatalogNotFoundException(type)
-        val updated =
-            repository.save(
-                existing.copy(
-                    name = name,
-                    colorCode = colorCode,
-                    isActive = isActive,
-                    displayOrder = displayOrder,
-                    levels = levels.mapValues { PetCatalogLevelEntity.fromDomain(it.value) },
-                    updatedAt = Instant.now(),
-                ),
-            )
-        invalidateVersionCache()
-        return updated.toDomain()
+        val canonicalPathType = PetCatalogItem.canonicalizeType(pathType)
+        val existing = repository.findByType(canonicalPathType) ?: throw PetCatalogNotFoundException(canonicalPathType)
+        if (PetCatalogItem.canonicalizeType(command.type) != canonicalPathType) {
+            throw PetCatalogInvalidException("path type은 변경할 수 없습니다")
+        }
+        if (existing.isActive && !command.isActive) {
+            throw PetCatalogInvalidException("활성 카탈로그는 비활성화할 수 없습니다")
+        }
+        val item = command.toDomain()
+        return repository.save(
+            existing.copy(
+                name = item.name,
+                colorCode = item.colorCode,
+                isActive = item.isActive,
+                displayOrder = item.displayOrder,
+                levels = item.levels.associate { it.level to PetCatalogLevelEntity.fromDomain(it) },
+                updatedAt = Instant.now(),
+            ),
+        ).toDomain()
     }
 
     fun pickRandomActiveExcluding(excludedTypes: List<String>): String {
-        val active = repository.findAllByIsActiveTrueOrderByDisplayOrderAsc().map { it.type }
+        val active = repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc().map { it.type }
         require(active.isNotEmpty()) { "no active pet species" }
-        val candidates = active.filterNot { it in excludedTypes }.ifEmpty { active }
-        return candidates.random()
+        val canonicalExcluded = excludedTypes.map(PetCatalogItem::canonicalizeType).toSet()
+        return active.filterNot { it in canonicalExcluded }.ifEmpty { active }.random()
     }
 
-    fun getName(type: String): String? = repository.findByType(type)?.name
+    fun getName(type: String): String? = repository.findByType(PetCatalogItem.canonicalizeType(type))?.name
 
     fun requireActive(type: String) {
-        val entity = repository.findByType(type) ?: throw PetCatalogNotFoundException(type)
-        if (!entity.isActive) throw PetCatalogInactiveException(type)
+        val canonicalType = PetCatalogItem.canonicalizeType(type)
+        val entity = repository.findByType(canonicalType) ?: throw PetCatalogNotFoundException(canonicalType)
+        if (!entity.isActive) throw PetCatalogInactiveException(canonicalType)
     }
 
-    fun softDelete(type: String): PetCatalogItem {
-        val existing = repository.findByType(type) ?: throw PetCatalogNotFoundException(type)
-        if (!existing.isActive) {
-            return existing.toDomain()
-        }
-        val updated =
-            repository.save(
-                existing.copy(
-                    isActive = false,
-                    updatedAt = Instant.now(),
-                ),
-            )
-        invalidateVersionCache()
-        return updated.toDomain()
-    }
-
-    private fun invalidateVersionCache() {
-        versionCache.set(null)
-    }
-
-    private data class CachedVersion(
-        val version: Instant,
-        val cachedAt: Instant,
-    )
-
-    companion object {
-        private val CACHE_TTL: Duration = Duration.ofSeconds(60)
-    }
+    private fun UpsertPetCatalogCommand.toDomain(): PetCatalogItem =
+        PetCatalogItem.create(type, name, colorCode, isActive, displayOrder, levels, assetUrlPolicy::validate)
 }

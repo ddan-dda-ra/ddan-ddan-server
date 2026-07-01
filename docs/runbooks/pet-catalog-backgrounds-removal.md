@@ -31,7 +31,7 @@ db.pet_catalog.find({}, { updated_at: 1 }).sort({ updated_at: -1 }).limit(1)
 
 - `pets[].backgrounds`가 존재하지 않음
 - `colorCode`와 `levels`가 존재함
-- 일반 응답 body의 `version`과 `X-Pet-Catalog-Version` 헤더가 일치함
+- 일반 응답 body의 `revision`이 활성 카탈로그의 max `updated_at`과 일치함
 - 기본 카탈로그 8종과 레벨 SVG/Lottie URL이 유지됨
 
 ## 4. 백업
@@ -75,10 +75,9 @@ db.pet_catalog.find({}, { updated_at: 1 }).sort({ updated_at: -1 }).limit(1)
 - `matchedCount == modifiedCount == 실행 전 대상 문서 수`
 - max `updated_at`이 migration 로그의 `migrationStartedAt`으로 변경됨
 
-최대 60초의 카탈로그 version cache TTL이 지난 뒤 다시 `GET /v1/pets/catalog`를 호출합니다.
+migration 완료 후 다시 `GET /v1/pets/catalog`를 호출합니다.
 
-- body `version`과 `X-Pet-Catalog-Version` 헤더가 동일함
-- 두 값이 새 max `updated_at`과 동일함
+- 응답 body의 `revision`이 활성 카탈로그의 새 max `updated_at`과 동일함
 - 일반/관리자 응답에 `backgrounds`가 없음
 
 필요하면 같은 확인값으로 migration을 다시 실행해 대상 0건인 멱등 상태를 확인합니다. 이때 `PET_CATALOG_MIGRATION_EXPECTED_TARGET=0`으로 변경합니다.

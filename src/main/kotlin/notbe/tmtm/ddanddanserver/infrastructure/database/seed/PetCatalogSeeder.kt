@@ -2,12 +2,12 @@ package notbe.tmtm.ddanddanserver.infrastructure.database.seed
 
 import jakarta.annotation.PostConstruct
 import notbe.tmtm.ddanddanserver.common.util.logger
+import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
+import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogEntity
-import notbe.tmtm.ddanddanserver.infrastructure.database.entity.PetCatalogLevelEntity
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Component
-import java.time.Instant
 
 @Component
 class PetCatalogSeeder(
@@ -16,18 +16,17 @@ class PetCatalogSeeder(
     @PostConstruct
     fun seed() {
         if (repository.count() > 0L) return
-        val now = Instant.now()
         val entities =
             DEFAULT_PETS.mapIndexed { index, pet ->
-                PetCatalogEntity(
+                PetCatalogEntity.fromDomain(
+                    PetCatalogItem.create(
                     type = pet.type,
                     name = pet.name,
                     colorCode = pet.colorCode,
                     isActive = true,
                     displayOrder = index,
                     levels = buildLevels(pet.species),
-                    createdAt = now,
-                    updatedAt = now,
+                    ),
                 )
             }
         try {
@@ -39,10 +38,11 @@ class PetCatalogSeeder(
         }
     }
 
-    private fun buildLevels(species: String): Map<Int, PetCatalogLevelEntity> =
-        (1..MAX_LEVEL).associateWith { level ->
-            PetCatalogLevelEntity(
-                imageUrl = "$CDN_BASE/$species/level$level.png",
+    private fun buildLevels(species: String): List<PetCatalogLevel> =
+        (1..MAX_LEVEL).map { level ->
+            PetCatalogLevel(
+                level = level,
+                imageUrl = "$CDN_BASE/$species/level$level.svg",
                 lottieDefaultUrl = "$CDN_BASE/$species/level${level}_default.json",
                 lottiePlayEatUrl = "$CDN_BASE/$species/level${level}_play_eat.json",
             )

@@ -2,7 +2,6 @@ package notbe.tmtm.ddanddanserver.presentation.controller.admin
 
 import io.mockk.every
 import io.mockk.mockk
-import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
 import notbe.tmtm.ddanddanserver.application.service.UserAdminService
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
@@ -19,6 +18,7 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @WebMvcTest(
@@ -32,9 +32,6 @@ class UserAdminControllerIntegrationTest {
         @Bean
         fun userAdminService(): UserAdminService = mockk(relaxed = true)
 
-        // PetCatalogVersionFilter가 글로벌이라 컨텍스트에 PetCatalogService도 필요
-        @Bean
-        fun petCatalogService(): PetCatalogService = mockk(relaxed = true)
     }
 
     @Autowired
@@ -67,6 +64,7 @@ class UserAdminControllerIntegrationTest {
             .andExpect(jsonPath("$.users[0].tickets").value(3))
             .andExpect(jsonPath("$.users[1].name").value("hardyoon"))
             .andExpect(jsonPath("$.page.totalElements").value(2))
+            .andExpect(header().doesNotExist("X-Pet-Catalog-Version"))
     }
 
     @Test

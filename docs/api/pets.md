@@ -1,5 +1,7 @@
 # 펫 API
 
+> **Breaking change:** 공개 전 카탈로그 v1 계약에서 `revision`을 추가하고 `isActive`, `backgrounds`를 제거했으며 `levels`를 배열로 변경했습니다. 이전 응답 모델과 호환되지 않습니다.
+
 ## 엔드포인트
 
 | Method | Path | 인증 | 설명 |
@@ -23,18 +25,27 @@
 
 `petType`은 카탈로그의 `type` 값을 사용합니다. 클라이언트에 종류를 하드코딩하기보다 카탈로그 응답을 기준으로 선택지를 구성합니다.
 
-## 카탈로그 캐시
+## 카탈로그 동기화
 
-- 응답의 `version`을 저장하고 변경 시 펫 메타데이터와 미디어를 다시 동기화합니다.
-- 각 항목은 `type`, 표시 이름, `colorCode`, 표시 순서와 레벨별 이미지·Lottie URL을 제공합니다.
-- 배경 URL은 카탈로그 계약에 포함되지 않습니다. 클라이언트는 `colorCode`를 기준으로 배경을 생성합니다.
-- 비활성 항목은 일반 카탈로그에서 제외될 수 있습니다.
+- 공개 응답에는 활성 항목만 포함되며 `isActive`, `backgrounds` 필드는 없습니다. endpoint는 항상 `200`과 전체 body를 반환합니다.
+- body의 `revision`은 응답에 포함된 활성 항목들의 `updatedAt` 최댓값을 ISO-8601 문자열로 표현합니다. 활성 항목이 없으면 `1970-01-01T00:00:00Z`입니다.
+- 클라이언트는 저장한 `revision`과 새 응답을 비교합니다. 같으면 기존 catalog와 에셋을 유지하고, 다르면 새 catalog를 저장한 뒤 이전 catalog와 URL을 비교해 URL이 달라진 에셋만 다운로드합니다.
+- 항목 정렬은 `(displayOrder ASC, type ASC)`, `levels`는 `level` 오름차순 배열입니다. 서버 에셋 level은 정확히 `1..5`입니다. 세부 스키마는 [OpenAPI 스냅샷](openapi.yaml)을 확인합니다.
+- `imageUrl`은 `.svg`, `.png`, `.webp`를 지원하며 현재 기준 에셋 형식은 SVG입니다. Lottie URL은 `.json`입니다.
+- 배경은 `backgrounds`가 아니라 uppercase `#RRGGBB` 형식의 `colorCode`를 기준으로 구성합니다.
+
+## 에셋 URL 불변성
+
+- 에셋 콘텐츠를 변경할 때는 versioned path·파일명 또는 query를 사용해 새 URL을 발급합니다.
+- 같은 URL의 CDN 객체를 다른 바이트로 덮어쓰지 않습니다. 서버는 원격 콘텐츠 변경을 자동 감지하지 않습니다.
+- 현재 live URL은 최초 immutable baseline으로 유지하며, 이후 콘텐츠가 바뀌는 시점부터 새 versioned URL을 사용합니다.
 
 ## 성장 API
 
 - 먹이 지급은 사용자 먹이를, 놀아주기는 장난감을 소비합니다.
 - 응답의 `user` 재고와 `pet` 레벨·경험치를 화면 상태의 기준으로 사용합니다.
-- 최대 레벨의 펫은 더 성장시킬 수 없습니다.
+- 펫은 level 5를 초과해 계속 성장할 수 있습니다. 카탈로그의 `1..5`는 성장 상한이 아니라 에셋 단계입니다.
+- 펫 level이 5를 초과하면 level 5 에셋을 사용합니다. 방어적으로는 `level <= pet.level`인 항목 중 가장 큰 level을 선택합니다.
 
 ## 주요 에러
 

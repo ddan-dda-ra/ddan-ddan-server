@@ -118,43 +118,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-    delete:
-      tags:
-      - Admin · 펫 카탈로그
-      summary: 펫 카탈로그 비활성화 (soft delete)
-      operationId: softDelete
-      parameters:
-      - name: type
-        in: path
-        description: 비활성화할 펫 카탈로그 타입
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          description: 비활성화 성공
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/PetCatalogAdminItemResponse"
-        "401":
-          description: 인증 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: 관리자 권한 필요
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: 펫 카탈로그 항목 없음
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
   /v1/users/me/main-pet:
     get:
       tags:
@@ -594,8 +557,7 @@ paths:
       tags:
       - 펫 카탈로그
       summary: 펫 카탈로그 조회
-      description: 활성 펫 목록과 카탈로그 버전 반환. 클라이언트는 응답의 version 또는 X-Pet-Catalog-Version
-        헤더로 stale 캐시 감지 가능.
+      description: 활성 펫 목록과 revision을 항상 200으로 반환합니다.
       operationId: getCatalog
       responses:
         "200":
@@ -609,7 +571,7 @@ paths:
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/PetCatalogResponse"
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/friends/me:
     get:
       tags:
@@ -894,10 +856,11 @@ components:
           format: int32
           minimum: 0
         levels:
-          type: object
-          additionalProperties:
+          type: array
+          items:
             $ref: "#/components/schemas/PetCatalogLevelRequest"
-          minProperties: 1
+          minItems: 5
+          maxItems: 5
       required:
       - colorCode
       - displayOrder
@@ -907,17 +870,26 @@ components:
     PetCatalogLevelRequest:
       type: object
       properties:
+        level:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 5
         imageUrl:
           type: string
+          description: absolute SVG, PNG 또는 WebP URL
           minLength: 1
         lottieDefaultUrl:
           type: string
+          description: absolute JSON URL
           minLength: 1
         lottiePlayEatUrl:
           type: string
+          description: absolute JSON URL
           minLength: 1
       required:
       - imageUrl
+      - level
       - lottieDefaultUrl
       - lottiePlayEatUrl
     ErrorResponse:
@@ -950,9 +922,11 @@ components:
           type: integer
           format: int32
         levels:
-          type: object
-          additionalProperties:
+          type: array
+          items:
             $ref: "#/components/schemas/PetCatalogLevelResponse"
+          minItems: 5
+          maxItems: 5
       required:
       - colorCode
       - displayOrder
@@ -963,14 +937,23 @@ components:
     PetCatalogLevelResponse:
       type: object
       properties:
+        level:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 5
         imageUrl:
           type: string
+          description: absolute SVG, PNG 또는 WebP URL
         lottieDefaultUrl:
           type: string
+          description: absolute JSON URL
         lottiePlayEatUrl:
           type: string
+          description: absolute JSON URL
       required:
       - imageUrl
+      - level
       - lottieDefaultUrl
       - lottiePlayEatUrl
     SetMainPetRequest:
@@ -1211,10 +1194,11 @@ components:
           format: int32
           minimum: 0
         levels:
-          type: object
-          additionalProperties:
+          type: array
+          items:
             $ref: "#/components/schemas/PetCatalogLevelRequest"
-          minProperties: 1
+          minItems: 5
+          maxItems: 5
       required:
       - colorCode
       - displayOrder
@@ -1448,34 +1432,35 @@ components:
           type: string
         colorCode:
           type: string
-        isActive:
-          type: boolean
         displayOrder:
           type: integer
           format: int32
         levels:
-          type: object
-          additionalProperties:
+          type: array
+          items:
             $ref: "#/components/schemas/PetCatalogLevelResponse"
+          minItems: 5
+          maxItems: 5
       required:
       - colorCode
       - displayOrder
-      - isActive
       - levels
       - name
       - type
     PetCatalogResponse:
       type: object
       properties:
-        version:
+        revision:
           type: string
+          format: date-time
+          description: 활성 카탈로그 항목의 max updatedAt. 활성 항목이 없으면 1970-01-01T00:00:00Z
         pets:
           type: array
           items:
             $ref: "#/components/schemas/PetCatalogItemResponse"
       required:
       - pets
-      - version
+      - revision
     FriendListResponse:
       type: object
       description: 친구 목록 응답 DTO

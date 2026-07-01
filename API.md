@@ -22,6 +22,8 @@
 - [인증](docs/api/auth.md)
 - [사용자](docs/api/users.md)
 - [펫 및 펫 카탈로그](docs/api/pets.md)
+- [iOS 펫 카탈로그 handoff](docs/ios-pet-catalog-handoff.md)
+- [펫 카탈로그 backgrounds 제거 runbook](docs/runbooks/pet-catalog-backgrounds-removal.md)
 - [친구](docs/api/friends.md)
 - [랭킹](docs/api/ranking.md)
 - [응원](docs/api/cheers.md)

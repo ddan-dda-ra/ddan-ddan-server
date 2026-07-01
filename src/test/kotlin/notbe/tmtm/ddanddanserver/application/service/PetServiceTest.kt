@@ -149,6 +149,27 @@ class PetServiceTest : FunSpec({
         user.toyQuantity shouldBe 2
     }
 
+    test("레벨 6 이상 펫도 먹이주기와 놀아주기를 계속할 수 있다") {
+        val ownerUserId = ObjectId()
+        val petId = ObjectId()
+        val user = User.register("testToken", "testUser").apply {
+            foodQuantity = 1
+            toyQuantity = 1
+        }
+        val pet = Pet.register("DOG", ownerUserId).apply { exp = 8000 }
+        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
+        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
+        every { userRepository.save(user) } returns user
+        every { petRepository.save(pet) } returns pet
+
+        petService.feedPet(ownerUserId, petId)
+        petService.playPet(ownerUserId, petId)
+
+        pet.exp shouldBe 8600
+        pet.getLevel() shouldBe 6
+        pet.isMaxLevel() shouldBe false
+    }
+
     test("펫 조회: 내 펫을 성공적으로 조회해야 한다") {
         val userId = ObjectId()
         val petId = ObjectId()

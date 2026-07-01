@@ -5,14 +5,14 @@ import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 
 data class PetCatalogResponse(
-    val version: String,
+    val revision: String,
     val pets: List<PetCatalogItemResponse>,
 ) {
     companion object {
-        fun from(catalog: PetCatalog): PetCatalogResponse =
+        fun from(catalog: PetCatalog) =
             PetCatalogResponse(
-                version = catalog.version.toString(),
-                pets = catalog.pets.map { PetCatalogItemResponse.from(it) },
+                revision = catalog.revision.toString(),
+                pets = catalog.pets.map(PetCatalogItemResponse::from),
             )
     }
 }
@@ -21,34 +21,29 @@ data class PetCatalogItemResponse(
     val type: String,
     val name: String,
     val colorCode: String,
-    val isActive: Boolean,
     val displayOrder: Int,
-    val levels: Map<Int, PetCatalogLevelResponse>,
+    val levels: List<PetCatalogLevelResponse>,
 ) {
     companion object {
-        fun from(item: PetCatalogItem): PetCatalogItemResponse =
+        fun from(item: PetCatalogItem) =
             PetCatalogItemResponse(
-                type = item.type,
-                name = item.name,
-                colorCode = item.colorCode,
-                isActive = item.isActive,
-                displayOrder = item.displayOrder,
-                levels = item.levels.mapValues { PetCatalogLevelResponse.from(it.value) },
+                item.type,
+                item.name,
+                item.colorCode,
+                item.displayOrder,
+                item.levels.map(PetCatalogLevelResponse::from),
             )
     }
 }
 
 data class PetCatalogLevelResponse(
+    val level: Int,
     val imageUrl: String,
     val lottieDefaultUrl: String,
     val lottiePlayEatUrl: String,
 ) {
     companion object {
-        fun from(level: PetCatalogLevel): PetCatalogLevelResponse =
-            PetCatalogLevelResponse(
-                imageUrl = level.imageUrl,
-                lottieDefaultUrl = level.lottieDefaultUrl,
-                lottiePlayEatUrl = level.lottiePlayEatUrl,
-            )
+        fun from(level: PetCatalogLevel) =
+            PetCatalogLevelResponse(level.level, level.imageUrl, level.lottieDefaultUrl, level.lottiePlayEatUrl)
     }
 }

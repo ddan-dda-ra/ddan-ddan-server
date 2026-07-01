@@ -11,7 +11,6 @@ import notbe.tmtm.ddanddanserver.application.processor.MockAppleProcessor
 import notbe.tmtm.ddanddanserver.application.processor.MockKakaoProcessor
 import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.application.service.AuthService
-import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.common.WebExceptionHandler
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
@@ -100,9 +99,6 @@ class AuthControllerProdModeIntegrationTest {
         // (custom @Bean으로 ObjectMapper를 override하면 WebMvc 메시지 컨버터에도 영향이 가서
         // LoginRequest 같은 Kotlin data class 역직렬화가 깨진다.)
 
-        // PetCatalogVersionFilter가 글로벌이라 컨텍스트에 필요
-        @Bean
-        fun petCatalogService(): PetCatalogService = mockk(relaxed = true)
     }
 
     @Autowired
