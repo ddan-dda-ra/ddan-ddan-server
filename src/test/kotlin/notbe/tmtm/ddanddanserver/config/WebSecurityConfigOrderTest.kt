@@ -10,9 +10,8 @@ import org.springframework.core.annotation.Order
 // Spring Security는 등록된 SecurityFilterChain을 @Order 순서로 평가하고 첫 매치 chain만 적용한다.
 // 따라서 광범위한 securityMatcher (예: /v1/all)는 좁은 매처 (예: /v1/auth/all)보다 Order가 커야 한다.
 //
-// PR #302 사고: 어드민 작업 중 loginFilterChain Order가 0→2로 밀려 apiFilterChain(Order=1)이
-// /v1/auth/login에 먼저 매치되어 401로 차단됨. 단위 테스트로는 wiring 회귀를 못 잡으므로
-// reflection 기반으로 Order 매트릭스만이라도 강제한다.
+// loginFilterChain보다 apiFilterChain이 먼저 평가되면 /v1/auth/login이 401로 차단된다.
+// 단위 테스트로는 wiring 회귀를 잡기 어려우므로 reflection으로 Order 매트릭스를 강제한다.
 class WebSecurityConfigOrderTest : FunSpec({
     val orders =
         WebSecurityConfig::class
