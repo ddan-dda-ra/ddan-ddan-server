@@ -28,19 +28,6 @@ class AdminJWTAuthFilterTest : FunSpec({
         SecurityContextHolder.clearContext()
     }
 
-    test("/v1/admin/auth/** 경로는 필터를 건너뛰어 chain이 그대로 진행된다") {
-        val request = MockHttpServletRequest("POST", "/v1/admin/auth/login")
-        val response = MockHttpServletResponse()
-        val chain = MockFilterChain()
-
-        filter.doFilter(request, response, chain)
-
-        // 필터를 건너뛰면 token 검증·예외 처리 없이 chain.doFilter만 호출됨
-        chain.request shouldBe request
-        verify(exactly = 0) { jwtTokenProvider.parseAdminToken(any()) }
-        verify(exactly = 0) { resolver.resolveException(any(), any(), any(), any()) }
-    }
-
     test("Authorization 헤더가 없으면 AdminUnauthorizedException으로 흘려보낸다") {
         val request = MockHttpServletRequest("GET", "/v1/admin/users")
         val response = MockHttpServletResponse()

@@ -4,7 +4,7 @@
 
 - 일반 API는 `Authorization: Bearer {accessToken}` 헤더가 필요합니다.
 - `/v1/auth/**`는 일반 사용자 토큰 없이 호출합니다.
-- `/v1/admin/auth/**`는 운영자 토큰 없이 호출하며, 그 외 `/v1/admin/**`는 운영자 access token이 필요합니다.
+- `/v1/admin/**`는 별도 Admin 서버가 발급한 호환 운영자 access token이 필요합니다. 이 서버는 운영자 로그인 API를 제공하지 않습니다.
 - 일반 사용자 토큰과 운영자 토큰은 서로 대체할 수 없습니다.
 
 ## 공통 헤더

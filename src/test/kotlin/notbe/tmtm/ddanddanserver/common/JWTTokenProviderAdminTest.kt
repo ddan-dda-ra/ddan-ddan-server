@@ -3,9 +3,11 @@ package notbe.tmtm.ddanddanserver.common
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldNotBeBlank
+import io.jsonwebtoken.Jwts
 import notbe.tmtm.ddanddanserver.domain.exception.AdminInvalidTokenException
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import java.util.Date
+import javax.crypto.spec.SecretKeySpec
 
 class JWTTokenProviderAdminTest : FunSpec({
     val secret = "0123456789abcdef0123456789abcdef" // 32 bytes for AES-256
@@ -13,16 +15,23 @@ class JWTTokenProviderAdminTest : FunSpec({
         secret = secret,
         accessTokenExpiration = 3600,
         refreshTokenExpiration = 86400,
-        adminAccessTokenExpiration = 86400,
     )
 
-    test("createAdminAccessToken은 비어있지 않은 토큰을 발급한다") {
-        val token = provider.createAdminAccessToken("ddan-ddan")
-        token.shouldNotBeBlank()
-    }
+    fun externalAdminToken(username: String): String =
+        Jwts
+            .builder()
+            .header()
+            .add("token_type", "admin_access")
+            .and()
+            .claims()
+            .add("username", username)
+            .and()
+            .expiration(Date(System.currentTimeMillis() + 60_000))
+            .encryptWith(SecretKeySpec(secret.toByteArray(), "AES"), Jwts.ENC.A128CBC_HS256)
+            .compact()
 
-    test("parseAdminToken은 발급한 토큰에서 username과 ROLE_ADMIN을 복원한다") {
-        val token = provider.createAdminAccessToken("ddan-ddan")
+    test("parseAdminToken은 외부에서 발급한 호환 토큰의 username과 ROLE_ADMIN을 복원한다") {
+        val token = externalAdminToken("ddan-ddan")
 
         val auth = provider.parseAdminToken(token)
 

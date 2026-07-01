@@ -14,11 +14,6 @@ app:
         expiration:
             access-token: 604800
             refresh-token: 2592000
-            admin-access-token: 86400
-
-admin:
-    username: ${ADMIN_USERNAME}
-    password: ${ADMIN_PASSWORD}
 
 management:
     endpoints:

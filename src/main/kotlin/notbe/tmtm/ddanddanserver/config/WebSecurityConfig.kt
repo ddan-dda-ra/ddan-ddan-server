@@ -39,11 +39,7 @@ class WebSecurityConfig(
             .cors { it.configurationSource(adminCorsConfigurationSource()) }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
-                it
-                    .requestMatchers("/v1/admin/auth/**")
-                    .permitAll()
-                    .anyRequest()
-                    .authenticated()
+                it.anyRequest().authenticated()
             }.addFilterBefore(
                 AdminJWTAuthFilter(jwtTokenProvider, handlerExceptionResolver),
                 UsernamePasswordAuthenticationFilter::class.java,

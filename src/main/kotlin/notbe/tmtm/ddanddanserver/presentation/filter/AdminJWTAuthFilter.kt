@@ -34,11 +34,6 @@ class AdminJWTAuthFilter(
         }
     }
 
-    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-        // /v1/admin/auth/** 는 로그인 자체이므로 필터 대상 아님
-        return request.requestURI.startsWith("/v1/admin/auth")
-    }
-
     private fun extractBearerToken(request: HttpServletRequest): String? {
         val header = request.getHeader("Authorization") ?: return null
         if (!header.startsWith("Bearer ")) return null

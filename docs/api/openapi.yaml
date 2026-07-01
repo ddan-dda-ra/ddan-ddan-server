@@ -11,8 +11,6 @@ security:
 tags:
 - name: Admin · 유저
   description: 운영자용 유저 조회
-- name: Admin · 인증
-  description: 운영자 로그인
 - name: Admin · 통계
   description: 운영자용 통계 대시보드
 - name: 펫 카탈로그
@@ -299,26 +297,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LoginResponse"
-  /v1/admin/auth/login:
-    post:
-      tags:
-      - Admin · 인증
-      summary: 운영자 로그인
-      description: ID/PW 검증 후 어드민 access token 발급 (1일 만료)
-      operationId: login_1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminLoginRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/AdminLoginResponse"
   /v1/users/me/settings:
     patch:
       tags:
@@ -977,25 +955,6 @@ components:
       required:
       - token
       - tokenType
-    AdminLoginRequest:
-      type: object
-      properties:
-        username:
-          type: string
-          minLength: 1
-        password:
-          type: string
-          minLength: 1
-      required:
-      - password
-      - username
-    AdminLoginResponse:
-      type: object
-      properties:
-        accessToken:
-          type: string
-      required:
-      - accessToken
     UserSettingRequest:
       type: object
       description: UserSetting 요청 DTO

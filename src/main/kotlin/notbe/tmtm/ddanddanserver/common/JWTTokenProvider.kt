@@ -26,7 +26,6 @@ class JWTTokenProvider(
     @Value("\${app.jwt.secret}") private val secret: String,
     @Value("\${app.jwt.expiration.access-token}") private val accessTokenExpiration: Long,
     @Value("\${app.jwt.expiration.refresh-token}") private val refreshTokenExpiration: Long,
-    @Value("\${app.jwt.expiration.admin-access-token:86400}") private val adminAccessTokenExpiration: Long,
 ) {
     val logger = logger()
 
@@ -99,19 +98,6 @@ class JWTTokenProvider(
 
         return UsernamePasswordAuthenticationToken(getUserId(claims), null, emptyList())
     }
-
-    fun createAdminAccessToken(username: String): String =
-        Jwts
-            .builder()
-            .header()
-            .add(TOKEN_TYPE, ADMIN_ACCESS)
-            .and()
-            .claims()
-            .add("username", username)
-            .and()
-            .expiration(Date(System.currentTimeMillis() + adminAccessTokenExpiration * 1000))
-            .encryptWith(secretKey, Jwts.ENC.A128CBC_HS256)
-            .compact()
 
     fun parseAdminToken(accessToken: String): Authentication {
         val claims = getAdminClaims(accessToken)

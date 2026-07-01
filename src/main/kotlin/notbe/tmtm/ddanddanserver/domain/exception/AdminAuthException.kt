@@ -5,10 +5,6 @@ open class AdminAuthException(
     data: Any? = null,
 ) : CustomException(errorCode, data)
 
-class AdminInvalidCredentialsException(
-    data: Any? = null,
-) : AdminAuthException(ErrorCode.ADMIN_INVALID_CREDENTIALS, data)
-
 class AdminUnauthorizedException(
     data: Any? = null,
 ) : AdminAuthException(ErrorCode.ADMIN_UNAUTHORIZED, data)
