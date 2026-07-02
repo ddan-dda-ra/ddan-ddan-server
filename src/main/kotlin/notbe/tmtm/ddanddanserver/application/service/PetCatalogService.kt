@@ -12,6 +12,8 @@ import java.time.Instant
 class PetCatalogService(
     private val repository: PetCatalogRepository,
 ) {
+    fun currentRevision(): Instant = repository.findTopByIsActiveTrueOrderByUpdatedAtDesc()?.updatedAt ?: Instant.EPOCH
+
     fun getCatalog(): PetCatalog {
         val entities = repository.findAllByIsActiveTrueOrderByDisplayOrderAscTypeAsc()
         return PetCatalog(

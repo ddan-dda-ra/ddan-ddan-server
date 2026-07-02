@@ -71,7 +71,7 @@ class PetCatalogControllerIntegrationTest {
     }
 
     @Test
-    fun `조건부 요청 헤더가 있어도 항상 200 body를 반환하고 catalog cache 헤더는 사용하지 않는다`() {
+    fun `조건부 요청 헤더가 있어도 controller는 항상 200 body를 반환한다`() {
         mockMvc.perform(
             get("/v1/pets/catalog")
                 .header("If-None-Match", "\"stale-catalog\"")
@@ -83,6 +83,5 @@ class PetCatalogControllerIntegrationTest {
             .andExpect(header().doesNotExist("ETag"))
             .andExpect(header().doesNotExist("Cache-Control"))
             .andExpect(header().doesNotExist("X-Pet-Catalog-Version"))
-            .andExpect(header().doesNotExist("X-Pet-Catalog-Download-Required"))
     }
 }

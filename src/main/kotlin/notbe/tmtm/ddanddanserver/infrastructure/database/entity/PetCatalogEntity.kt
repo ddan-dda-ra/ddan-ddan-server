@@ -4,11 +4,13 @@ import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogItem
 import notbe.tmtm.ddanddanserver.domain.model.petcatalog.PetCatalogLevel
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
 
 @Document("pet_catalog")
+@CompoundIndex(name = "is_active_updated_at_idx", def = "{'is_active': 1, 'updated_at': -1}")
 data class PetCatalogEntity(
     @Id
     val id: ObjectId = ObjectId(),

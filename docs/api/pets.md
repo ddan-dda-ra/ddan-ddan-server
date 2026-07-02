@@ -29,7 +29,8 @@
 
 - 공개 응답에는 활성 항목만 포함되며 `isActive`, `backgrounds` 필드는 없습니다. endpoint는 항상 `200`과 전체 body를 반환합니다.
 - body의 `revision`은 응답에 포함된 활성 항목들의 `updatedAt` 최댓값을 ISO-8601 문자열로 표현합니다. 활성 항목이 없으면 `1970-01-01T00:00:00Z`입니다.
-- 클라이언트는 저장한 `revision`과 새 응답을 비교합니다. 같으면 기존 catalog와 에셋을 유지하고, 다르면 새 catalog를 저장한 뒤 이전 catalog와 URL을 비교해 URL이 달라진 에셋만 다운로드합니다.
+- 로그인 이후 클라이언트는 모든 API 요청에 저장한 `revision`을 `X-Pet-Catalog-Version`으로 전송합니다. 응답의 `X-Pet-Catalog-Download-Required`가 `true`면 카탈로그 API를 호출해 새 body를 저장하고, 이전 catalog와 URL을 비교해 URL이 달라진 에셋만 다운로드합니다.
+- 카탈로그 API 응답의 body `revision`은 로컬에 저장해 이후 요청 헤더 값으로 사용합니다.
 - 항목 정렬은 `(displayOrder ASC, type ASC)`, `levels`는 `level` 오름차순 배열입니다. 서버 에셋 level은 정확히 `1..5`입니다. 세부 스키마는 [OpenAPI 스냅샷](openapi.yaml)을 확인합니다.
 - `imageUrl`은 `.svg`, `.png`, `.webp`를 지원하며 현재 기준 에셋 형식은 SVG입니다. Lottie URL은 `.json`입니다.
 - 배경은 `backgrounds`가 아니라 uppercase `#RRGGBB` 형식의 `colorCode`를 기준으로 구성합니다.

@@ -45,6 +45,19 @@ class PetCatalogServiceTest : FunSpec({
         service = PetCatalogService(repository)
     }
 
+    test("현재 revision은 활성 카탈로그 중 가장 최근 updatedAt이다") {
+        val revision = Instant.parse("2026-07-02T00:00:00Z")
+        every { repository.findTopByIsActiveTrueOrderByUpdatedAtDesc() } returns entity("DUCK", updatedAt = revision)
+
+        service.currentRevision() shouldBe revision
+    }
+
+    test("활성 카탈로그가 없으면 현재 revision은 epoch이다") {
+        every { repository.findTopByIsActiveTrueOrderByUpdatedAtDesc() } returns null
+
+        service.currentRevision() shouldBe Instant.EPOCH
+    }
+
     test("공개 카탈로그는 활성 항목만 반환하고 revision은 updatedAt 최댓값이다") {
         val older = Instant.parse("2026-07-01T00:00:00Z")
         val newer = Instant.parse("2026-07-02T03:04:05Z")

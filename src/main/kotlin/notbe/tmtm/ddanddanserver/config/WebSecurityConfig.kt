@@ -1,10 +1,12 @@
 package notbe.tmtm.ddanddanserver.config
 
+import notbe.tmtm.ddanddanserver.application.service.PetCatalogService
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.domain.exception.PermissionDeniedException
 import notbe.tmtm.ddanddanserver.domain.exception.UnauthorizedException
 import notbe.tmtm.ddanddanserver.presentation.filter.AppVersionFilter
 import notbe.tmtm.ddanddanserver.presentation.filter.JWTAuthFilter
+import notbe.tmtm.ddanddanserver.presentation.filter.PetCatalogRevisionFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -20,6 +22,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver
 @EnableWebSecurity
 class WebSecurityConfig(
     private val environment: Environment,
+    private val petCatalogService: PetCatalogService,
 ) {
     @Bean
     @Order(1)
@@ -38,6 +41,9 @@ class WebSecurityConfig(
             }.addFilterBefore(
                 AppVersionFilter(handlerExceptionResolver),
                 UsernamePasswordAuthenticationFilter::class.java,
+            ).addFilterBefore(
+                PetCatalogRevisionFilter(petCatalogService),
+                AppVersionFilter::class.java,
             ).addFilterAfter(
                 JWTAuthFilter(jwtTokenProvider, handlerExceptionResolver),
                 AppVersionFilter::class.java,
@@ -59,7 +65,10 @@ class WebSecurityConfig(
             .cors { if (isDevProfile()) it.configure(httpSecurity) }
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            }.authorizeHttpRequests {
+            }.addFilterBefore(
+                PetCatalogRevisionFilter(petCatalogService),
+                UsernamePasswordAuthenticationFilter::class.java,
+            ).authorizeHttpRequests {
                 it.anyRequest().permitAll()
             }.build()
 

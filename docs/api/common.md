@@ -14,8 +14,12 @@
 | `X-Android-Version` | 일반 `/v1/**` | Android 앱의 semantic version입니다. |
 | `X-iOS-Version` | 일반 `/v1/**` | iOS 앱의 semantic version입니다. |
 | `X-Mock-OAuth` | `POST /v1/auth/login` | 로컬·개발 환경의 mock OAuth 사용 여부. 기본값은 `false`입니다. |
+| `X-Pet-Catalog-Version` | 로그인 외 모든 `/v1/**` 요청 | 클라이언트가 저장한 카탈로그 `revision`입니다. |
+| `X-Pet-Catalog-Download-Required` | 로그인 외 모든 `/v1/**` 응답 | 서버 카탈로그 기준 갱신 필요 여부(`true`/`false`)입니다. |
 
 앱 버전 헤더는 둘 중 현재 플랫폼의 헤더 하나만 전송합니다. 헤더가 없으면 하위 호환을 위해 검사를 건너뛰며, 형식이 잘못되면 `426`과 `AV001`이 반환됩니다.
+
+클라이언트는 로그인 성공 후 모든 API 요청에 `X-Pet-Catalog-Version`을 전송합니다. 서버의 현재 활성 카탈로그 revision과 같으면 응답의 `X-Pet-Catalog-Download-Required`가 `false`, 다르거나 요청 헤더가 없거나 형식이 잘못되면 `true`입니다. `POST /v1/auth/login`에는 두 카탈로그 헤더를 적용하지 않으며, `POST /v1/auth/reissue`에는 적용합니다.
 
 ## 데이터 형식
 
