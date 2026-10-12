@@ -120,8 +120,9 @@ open class AppVersionFilter(
     // 버전 검사는 인증 전에 수행되므로, 로깅 목적에 한해 토큰에서 유저 ID를 best-effort로 추출한다.
     private fun extractUserId(request: HttpServletRequest): String =
         request.getHeader(AUTHORIZATION_HEADER)
-            ?.takeIf { it.startsWith(BEARER_PREFIX) }
-            ?.removePrefix(BEARER_PREFIX)
+            ?.takeIf { it.startsWith(BEARER_PREFIX, ignoreCase = true) }
+            ?.substring(BEARER_PREFIX.length)
+            ?.trim()
             ?.let { runCatching { jwtTokenProvider.extractUserIdOrNull(it) }.getOrNull() }
             ?.toHexString()
             ?: UNKNOWN

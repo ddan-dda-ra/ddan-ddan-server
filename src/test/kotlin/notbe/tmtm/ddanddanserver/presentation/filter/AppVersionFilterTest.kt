@@ -253,6 +253,15 @@ class AppVersionFilterTest : BehaviorSpec({
             }
         }
 
+        `when`("소문자 bearer 스킴으로 요청하면") {
+            val fixture = Fixture(iosVersion = "1.3.2", authorization = "bearer access-token")
+            fixture.run()
+
+            then("대소문자 구분 없이 토큰을 추출해야 한다") {
+                verify(exactly = 1) { fixture.jwtTokenProvider.extractUserIdOrNull("access-token") }
+            }
+        }
+
         `when`("유저 ID 추출 중 예외가 나도") {
             val fixture = Fixture(iosVersion = "1.3.2", authorization = "Bearer broken")
             every { fixture.jwtTokenProvider.extractUserIdOrNull(any()) } throws RuntimeException("boom")
