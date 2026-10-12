@@ -3,6 +3,7 @@ package notbe.tmtm.ddanddanserver.presentation.filter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.exception.AppVersionUpgradeRequiredException
 import notbe.tmtm.ddanddanserver.domain.model.version.SemanticVersion
@@ -11,6 +12,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver
 
 open class AppVersionFilter(
     private val handlerExceptionResolver: HandlerExceptionResolver,
+    private val jwtTokenProvider: JWTTokenProvider,
     androidMinimumVersion: String,
     iosMinimumVersion: String,
 ) : OncePerRequestFilter() {
@@ -22,6 +24,10 @@ open class AppVersionFilter(
     companion object {
         private const val ANDROID_VERSION_HEADER = "X-Android-Version"
         private const val IOS_VERSION_HEADER = "X-iOS-Version"
+        private const val AUTHORIZATION_HEADER = "Authorization"
+        private const val USER_AGENT_HEADER = "User-Agent"
+        private const val BEARER_PREFIX = "Bearer "
+        private const val UNKNOWN = "unknown"
 
         private val EXCLUDED_PATHS = setOf(
             "/actuator",
@@ -51,8 +57,8 @@ open class AppVersionFilter(
             }
 
             when {
-                !androidVersion.isNullOrBlank() -> validateAppVersion(androidVersion, "android", androidMinimum)
-                !iosVersion.isNullOrBlank() -> validateAppVersion(iosVersion, "ios", iosMinimum)
+                !androidVersion.isNullOrBlank() -> validateAppVersion(request, androidVersion, "android", androidMinimum)
+                !iosVersion.isNullOrBlank() -> validateAppVersion(request, iosVersion, "ios", iosMinimum)
             }
 
             filterChain.doFilter(request, response)
@@ -67,12 +73,13 @@ open class AppVersionFilter(
     }
 
     private fun validateAppVersion(
+        request: HttpServletRequest,
         version: String,
         platform: String,
         minimum: SemanticVersion,
     ) {
         val current = runCatching { SemanticVersion.parse(version) }.getOrElse {
-            log.info("앱 버전 형식 오류로 차단: platform={}, version={}", platform, version)
+            logBlocked(request, "앱 버전 형식 오류로 차단", platform, version, minimum)
             throw AppVersionUpgradeRequiredException(
                 platform = platform,
                 currentVersion = version,
@@ -81,7 +88,7 @@ open class AppVersionFilter(
         }
 
         if (current < minimum) {
-            log.info("최소 버전 미만으로 차단: platform={}, version={}, minimum={}", platform, version, minimum)
+            logBlocked(request, "최소 버전 미만으로 차단", platform, version, minimum)
             throw AppVersionUpgradeRequiredException(
                 platform = platform,
                 currentVersion = version,
@@ -89,4 +96,33 @@ open class AppVersionFilter(
             )
         }
     }
+
+    private fun logBlocked(
+        request: HttpServletRequest,
+        reason: String,
+        platform: String,
+        version: String,
+        minimum: SemanticVersion,
+    ) {
+        log.info(
+            "{}: platform={}, version={}, minimum={}, userId={}, method={}, uri={}, userAgent={}",
+            reason,
+            platform,
+            version,
+            minimum,
+            extractUserId(request),
+            request.method,
+            request.requestURI,
+            request.getHeader(USER_AGENT_HEADER) ?: UNKNOWN,
+        )
+    }
+
+    // 버전 검사는 인증 전에 수행되므로, 로깅 목적에 한해 토큰에서 유저 ID를 best-effort로 추출한다.
+    private fun extractUserId(request: HttpServletRequest): String =
+        request.getHeader(AUTHORIZATION_HEADER)
+            ?.takeIf { it.startsWith(BEARER_PREFIX) }
+            ?.removePrefix(BEARER_PREFIX)
+            ?.let { runCatching { jwtTokenProvider.extractUserIdOrNull(it) }.getOrNull() }
+            ?.toHexString()
+            ?: UNKNOWN
 }

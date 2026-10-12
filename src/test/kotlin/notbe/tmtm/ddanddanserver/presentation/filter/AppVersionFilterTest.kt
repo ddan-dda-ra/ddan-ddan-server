@@ -7,9 +7,11 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import org.bson.types.ObjectId
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.domain.exception.AppVersionUpgradeRequiredException
 import notbe.tmtm.ddanddanserver.domain.exception.ErrorCode
 import org.springframework.web.servlet.HandlerExceptionResolver
@@ -21,7 +23,8 @@ class AppVersionFilterTest : BehaviorSpec({
         handlerExceptionResolver: HandlerExceptionResolver,
         androidMinimumVersion: String = "1.5.0",
         iosMinimumVersion: String = "1.5.0",
-    ) : AppVersionFilter(handlerExceptionResolver, androidMinimumVersion, iosMinimumVersion) {
+        jwtTokenProvider: JWTTokenProvider = mockk(relaxed = true),
+    ) : AppVersionFilter(handlerExceptionResolver, jwtTokenProvider, androidMinimumVersion, iosMinimumVersion) {
 
         public override fun doFilterInternal(
             request: HttpServletRequest,
@@ -38,9 +41,11 @@ class AppVersionFilterTest : BehaviorSpec({
         iosVersion: String? = null,
         androidMinimumVersion: String = "1.5.0",
         iosMinimumVersion: String = "1.5.0",
+        authorization: String? = null,
     ) {
         val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-        val filter = TestableAppVersionFilter(handlerExceptionResolver, androidMinimumVersion, iosMinimumVersion)
+        val jwtTokenProvider = mockk<JWTTokenProvider>(relaxed = true)
+        val filter = TestableAppVersionFilter(handlerExceptionResolver, androidMinimumVersion, iosMinimumVersion, jwtTokenProvider)
         val request = mockk<HttpServletRequest>(relaxed = true)
         val response = mockk<HttpServletResponse>(relaxed = true)
         val filterChain = mockk<FilterChain>(relaxed = true)
@@ -50,6 +55,7 @@ class AppVersionFilterTest : BehaviorSpec({
             every { request.requestURI } returns uri
             every { request.getHeader("X-Android-Version") } returns androidVersion
             every { request.getHeader("X-iOS-Version") } returns iosVersion
+            every { request.getHeader("Authorization") } returns authorization
             every { handlerExceptionResolver.resolveException(request, response, null, capture(exception)) } returns null
         }
 
@@ -230,6 +236,40 @@ class AppVersionFilterTest : BehaviorSpec({
                 shouldThrow<IllegalArgumentException> {
                     TestableAppVersionFilter(mockk(relaxed = true), androidMinimumVersion = "1.5")
                 }
+            }
+        }
+    }
+
+    given("차단 로그용 유저 식별") {
+        `when`("토큰과 함께 낮은 버전으로 요청하면") {
+            val userId = ObjectId()
+            val fixture = Fixture(iosVersion = "1.3.2", authorization = "Bearer access-token")
+            every { fixture.jwtTokenProvider.extractUserIdOrNull("access-token") } returns userId
+            fixture.run()
+
+            then("토큰에서 유저 ID를 추출하고 426으로 차단해야 한다") {
+                verify(exactly = 1) { fixture.jwtTokenProvider.extractUserIdOrNull("access-token") }
+                fixture.verifyBlocked(platform = "ios", currentVersion = "1.3.2", minimumVersion = "1.5.0")
+            }
+        }
+
+        `when`("유저 ID 추출 중 예외가 나도") {
+            val fixture = Fixture(iosVersion = "1.3.2", authorization = "Bearer broken")
+            every { fixture.jwtTokenProvider.extractUserIdOrNull(any()) } throws RuntimeException("boom")
+            fixture.run()
+
+            then("원래의 426 차단 응답이 유지되어야 한다") {
+                fixture.verifyBlocked(platform = "ios", currentVersion = "1.3.2", minimumVersion = "1.5.0")
+            }
+        }
+
+        `when`("최소 버전 이상으로 통과하는 요청이면") {
+            val fixture = Fixture(iosVersion = "1.5.0", authorization = "Bearer access-token")
+            fixture.run()
+
+            then("토큰을 파싱하지 않아야 한다") {
+                fixture.verifyPassed()
+                verify(exactly = 0) { fixture.jwtTokenProvider.extractUserIdOrNull(any()) }
             }
         }
     }

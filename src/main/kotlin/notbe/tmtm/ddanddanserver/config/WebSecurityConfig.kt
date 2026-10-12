@@ -42,6 +42,7 @@ class WebSecurityConfig(
             }.addFilterBefore(
                 AppVersionFilter(
                     handlerExceptionResolver = handlerExceptionResolver,
+                    jwtTokenProvider = jwtTokenProvider,
                     androidMinimumVersion = appVersionProperties.android,
                     iosMinimumVersion = appVersionProperties.ios,
                 ),
