@@ -4,6 +4,12 @@ spring:
   profiles:
     active: dev
 
+app:
+  version:
+    minimum:
+      android: 1.5.0
+      ios: 1.5.0
+
 mock-oauth:
   enabled: false
 

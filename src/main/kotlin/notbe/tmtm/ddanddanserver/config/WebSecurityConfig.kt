@@ -23,6 +23,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver
 class WebSecurityConfig(
     private val environment: Environment,
     private val petCatalogService: PetCatalogService,
+    private val appVersionProperties: AppVersionProperties,
 ) {
     @Bean
     @Order(1)
@@ -39,7 +40,11 @@ class WebSecurityConfig(
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }.addFilterBefore(
-                AppVersionFilter(handlerExceptionResolver),
+                AppVersionFilter(
+                    handlerExceptionResolver = handlerExceptionResolver,
+                    androidMinimumVersion = appVersionProperties.android,
+                    iosMinimumVersion = appVersionProperties.ios,
+                ),
                 UsernamePasswordAuthenticationFilter::class.java,
             ).addFilterBefore(
                 PetCatalogRevisionFilter(petCatalogService),
