@@ -33,7 +33,7 @@
 }
 ```
 
-형식 오류인 경우 `minimumVersion`은 `"형식 오류"`입니다. `/v1/auth/**`(로그인, 토큰 재발급)는 버전 검사 대상이 아니므로 구버전 앱도 로그인은 되지만, 이후 일반 API 호출에서 `426`을 받습니다.
+형식 오류인 경우에도 `minimumVersion`에는 해당 플랫폼의 최소 버전이 담기고, `currentVersion`에는 받은 헤더 값이 그대로 담깁니다. `/v1/auth/**`(로그인, 토큰 재발급)는 버전 검사 대상이 아니므로 구버전 앱도 로그인은 되지만, 이후 일반 API 호출에서 `426`을 받습니다.
 
 클라이언트는 로그인 성공 후 모든 API 요청에 `X-Pet-Catalog-Version`을 전송합니다. 서버의 현재 활성 카탈로그 revision과 같으면 응답의 `X-Pet-Catalog-Download-Required`가 `false`, 다르거나 요청 헤더가 없거나 형식이 잘못되면 `true`입니다. `POST /v1/auth/login`에는 두 카탈로그 헤더를 적용하지 않으며, `POST /v1/auth/reissue`에는 적용합니다.
 

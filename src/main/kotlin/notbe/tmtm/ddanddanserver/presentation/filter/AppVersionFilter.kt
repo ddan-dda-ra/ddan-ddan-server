@@ -22,7 +22,6 @@ open class AppVersionFilter(
     companion object {
         private const val ANDROID_VERSION_HEADER = "X-Android-Version"
         private const val IOS_VERSION_HEADER = "X-iOS-Version"
-        private const val INVALID_FORMAT = "형식 오류"
 
         private val EXCLUDED_PATHS = setOf(
             "/actuator",
@@ -77,7 +76,7 @@ open class AppVersionFilter(
             throw AppVersionUpgradeRequiredException(
                 platform = platform,
                 currentVersion = version,
-                minimumVersion = INVALID_FORMAT,
+                minimumVersion = minimum.toString(),
             )
         }
 

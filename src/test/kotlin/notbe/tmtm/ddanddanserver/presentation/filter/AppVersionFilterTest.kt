@@ -190,7 +190,7 @@ class AppVersionFilterTest : BehaviorSpec({
             fixture.run()
 
             then("형식 오류로 차단되어야 한다") {
-                fixture.verifyBlocked(platform = "android", currentVersion = "1.5", minimumVersion = "형식 오류")
+                fixture.verifyBlocked(platform = "android", currentVersion = "1.5", minimumVersion = "1.5.0")
             }
         }
 
@@ -199,7 +199,7 @@ class AppVersionFilterTest : BehaviorSpec({
             fixture.run()
 
             then("형식 오류로 차단되어야 한다") {
-                fixture.verifyBlocked(platform = "ios", currentVersion = "invalid-version", minimumVersion = "형식 오류")
+                fixture.verifyBlocked(platform = "ios", currentVersion = "invalid-version", minimumVersion = "1.5.0")
             }
         }
     }
