@@ -1,213 +1,235 @@
 package notbe.tmtm.ddanddanserver.presentation.filter
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import notbe.tmtm.ddanddanserver.domain.exception.AppVersionUpgradeRequiredException
+import notbe.tmtm.ddanddanserver.domain.exception.ErrorCode
 import org.springframework.web.servlet.HandlerExceptionResolver
 
 class AppVersionFilterTest : BehaviorSpec({
 
-    // Test wrapper to access protected method
+    // protected 메서드 접근용 래퍼
     class TestableAppVersionFilter(
-        handlerExceptionResolver: HandlerExceptionResolver
-    ) : AppVersionFilter(handlerExceptionResolver) {
+        handlerExceptionResolver: HandlerExceptionResolver,
+        androidMinimumVersion: String = "1.5.0",
+        iosMinimumVersion: String = "1.5.0",
+    ) : AppVersionFilter(handlerExceptionResolver, androidMinimumVersion, iosMinimumVersion) {
 
         public override fun doFilterInternal(
             request: HttpServletRequest,
             response: HttpServletResponse,
-            filterChain: FilterChain
+            filterChain: FilterChain,
         ) {
             super.doFilterInternal(request, response, filterChain)
         }
     }
 
+    class Fixture(
+        uri: String = "/v1/users",
+        androidVersion: String? = null,
+        iosVersion: String? = null,
+        androidMinimumVersion: String = "1.5.0",
+        iosMinimumVersion: String = "1.5.0",
+    ) {
+        val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
+        val filter = TestableAppVersionFilter(handlerExceptionResolver, androidMinimumVersion, iosMinimumVersion)
+        val request = mockk<HttpServletRequest>(relaxed = true)
+        val response = mockk<HttpServletResponse>(relaxed = true)
+        val filterChain = mockk<FilterChain>(relaxed = true)
+        val exception = slot<Exception>()
+
+        init {
+            every { request.requestURI } returns uri
+            every { request.getHeader("X-Android-Version") } returns androidVersion
+            every { request.getHeader("X-iOS-Version") } returns iosVersion
+            every { handlerExceptionResolver.resolveException(request, response, null, capture(exception)) } returns null
+        }
+
+        fun run() = filter.doFilterInternal(request, response, filterChain)
+
+        fun verifyPassed() {
+            verify { filterChain.doFilter(request, response) }
+            exception.isCaptured shouldBe false
+        }
+
+        fun verifyBlocked(platform: String, currentVersion: String, minimumVersion: String) {
+            verify(exactly = 0) { filterChain.doFilter(request, response) }
+            val captured = exception.captured as AppVersionUpgradeRequiredException
+            captured.errorCode shouldBe ErrorCode.APP_VERSION_UPGRADE_REQUIRED
+            captured.data shouldBe mapOf(
+                "platform" to platform,
+                "currentVersion" to currentVersion,
+                "minimumVersion" to minimumVersion,
+            )
+        }
+    }
+
     given("헤더가 없는 요청") {
         `when`("필터가 실행되면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+            val fixture = Fixture()
+            fixture.run()
 
-            every { request.requestURI } returns "/v1/users"
-            every { request.getHeader("X-Android-Version") } returns null
-            every { request.getHeader("X-iOS-Version") } returns null
-
-            appVersionFilter.doFilterInternal(request, response, filterChain)
-
-            then("필터를 통과해야 한다") {
-                verify { filterChain.doFilter(request, response) }
+            then("하위 호환을 위해 통과해야 한다") {
+                fixture.verifyPassed()
             }
         }
     }
 
     given("제외 경로로 요청") {
-        `when`("actuator 경로로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+        listOf("/actuator/health", "/swagger-ui/index.html", "/v3/api-docs").forEach { uri ->
+            `when`("$uri 경로로 낮은 버전 헤더와 함께 요청하면") {
+                val fixture = Fixture(uri = uri, iosVersion = "1.0.0")
+                fixture.run()
 
-            every { request.requestURI } returns "/actuator/health"
-
-            appVersionFilter.doFilterInternal(request, response, filterChain)
-
-            then("헤더 검증을 건너뛰고 통과해야 한다") {
-                verify { filterChain.doFilter(request, response) }
-                verify(exactly = 0) { request.getHeader(any()) }
-            }
-        }
-
-        `when`("swagger-ui 경로로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
-
-            every { request.requestURI } returns "/swagger-ui/index.html"
-
-            appVersionFilter.doFilterInternal(request, response, filterChain)
-
-            then("헤더 검증을 건너뛰고 통과해야 한다") {
-                verify { filterChain.doFilter(request, response) }
-                verify(exactly = 0) { request.getHeader(any()) }
+                then("헤더 검증을 건너뛰고 통과해야 한다") {
+                    verify { fixture.filterChain.doFilter(fixture.request, fixture.response) }
+                    verify(exactly = 0) { fixture.request.getHeader(any()) }
+                }
             }
         }
     }
 
-    given("유효한 버전 형식의 헤더") {
-        `when`("유효한 Android 버전 형식으로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+    given("최소 버전 이상의 헤더") {
+        listOf(
+            Triple("Android 최소 버전과 같으면", "1.5.0", null),
+            Triple("Android 최소 버전보다 높으면", "1.10.0", null),
+            Triple("iOS 최소 버전과 같으면", null, "1.5.0"),
+            Triple("iOS 메이저 버전이 높으면", null, "2.0.0"),
+        ).forEach { (name, android, ios) ->
+            `when`(name) {
+                val fixture = Fixture(androidVersion = android, iosVersion = ios)
+                fixture.run()
 
-            every { request.requestURI } returns "/v1/users"
-            every { request.getHeader("X-Android-Version") } returns "1.2.3"
-            every { request.getHeader("X-iOS-Version") } returns null
+                then("필터를 통과해야 한다") {
+                    fixture.verifyPassed()
+                }
+            }
+        }
+    }
 
-            appVersionFilter.doFilterInternal(request, response, filterChain)
+    given("최소 버전 미만의 헤더") {
+        `when`("iOS 1.3.2로 요청하면") {
+            val fixture = Fixture(iosVersion = "1.3.2")
+            fixture.run()
 
-            then("필터를 통과해야 한다") {
-                verify { filterChain.doFilter(request, response) }
+            then("426 예외로 차단되고 최소 버전을 알려줘야 한다") {
+                fixture.verifyBlocked(platform = "ios", currentVersion = "1.3.2", minimumVersion = "1.5.0")
             }
         }
 
-        `when`("유효한 iOS 버전 형식으로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+        `when`("Android 1.4.1로 요청하면") {
+            val fixture = Fixture(androidVersion = "1.4.1")
+            fixture.run()
 
-            every { request.requestURI } returns "/v1/users"
-            every { request.getHeader("X-Android-Version") } returns null
-            every { request.getHeader("X-iOS-Version") } returns "2.1.0"
+            then("426 예외로 차단되고 최소 버전을 알려줘야 한다") {
+                fixture.verifyBlocked(platform = "android", currentVersion = "1.4.1", minimumVersion = "1.5.0")
+            }
+        }
 
-            appVersionFilter.doFilterInternal(request, response, filterChain)
+        `when`("패치 버전만 낮은 iOS 1.4.9로 요청하면") {
+            val fixture = Fixture(iosVersion = "1.4.9")
+            fixture.run()
 
-            then("필터를 통과해야 한다") {
-                verify { filterChain.doFilter(request, response) }
+            then("426 예외로 차단되어야 한다") {
+                fixture.verifyBlocked(platform = "ios", currentVersion = "1.4.9", minimumVersion = "1.5.0")
+            }
+        }
+    }
+
+    given("플랫폼별 최소 버전이 다르게 설정된 경우") {
+        `when`("iOS 최소 버전만 1.6.0이고 iOS 1.5.0으로 요청하면") {
+            val fixture = Fixture(iosVersion = "1.5.0", androidMinimumVersion = "1.0.0", iosMinimumVersion = "1.6.0")
+            fixture.run()
+
+            then("iOS 설정값 기준으로 차단되어야 한다") {
+                fixture.verifyBlocked(platform = "ios", currentVersion = "1.5.0", minimumVersion = "1.6.0")
+            }
+        }
+
+        `when`("Android 최소 버전만 1.0.0이고 Android 1.4.1로 요청하면") {
+            val fixture = Fixture(androidVersion = "1.4.1", androidMinimumVersion = "1.0.0", iosMinimumVersion = "1.6.0")
+            fixture.run()
+
+            then("Android 설정값 기준으로 통과해야 한다") {
+                fixture.verifyPassed()
+            }
+        }
+    }
+
+    given("두 플랫폼 헤더가 함께 오는 경우") {
+        `when`("Android 1.5.0과 iOS 1.0.0이 함께 오면") {
+            val fixture = Fixture(androidVersion = "1.5.0", iosVersion = "1.0.0")
+            fixture.run()
+
+            then("Android 헤더만 검사해 통과해야 한다") {
+                fixture.verifyPassed()
+            }
+        }
+
+        `when`("Android 1.0.0과 iOS 2.0.0이 함께 오면") {
+            val fixture = Fixture(androidVersion = "1.0.0", iosVersion = "2.0.0")
+            fixture.run()
+
+            then("Android 기준으로 차단되어야 한다") {
+                fixture.verifyBlocked(platform = "android", currentVersion = "1.0.0", minimumVersion = "1.5.0")
             }
         }
     }
 
     given("잘못된 버전 형식의 헤더") {
-        `when`("잘못된 Android 버전 형식으로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+        `when`("Android 버전이 두 자리 형식이면") {
+            val fixture = Fixture(androidVersion = "1.5")
+            fixture.run()
 
-            every { request.requestURI } returns "/v1/users"
-            every { request.getHeader("X-Android-Version") } returns "1.2"
-            every { request.getHeader("X-iOS-Version") } returns null
-
-            appVersionFilter.doFilterInternal(request, response, filterChain)
-
-            then("예외가 발생하고 요청이 차단되어야 한다") {
-                verify {
-                    handlerExceptionResolver.resolveException(
-                        request,
-                        response,
-                        null,
-                        any<AppVersionUpgradeRequiredException>()
-                    )
-                }
-                verify(exactly = 0) { filterChain.doFilter(request, response) }
+            then("형식 오류로 차단되어야 한다") {
+                fixture.verifyBlocked(platform = "android", currentVersion = "1.5", minimumVersion = "형식 오류")
             }
         }
 
-        `when`("잘못된 iOS 버전 형식으로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+        `when`("iOS 버전이 문자열이면") {
+            val fixture = Fixture(iosVersion = "invalid-version")
+            fixture.run()
 
-            every { request.requestURI } returns "/v1/users"
-            every { request.getHeader("X-Android-Version") } returns null
-            every { request.getHeader("X-iOS-Version") } returns "invalid-version"
-
-            appVersionFilter.doFilterInternal(request, response, filterChain)
-
-            then("예외가 발생하고 요청이 차단되어야 한다") {
-                verify {
-                    handlerExceptionResolver.resolveException(
-                        request,
-                        response,
-                        null,
-                        any<AppVersionUpgradeRequiredException>()
-                    )
-                }
-                verify(exactly = 0) { filterChain.doFilter(request, response) }
+            then("형식 오류로 차단되어야 한다") {
+                fixture.verifyBlocked(platform = "ios", currentVersion = "invalid-version", minimumVersion = "형식 오류")
             }
         }
     }
 
     given("특수한 헤더 값") {
         `when`("빈 문자열 헤더로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+            val fixture = Fixture(androidVersion = "", iosVersion = "")
+            fixture.run()
 
-            every { request.requestURI } returns "/v1/users"
-            every { request.getHeader("X-Android-Version") } returns ""
-            every { request.getHeader("X-iOS-Version") } returns ""
-
-            appVersionFilter.doFilterInternal(request, response, filterChain)
-
-            then("헤더가 없는 것과 동일하게 처리되어 통과해야 한다") {
-                verify { filterChain.doFilter(request, response) }
+            then("헤더가 없는 것과 동일하게 통과해야 한다") {
+                fixture.verifyPassed()
             }
         }
 
         `when`("공백 문자열 헤더로 요청하면") {
-            val handlerExceptionResolver = mockk<HandlerExceptionResolver>(relaxed = true)
-            val appVersionFilter = TestableAppVersionFilter(handlerExceptionResolver)
-            val request = mockk<HttpServletRequest>(relaxed = true)
-            val response = mockk<HttpServletResponse>(relaxed = true)
-            val filterChain = mockk<FilterChain>(relaxed = true)
+            val fixture = Fixture(androidVersion = "   ")
+            fixture.run()
 
-            every { request.requestURI } returns "/v1/users"
-            every { request.getHeader("X-Android-Version") } returns "   "
-            every { request.getHeader("X-iOS-Version") } returns null
+            then("헤더가 없는 것과 동일하게 통과해야 한다") {
+                fixture.verifyPassed()
+            }
+        }
+    }
 
-            appVersionFilter.doFilterInternal(request, response, filterChain)
-
-            then("헤더가 없는 것과 동일하게 처리되어 통과해야 한다") {
-                verify { filterChain.doFilter(request, response) }
+    given("최소 버전 설정값이 잘못된 경우") {
+        `when`("필터를 생성하면") {
+            then("기동 시점에 예외가 발생해야 한다") {
+                shouldThrow<IllegalArgumentException> {
+                    TestableAppVersionFilter(mockk(relaxed = true), androidMinimumVersion = "1.5")
+                }
             }
         }
     }

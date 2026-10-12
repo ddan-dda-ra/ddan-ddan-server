@@ -17,7 +17,23 @@
 | `X-Pet-Catalog-Version` | 로그인 외 모든 `/v1/**` 요청 | 클라이언트가 저장한 카탈로그 `revision`입니다. |
 | `X-Pet-Catalog-Download-Required` | 로그인 외 모든 `/v1/**` 응답 | 서버 카탈로그 기준 갱신 필요 여부(`true`/`false`)입니다. |
 
-앱 버전 헤더는 둘 중 현재 플랫폼의 헤더 하나만 전송합니다. 헤더가 없으면 하위 호환을 위해 검사를 건너뛰며, 형식이 잘못되면 `426`과 `AV001`이 반환됩니다.
+앱 버전 헤더는 둘 중 현재 플랫폼의 헤더 하나만 `x.y.z` 형식으로 전송합니다. 헤더가 없으면 하위 호환을 위해 검사를 건너뜁니다. 버전이 서버의 플랫폼별 최소 지원 버전보다 낮거나 형식이 잘못되면 `426`과 `AV001`이 반환되며, 클라이언트는 이 응답을 받으면 스토어 업데이트를 유도해야 합니다.
+
+현재 최소 지원 버전은 Android·iOS 모두 `1.5.0`이며, 서버 설정 `app.version.minimum.android`, `app.version.minimum.ios`로 관리합니다.
+
+```json
+{
+  "code": "AV001",
+  "message": "앱 업데이트가 필요합니다.",
+  "data": {
+    "platform": "ios",
+    "currentVersion": "1.3.2",
+    "minimumVersion": "1.5.0"
+  }
+}
+```
+
+형식 오류인 경우 `minimumVersion`은 `"형식 오류"`입니다. `/v1/auth/**`(로그인, 토큰 재발급)는 버전 검사 대상이 아니므로 구버전 앱도 로그인은 되지만, 이후 일반 API 호출에서 `426`을 받습니다.
 
 클라이언트는 로그인 성공 후 모든 API 요청에 `X-Pet-Catalog-Version`을 전송합니다. 서버의 현재 활성 카탈로그 revision과 같으면 응답의 `X-Pet-Catalog-Download-Required`가 `false`, 다르거나 요청 헤더가 없거나 형식이 잘못되면 `true`입니다. `POST /v1/auth/login`에는 두 카탈로그 헤더를 적용하지 않으며, `POST /v1/auth/reissue`에는 적용합니다.
 
