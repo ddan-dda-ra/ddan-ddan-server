@@ -94,6 +94,24 @@ class JWTTokenProvider(
         return UsernamePasswordAuthenticationToken(getUserId(claims), null, emptyList())
     }
 
+    /**
+     * 로깅 등 부가 용도로 액세스 토큰에서 유저 ID만 꺼낸다.
+     * 인증 판단에 쓰면 안 되며, 만료된 토큰도 허용하고 실패 시 예외 대신 null을 반환한다.
+     */
+    fun extractUserIdOrNull(accessToken: String): ObjectId? {
+        val claims =
+            try {
+                jwtParser.parseEncryptedClaims(accessToken).payload
+            } catch (e: ExpiredJwtException) {
+                e.claims
+            } catch (e: Exception) {
+                return null
+            }
+        return (claims?.get("user_id") as? String)
+            ?.takeIf { ObjectId.isValid(it) }
+            ?.let { ObjectId(it) }
+    }
+
     private fun getClaims(
         token: String,
         tokenType: String,
