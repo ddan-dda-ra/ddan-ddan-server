@@ -20,12 +20,12 @@ class FirebasePushClient(
 
     @Async
     override fun sendToMultiple(deviceTokens: List<DeviceToken?>, message: String, routingView: RoutingView) {
-        if (deviceTokens.isEmpty()) return
-
         val requests = deviceTokens
             .filterNotNull()
             .filter { it.isValid() }
             .map { token -> buildMessage(token.value, message, routingView) }
+        // FCM sendEach는 빈 리스트를 받으면 예외를 던지므로 필터링 후 대상이 없으면 전송하지 않는다.
+        if (requests.isEmpty()) return
 
         retryTemplate.execute<Unit, Exception> {
             fcmClient.sendEach(requests)
