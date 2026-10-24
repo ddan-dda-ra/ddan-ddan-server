@@ -26,7 +26,12 @@ class WebSecurityConfigOrderTest : FunSpec({
         orders["loginFilterChain"]!! shouldBeLessThan orders["apiFilterChain"]!!
     }
 
-    test("등록된 SecurityFilterChain이 정확히 2개여야 한다") {
-        orders.keys shouldBe setOf("loginFilterChain", "apiFilterChain")
+    test("securityMatcher가 없는 fallbackFilterChain은 가장 마지막에 평가되어야 한다 (다른 체인을 가로채지 않도록)") {
+        orders["loginFilterChain"]!! shouldBeLessThan orders["fallbackFilterChain"]!!
+        orders["apiFilterChain"]!! shouldBeLessThan orders["fallbackFilterChain"]!!
+    }
+
+    test("등록된 SecurityFilterChain이 정확히 3개여야 한다") {
+        orders.keys shouldBe setOf("loginFilterChain", "apiFilterChain", "fallbackFilterChain")
     }
 })

@@ -19,7 +19,13 @@ management:
     endpoints:
         web:
             exposure:
-                include: health, info, metrics, loggers, mappings, prometheus
+                include: health
+
+springdoc:
+    api-docs:
+        enabled: false
+    swagger-ui:
+        enabled: false
 
 slack:
     hook-url: ${SLACK_WEBHOOK_URL}
