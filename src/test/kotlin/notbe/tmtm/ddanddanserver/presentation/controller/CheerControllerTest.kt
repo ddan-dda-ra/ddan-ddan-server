@@ -7,6 +7,7 @@ import io.mockk.mockk
 import notbe.tmtm.ddanddanserver.application.service.CheerService
 import notbe.tmtm.ddanddanserver.common.WebExceptionHandler
 import notbe.tmtm.ddanddanserver.domain.exception.CheerAlreadyExistsException
+import notbe.tmtm.ddanddanserver.domain.exception.CheerNotFriendException
 import notbe.tmtm.ddanddanserver.domain.exception.CheerSelfException
 import notbe.tmtm.ddanddanserver.domain.model.cheer.Cheer
 import org.bson.types.ObjectId
@@ -90,6 +91,20 @@ class CheerControllerTest : FunSpec({
                     .principal(UsernamePasswordAuthenticationToken(testUserId.toString(), null, emptyList()))
             )
                 .andExpect(status().isConflict)
+        }
+
+        test("친구 관계가 아닌 유저를 응원하면 400 에러와 CE003 코드를 반환한다") {
+            // given
+            every { cheerService.createCheer(testUserId, testFriendId) } throws CheerNotFriendException()
+
+            // when & then
+            mockMvc.perform(
+                post("/v1/cheers/{friendId}", testFriendId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .principal(UsernamePasswordAuthenticationToken(testUserId.toString(), null, emptyList()))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("CE003"))
         }
 
         test("잘못된 친구 ID 형식일 때 400 에러를 반환한다") {
