@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import notbe.tmtm.ddanddanserver.common.util.logger
+import notbe.tmtm.ddanddanserver.config.AppleOAuthProperties
 import notbe.tmtm.ddanddanserver.domain.exception.AppleKeyGenerationError
 import notbe.tmtm.ddanddanserver.domain.exception.AppleRestClientError
 import notbe.tmtm.ddanddanserver.domain.exception.AppleTokenParseError
@@ -22,6 +23,7 @@ import java.util.*
 class AppleProcessor(
     private val appleAuthApi: AppleAuthApi,
     private val objectMapper: ObjectMapper,
+    private val appleOAuthProperties: AppleOAuthProperties,
 ) : OAuthProcessor {
     override fun getProviderType(): OAuthType = OAuthType.APPLE
 
@@ -31,10 +33,12 @@ class AppleProcessor(
         val publicKey = generatePublicKey(headers, appleKeys)
         val claims = parseClaims(accessToken, publicKey)
 
+        val sub = claims.subject
+
         return OAuth(
-            id = claims["sub"].toString(),
+            id = sub,
             type = this.getProviderType(),
-            nickName = claims["email"].toString(),
+            nickName = claims.get("email", String::class.java)?.takeIf { it.isNotBlank() } ?: sub,
         )
     }
 
@@ -124,12 +128,24 @@ class AppleProcessor(
         publicKey: PublicKey?,
     ): Claims =
         try {
-            Jwts
-                .parser()
-                .verifyWith(publicKey)
-                .build()
-                .parseSignedClaims(idToken)
-                .payload
+            val claims =
+                Jwts
+                    .parser()
+                    .verifyWith(publicKey)
+                    .requireIssuer(APPLE_ISSUER)
+                    .build()
+                    .parseSignedClaims(idToken)
+                    .payload
+
+            val audience = claims.audience.orEmpty()
+            if (audience.none { it in appleOAuthProperties.clientIds }) {
+                throw IllegalArgumentException("허용되지 않은 Apple 토큰 audience 입니다: $audience")
+            }
+            if (claims.subject.isNullOrBlank()) {
+                throw IllegalArgumentException("Apple 토큰에 sub 클레임이 없습니다")
+            }
+
+            claims
         } catch (exception: Exception) {
             logger().error("Apple 토큰 검증 중 오류가 발생했습니다", exception)
             throw AppleTokenValidationError(exception.message)
@@ -150,5 +166,6 @@ class AppleProcessor(
 
     private companion object {
         private const val TOKEN_VALUE_DELIMITER = "\\."
+        private const val APPLE_ISSUER = "https://appleid.apple.com"
     }
 }
