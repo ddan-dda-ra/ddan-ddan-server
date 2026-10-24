@@ -73,6 +73,13 @@ class User(
 
     fun getMainPetIdOrThrow(): ObjectId = this.mainPetId ?: throw PetNotFoundException("Main pet is not set")
 
+    /**
+     * 푸시를 받을 수 있는 디바이스 토큰을 반환한다.
+     * 앱 푸시 설정이 꺼져 있거나 토큰이 없거나 유효하지 않으면(기본 토큰 포함) null을 반환한다.
+     */
+    fun pushableDeviceToken(): DeviceToken? =
+        deviceToken?.takeIf { setting.isAppPushOn && it.isValid() }
+
     companion object {
         fun register(
             deviceToken: String?,

@@ -8,6 +8,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.exception.CheerAlreadyExistsException
 import notbe.tmtm.ddanddanserver.domain.model.cheer.Cheer
+import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
@@ -56,7 +57,34 @@ class CheerServiceTest : FunSpec({
         result.cheererId shouldBe cheererId
         result.cheereeId shouldBe cheereeId
         verify { cheerRepository.saveWithDuplicateCheck(any()) }
-        verify { pushClient.sendToUser(any(), any(), any()) }
+        verify(exactly = 1) { pushClient.sendToUser(DeviceToken("test-token"), any(), RoutingView.MAIN) }
+    }
+
+    test("응원받는 유저의 푸시 설정이 꺼져 있으면 응원 알림을 보내지 않는다") {
+        val cheererId = ObjectId()
+        val cheereeId = ObjectId()
+        val expectedCheer = Cheer.create(cheererId, cheereeId)
+        val cheereeUser = User(
+            id = cheereeId,
+            deviceToken = DeviceToken("test-token"),
+            name = "테스트유저",
+            setting = UserSetting(isAppPushOn = false)
+        )
+        val cheererUser = User(
+            id = cheererId,
+            deviceToken = DeviceToken("cheerer-token"),
+            name = "응원자",
+            setting = UserSetting(isAppPushOn = true)
+        )
+
+        every { userRepository.findByIdOrThrow(cheereeId) } returns cheereeUser
+        every { userRepository.findByIdOrThrow(cheererId) } returns cheererUser
+        every { cheerRepository.saveWithDuplicateCheck(any()) } returns expectedCheer
+
+        cheerService.createCheer(cheererId, cheereeId)
+
+        verify(exactly = 1) { cheerRepository.saveWithDuplicateCheck(any()) }
+        verify(exactly = 0) { pushClient.sendToUser(any(), any(), any()) }
     }
 
     test("중복 응원 시도 시 예외가 발생한다") {
