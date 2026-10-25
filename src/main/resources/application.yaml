@@ -18,6 +18,11 @@ oauth:
 mock-oauth:
   enabled: false
 
+external-api:
+  timeout:
+    connect: 3s
+    read: 5s
+
 springdoc:
   swagger-ui:
     operations-sorter: alpha
