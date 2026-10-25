@@ -1095,6 +1095,8 @@ components:
           format: int32
           description: 칼로리
           example: 100
+          maximum: 10000
+          minimum: 0
       required:
       - calorie
     DailyInfoResponse:
