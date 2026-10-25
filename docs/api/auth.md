@@ -33,6 +33,7 @@
 
 - 성공 시 access token과 refresh token을 모두 교체해 저장합니다.
 - `AC004`는 refresh token 만료, `AC005`는 토큰 누락을 의미합니다.
+- 탈퇴 등으로 refresh token의 유저가 없으면 `AC002`(401)를 응답합니다.
 
 ## 클라이언트 처리
 

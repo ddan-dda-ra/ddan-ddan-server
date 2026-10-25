@@ -4,6 +4,7 @@ import notbe.tmtm.ddanddanserver.application.event.UserRegisteredEvent
 import notbe.tmtm.ddanddanserver.application.processor.OAuth
 import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
+import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.AuthResult
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
@@ -45,7 +46,8 @@ class AuthService(
         jwtTokenProvider.validateRefreshToken(refreshToken)
         val userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken)
 
-        val user = userRepository.findByIdOrNull(userId) ?: throw IllegalArgumentException("리프레시 토큰에 해당하는 유저가 없습니다")
+        // 탈퇴 등으로 유저가 없으면 요청 값 오류가 아니라 인증 실패로 응답한다.
+        val user = userRepository.findByIdOrNull(userId) ?: throw AuthenticationInvalidTokenException()
         return AuthResult(
             accessToken = jwtTokenProvider.createAccessToken(user),
             refreshToken = jwtTokenProvider.createRefreshToken(user),

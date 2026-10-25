@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.application.service
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
@@ -11,6 +12,7 @@ import notbe.tmtm.ddanddanserver.application.processor.OAuth
 import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessor
 import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
+import notbe.tmtm.ddanddanserver.domain.exception.AuthenticationInvalidTokenException
 import notbe.tmtm.ddanddanserver.domain.model.auth.Auth
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
@@ -159,6 +161,17 @@ class AuthServiceTest : FunSpec({
         verify(exactly = 0) { oauthProcessorFactory.getClient(OAuthType.KAKAO, true) }
     }
 
+    test("refresh token의 유저가 없으면 재발급 시 인증 실패 예외가 발생한다") {
+        val withdrawnUserId = ObjectId()
+        every { jwtTokenProvider.validateRefreshToken("refresh-token") } returns Unit
+        every { jwtTokenProvider.getUserIdFromRefreshToken("refresh-token") } returns withdrawnUserId
+        every { userRepository.findById(withdrawnUserId) } returns Optional.empty()
+
+        shouldThrow<AuthenticationInvalidTokenException> {
+            authService.reissueToken("refresh-token")
+        }
+    }
+
     test("동시 가입으로 Auth 저장이 unique 충돌하면 방금 만든 유저를 지우고 기존 계정으로 로그인한다") {
         val oAuthAccessToken = "kakao-access"
         val oAuth = OAuth(id = "oauth-race", type = OAuthType.KAKAO, nickName = "동시가입")
@@ -182,3 +195,4 @@ class AuthServiceTest : FunSpec({
         verify(exactly = 0) { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }
     }
 })
+
