@@ -3,16 +3,29 @@ package notbe.tmtm.ddanddanserver.application.service
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.model.notification.PushMessage
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
+import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
+import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
+import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingBoard
+import notbe.tmtm.ddanddanserver.domain.model.ranking.RankingCriteria
+import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.getAllRankingBy
 import org.bson.types.ObjectId
+import java.time.LocalDateTime
+import java.util.Optional
+
+private const val USER_STAT_REPOSITORY_KT =
+    "notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepositoryKt"
 
 class NotificationServiceTest : FunSpec({
     lateinit var userRepository: UserRepository
@@ -89,5 +102,103 @@ class NotificationServiceTest : FunSpec({
         notificationService.notifyWeeklyRanking(1000)
 
         verify(exactly = 0) { pushClient.sendToMultiple(any(), any(), any()) }
+    }
+
+    context("notifyRankingDiff") {
+        fun createUserStat(user: User): UserStat =
+            UserStat(
+                user = user,
+                mainPet = Pet(id = ObjectId(), type = "DOG", ownerUserId = user.id, exp = 0),
+                totalCalories = 0,
+                totalSucceededDays = 0,
+                totalAttendanceDays = 0,
+            )
+
+        fun givenRanking(previous: List<User>, current: List<User>) {
+            every { rankingService.getRankingBoard(PeriodType.MONTHLY) } returns
+                RankingBoard.of(id = PeriodType.MONTHLY, ranking = previous.map { createUserStat(it) })
+            every {
+                userStatRepository.getAllRankingBy(RankingCriteria.TOTAL_CALORIES, PeriodType.MONTHLY)
+            } returns current.map { createUserStat(it) }
+        }
+
+        beforeEach {
+            mockkStatic(USER_STAT_REPOSITORY_KT)
+            mockkStatic(LocalDateTime::class)
+            // 매달 1일에는 갱신만 수행하므로 1일이 아닌 날짜로 고정한다.
+            every { LocalDateTime.now() } returns LocalDateTime.of(2026, 10, 24, 12, 0)
+            every { rankingService.updateRankingBoard(any()) } answers { firstArg() }
+        }
+
+        afterEach {
+            unmockkStatic(USER_STAT_REPOSITORY_KT)
+            unmockkStatic(LocalDateTime::class)
+        }
+
+        test("현재 랭킹에서 밀려난 유저에게 랭킹 하락 알림을 보내고 랭킹보드를 갱신한다") {
+            val stayed = createTestUser("유지유저", "stayed-token", true)
+            val dropped = createTestUser("이탈유저", "dropped-token", true)
+            givenRanking(previous = listOf(stayed, dropped), current = listOf(stayed))
+            every { userRepository.findById(dropped.id) } returns Optional.of(dropped)
+
+            notificationService.notifyRankingDiff()
+
+            verify(exactly = 1) { pushClient.sendToUser(DeviceToken("dropped-token"), PushMessage.RANKING_DOWN, RoutingView.MAIN) }
+            verify(exactly = 1) { rankingService.updateRankingBoard(any()) }
+        }
+
+        test("순위가 떨어진 유저에게 랭킹 하락 알림을 보낸다") {
+            val down = createTestUser("하락유저", "down-token", true)
+            val up = createTestUser("상승유저", "up-token", true)
+            givenRanking(previous = listOf(down, up), current = listOf(up, down))
+            every { userRepository.findById(down.id) } returns Optional.of(down)
+
+            notificationService.notifyRankingDiff()
+
+            verify(exactly = 1) { pushClient.sendToUser(DeviceToken("down-token"), PushMessage.RANKING_DOWN, RoutingView.MAIN) }
+            verify(exactly = 1) { pushClient.sendToUser(any(), any(), any()) }
+            verify(exactly = 0) { userRepository.findById(up.id) }
+            verify(exactly = 1) { rankingService.updateRankingBoard(any()) }
+        }
+
+        test("탈퇴해 조회되지 않는 유저는 건너뛰고 랭킹보드를 갱신한다") {
+            val withdrawn = createTestUser("탈퇴유저", "withdrawn-token", true)
+            val dropped = createTestUser("이탈유저", "dropped-token", true)
+            givenRanking(previous = listOf(withdrawn, dropped), current = emptyList())
+            every { userRepository.findById(withdrawn.id) } returns Optional.empty()
+            every { userRepository.findById(dropped.id) } returns Optional.of(dropped)
+
+            notificationService.notifyRankingDiff()
+
+            verify(exactly = 0) { pushClient.sendToUser(DeviceToken("withdrawn-token"), any(), any()) }
+            verify(exactly = 1) { pushClient.sendToUser(DeviceToken("dropped-token"), PushMessage.RANKING_DOWN, RoutingView.MAIN) }
+            verify(exactly = 1) { rankingService.updateRankingBoard(any()) }
+        }
+
+        test("한 유저의 알림 전송이 실패해도 나머지 유저에게 알림을 보내고 랭킹보드를 갱신한다") {
+            val failed = createTestUser("실패유저", "failed-token", true)
+            val dropped = createTestUser("이탈유저", "dropped-token", true)
+            givenRanking(previous = listOf(failed, dropped), current = emptyList())
+            every { userRepository.findById(failed.id) } throws RuntimeException("조회 실패")
+            every { userRepository.findById(dropped.id) } returns Optional.of(dropped)
+
+            notificationService.notifyRankingDiff()
+
+            verify(exactly = 1) { pushClient.sendToUser(DeviceToken("dropped-token"), PushMessage.RANKING_DOWN, RoutingView.MAIN) }
+            verify(exactly = 1) { rankingService.updateRankingBoard(any()) }
+        }
+
+        test("순위가 오른 유저에게는 알림을 보내지 않는다") {
+            val up = createTestUser("상승유저", "up-token", true)
+            val down = createTestUser("하락유저", "down-token", false)
+            givenRanking(previous = listOf(down, up), current = listOf(up, down))
+            every { userRepository.findById(down.id) } returns Optional.of(down)
+
+            notificationService.notifyRankingDiff()
+
+            verify(exactly = 0) { userRepository.findById(up.id) }
+            verify(exactly = 0) { pushClient.sendToUser(any(), any(), any()) }
+            verify(exactly = 1) { rankingService.updateRankingBoard(any()) }
+        }
     }
 })
