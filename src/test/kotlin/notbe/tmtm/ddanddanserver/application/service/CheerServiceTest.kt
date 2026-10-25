@@ -11,6 +11,7 @@ import notbe.tmtm.ddanddanserver.domain.exception.CheerNotFriendException
 import notbe.tmtm.ddanddanserver.domain.exception.CheerSelfException
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
 import notbe.tmtm.ddanddanserver.domain.model.cheer.Cheer
+import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
@@ -60,7 +61,35 @@ class CheerServiceTest : FunSpec({
         result.cheereeId shouldBe cheereeId
         verify { friendshipRepository.areFriends(cheererId, cheereeId) }
         verify { cheerRepository.saveWithDuplicateCheck(any()) }
-        verify { pushClient.sendToUser(any(), any(), any()) }
+        verify(exactly = 1) { pushClient.sendToUser(DeviceToken("test-token"), any(), RoutingView.MAIN) }
+    }
+
+    test("응원받는 유저의 푸시 설정이 꺼져 있으면 응원 알림을 보내지 않는다") {
+        val cheererId = ObjectId()
+        val cheereeId = ObjectId()
+        val expectedCheer = Cheer.create(cheererId, cheereeId)
+        val cheereeUser = User(
+            id = cheereeId,
+            deviceToken = DeviceToken("test-token"),
+            name = "테스트유저",
+            setting = UserSetting(isAppPushOn = false)
+        )
+        val cheererUser = User(
+            id = cheererId,
+            deviceToken = DeviceToken("cheerer-token"),
+            name = "응원자",
+            setting = UserSetting(isAppPushOn = true)
+        )
+
+        every { userRepository.findByIdOrThrow(cheereeId) } returns cheereeUser
+        every { userRepository.findByIdOrThrow(cheererId) } returns cheererUser
+        every { friendshipRepository.areFriends(cheererId, cheereeId) } returns true
+        every { cheerRepository.saveWithDuplicateCheck(any()) } returns expectedCheer
+
+        cheerService.createCheer(cheererId, cheereeId)
+
+        verify(exactly = 1) { cheerRepository.saveWithDuplicateCheck(any()) }
+        verify(exactly = 0) { pushClient.sendToUser(any(), any(), any()) }
     }
 
     test("친구 관계가 아닌 유저를 응원하면 예외가 발생하고 저장과 푸시를 하지 않는다") {

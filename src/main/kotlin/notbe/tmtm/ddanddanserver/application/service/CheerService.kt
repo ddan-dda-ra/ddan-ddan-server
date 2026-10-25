@@ -3,7 +3,7 @@ package notbe.tmtm.ddanddanserver.application.service
 import notbe.tmtm.ddanddanserver.domain.exception.CheerNotFriendException
 import notbe.tmtm.ddanddanserver.domain.model.cheer.Cheer
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
-import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
+import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.CheerRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
@@ -39,14 +39,15 @@ class CheerService(
         }
 
         val result = cheerRepository.saveWithDuplicateCheck(cheer)
-        sendCheerMessage(cheeree.deviceToken, cheerer.name)
+        sendCheerMessage(cheeree, cheerer.name)
         return result
     }
 
-    private fun sendCheerMessage(cheereeDeviceToken: DeviceToken?, cheererName: String?) {
+    private fun sendCheerMessage(cheeree: User, cheererName: String?) {
         if (cheererName == null) return
+        val deviceToken = cheeree.pushableDeviceToken() ?: return
         val message = createRandomCheerMessage(cheererName)
-        pushClient.sendToUser(cheereeDeviceToken, message, RoutingView.MAIN)
+        pushClient.sendToUser(deviceToken, message, RoutingView.MAIN)
     }
 
     private fun createRandomCheerMessage(cheererName: String): String {

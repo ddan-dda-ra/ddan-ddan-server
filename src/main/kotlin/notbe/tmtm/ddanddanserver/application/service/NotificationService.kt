@@ -30,6 +30,7 @@ class NotificationService(
     @Transactional(readOnly = true)
     fun notifyCheckCalorie() {
         val validDeviceTokens = getValidDeviceTokens(userRepository.findAll())
+        if (validDeviceTokens.isEmpty()) return
 
         pushClient.sendToMultiple(validDeviceTokens, PushMessage.CHECK_CALORIE, RoutingView.MAIN)
     }
@@ -37,6 +38,7 @@ class NotificationService(
     @Transactional(readOnly = true)
     fun notifyWeeklyRanking(totalCalories: Int) {
         val validDeviceTokens = getValidDeviceTokens(userRepository.findAll())
+        if (validDeviceTokens.isEmpty()) return
 
         pushClient.sendToMultiple(validDeviceTokens, PushMessage.weeklyRanking(totalCalories), RoutingView.MAIN)
     }
@@ -85,11 +87,8 @@ class NotificationService(
         rankingService.updateRankingBoard(currentRankingBoard)
     }
 
-    private fun getValidDeviceTokens(users: List<User>): List<DeviceToken?> {
-        return users
-            .filter { it.setting.isAppPushOn }
-            .map { user -> user.deviceToken }
-    }
+    private fun getValidDeviceTokens(users: List<User>): List<DeviceToken> =
+        users.mapNotNull { it.pushableDeviceToken() }
 
     private fun isRankingDown(
         currentUserStat: Pair<Int, UserStat>?,
