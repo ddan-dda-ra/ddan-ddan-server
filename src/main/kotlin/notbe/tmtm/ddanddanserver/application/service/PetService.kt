@@ -18,8 +18,8 @@ class PetService(
 ) {
     @Transactional
     fun addPet(ownerUserId: ObjectId, petType: String): Pet {
-        petCatalogService.requireActive(petType)
-        return addPetInternal(petType, ownerUserId)
+        val canonicalType = petCatalogService.requireActive(petType)
+        return addPetInternal(canonicalType, ownerUserId)
     }
 
     @Transactional

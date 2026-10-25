@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
@@ -35,7 +36,7 @@ class PetServiceTest : FunSpec({
         val petType = "DOG"
         val savedPet = mockk<Pet>()
 
-        every { petCatalogService.requireActive(petType) } returns Unit
+        every { petCatalogService.requireActive(petType) } returns "DOG"
         every { petRepository.save(any()) } returns savedPet
 
         val result = petService.addPet(ownerUserId, petType)
@@ -43,6 +44,19 @@ class PetServiceTest : FunSpec({
         verify { petCatalogService.requireActive(petType) }
         verify { petRepository.save(any()) }
         result shouldBe savedPet
+    }
+
+    test("펫 추가: 소문자나 공백이 섞인 종류는 정규화된 종류로 저장해야 한다") {
+        val ownerUserId = ObjectId()
+        val saved = slot<Pet>()
+
+        every { petCatalogService.requireActive(" dog ") } returns "DOG"
+        every { petRepository.save(capture(saved)) } answers { saved.captured }
+
+        val result = petService.addPet(ownerUserId, " dog ")
+
+        result.type shouldBe "DOG"
+        saved.captured.ownerUserId shouldBe ownerUserId
     }
 
     test("랜덤 펫 추가: 랜덤 펫을 성공적으로 추가해야 한다") {

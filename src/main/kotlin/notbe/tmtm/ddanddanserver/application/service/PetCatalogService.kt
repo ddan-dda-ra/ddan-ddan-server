@@ -31,9 +31,11 @@ class PetCatalogService(
 
     fun getName(type: String): String? = repository.findByType(PetCatalogItem.canonicalizeType(type))?.name
 
-    fun requireActive(type: String) {
+    /** 활성화된 펫 종류인지 확인하고, 저장에 쓸 정규화된 종류를 반환한다. */
+    fun requireActive(type: String): String {
         val canonicalType = PetCatalogItem.canonicalizeType(type)
         val entity = repository.findByType(canonicalType) ?: throw PetCatalogNotFoundException(canonicalType)
         if (!entity.isActive) throw PetCatalogInactiveException(canonicalType)
+        return canonicalType
     }
 }
