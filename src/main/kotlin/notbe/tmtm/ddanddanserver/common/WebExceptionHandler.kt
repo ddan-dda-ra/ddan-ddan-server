@@ -88,14 +88,14 @@ class WebExceptionHandler {
         ],
     )
     fun handleUnknownResource(exception: Exception): ResponseEntity<ErrorResponse> {
-        val errorCode =
+        val (status, errorCode) =
             when (exception) {
-                is NoResourceFoundException -> ErrorCode.UNKNOWN_RESOURCE
-                is HttpRequestMethodNotSupportedException -> ErrorCode.INVALID_METHOD
-                else -> ErrorCode.UNKNOWN_SERVER_ERROR
+                is NoResourceFoundException -> HttpStatus.NOT_FOUND to ErrorCode.UNKNOWN_RESOURCE
+                is HttpRequestMethodNotSupportedException -> HttpStatus.METHOD_NOT_ALLOWED to ErrorCode.INVALID_METHOD
+                else -> HttpStatus.NOT_FOUND to ErrorCode.UNKNOWN_SERVER_ERROR
             }
         return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
+            .status(status)
             .body(
                 ErrorResponse.fromErrorCode(
                     errorCode = errorCode,
