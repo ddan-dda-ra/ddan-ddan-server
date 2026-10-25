@@ -18,6 +18,7 @@ import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import org.bson.types.ObjectId
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.context.ApplicationEventPublisher
 import java.util.Optional
 
@@ -153,5 +154,28 @@ class AuthServiceTest : FunSpec({
 
         verify(exactly = 1) { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) }
         verify(exactly = 0) { oauthProcessorFactory.getClient(OAuthType.KAKAO, true) }
+    }
+
+    test("동시 가입으로 Auth 저장이 unique 충돌하면 방금 만든 유저를 지우고 기존 계정으로 로그인한다") {
+        val oAuthAccessToken = "kakao-access"
+        val oAuth = OAuth(id = "oauth-race", type = OAuthType.KAKAO, nickName = "동시가입")
+        val existingUserId = ObjectId()
+        val existingUser = User(id = existingUserId, deviceToken = null, name = "동시가입")
+        val existingAuth = Auth.create(oAuthId = oAuth.id, type = OAuthType.KAKAO, userId = existingUserId)
+        val createdUser = slot<User>()
+
+        every { oauthProcessorFactory.getClient(OAuthType.KAKAO, false) } returns oauthProcessor
+        every { oauthProcessor.getOAuth(oAuthAccessToken) } returns oAuth
+        every { authRepository.findByOAuthIdAndType(oAuth.id, OAuthType.KAKAO) } returnsMany listOf(null, existingAuth)
+        every { userRepository.save(capture(createdUser)) } answers { firstArg() }
+        every { authRepository.save(any<Auth>()) } throws DuplicateKeyException("E11000 duplicate key")
+        every { userRepository.deleteById(any()) } returns Unit
+        every { userRepository.findById(existingUserId) } returns Optional.of(existingUser)
+
+        val result = authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = null, useMock = false)
+
+        result.user.id shouldBe existingUserId
+        verify(exactly = 1) { userRepository.deleteById(createdUser.captured.id) }
+        verify(exactly = 0) { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }
     }
 })
