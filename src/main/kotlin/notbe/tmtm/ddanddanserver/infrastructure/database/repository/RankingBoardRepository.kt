@@ -6,7 +6,7 @@ import notbe.tmtm.ddanddanserver.infrastructure.database.entity.RankingBoardEnti
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.data.repository.findByIdOrNull
 
-interface RankingBoardRepository : MongoRepository<RankingBoardEntity, PeriodType>
+interface RankingBoardRepository : MongoRepository<RankingBoardEntity, PeriodType>, RankingBoardRepositoryCustom
 
 fun RankingBoardRepository.findByIdOrDefault(id: PeriodType): RankingBoard {
     return (findByIdOrNull(id) ?: RankingBoardEntity(id, emptyList())).toDomain()

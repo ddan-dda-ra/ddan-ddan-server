@@ -6,10 +6,12 @@ import io.mockk.verify
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.CheerRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.InviteCodeRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.RankingBoardRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.deleteAllBy
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
@@ -27,6 +29,8 @@ class UserServiceTest {
     private lateinit var userService: UserService
     private lateinit var inviteCodeRepository: InviteCodeRepository
     private lateinit var friendshipRepository: FriendshipRepository
+    private lateinit var cheerRepository: CheerRepository
+    private lateinit var rankingBoardRepository: RankingBoardRepository
 
     @BeforeEach
     fun setUp() {
@@ -36,6 +40,8 @@ class UserServiceTest {
         petRepository = mockk()
         inviteCodeRepository = mockk()
         friendshipRepository = mockk()
+        cheerRepository = mockk()
+        rankingBoardRepository = mockk()
         userService =
             UserService(
                 userRepository,
@@ -44,6 +50,8 @@ class UserServiceTest {
                 petRepository,
                 inviteCodeRepository,
                 friendshipRepository,
+                cheerRepository,
+                rankingBoardRepository,
             )
     }
 
@@ -134,6 +142,8 @@ class UserServiceTest {
         every { dailyInfoRepository.deleteAllByUserId(userId) } returns Unit
         every { inviteCodeRepository.deleteAllByInviterId(userId) } returns Unit
         every { friendshipRepository.deleteAllBy(userId) } returns Unit
+        every { cheerRepository.deleteAllByCheererIdOrCheereeId(userId, userId) } returns Unit
+        every { rankingBoardRepository.removeUser(userId) } returns Unit
         every { userRepository.deleteById(userId) } returns Unit
 
         // when
@@ -145,6 +155,8 @@ class UserServiceTest {
         verify { dailyInfoRepository.deleteAllByUserId(userId) }
         verify { inviteCodeRepository.deleteAllByInviterId(userId) }
         verify { friendshipRepository.deleteAllBy(userId) }
+        verify { cheerRepository.deleteAllByCheererIdOrCheereeId(userId, userId) }
+        verify { rankingBoardRepository.removeUser(userId) }
 
         verify { userRepository.deleteById(userId) }
     }
