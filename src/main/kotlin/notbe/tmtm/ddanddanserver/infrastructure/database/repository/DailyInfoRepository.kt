@@ -5,7 +5,7 @@ import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 import java.time.LocalDate
 
-interface DailyInfoRepository : MongoRepository<DailyInfo, ObjectId> {
+interface DailyInfoRepository : MongoRepository<DailyInfo, ObjectId>, DailyInfoRepositoryCustom {
     fun findByUserIdAndDate(
         userId: ObjectId,
         date: LocalDate,

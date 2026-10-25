@@ -105,7 +105,7 @@ class AuthService(
     ) {
         if (user.deviceToken?.value != deviceToken) {
             user.updateDeviceToken(deviceToken)
-            userRepository.save(user)
+            userRepository.updateDeviceToken(user.id, user.deviceToken)
         }
     }
 }

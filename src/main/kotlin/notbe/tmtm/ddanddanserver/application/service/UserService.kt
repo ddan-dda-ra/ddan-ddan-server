@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.application.service
 
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
@@ -28,13 +29,13 @@ class UserService(
     private val inviteCodeRepository: InviteCodeRepository,
     private val friendshipRepository: FriendshipRepository,
 ) {
+    private val log = logger()
+
     fun getAll(): List<User> = userRepository.findAll()
 
     fun getAllByIds(ids: List<ObjectId>): List<User> = userRepository.findAllById(ids)
 
     fun getByIdOrThrow(id: ObjectId): User = userRepository.findByIdOrThrow(id)
-
-    fun update(user: User): User = userRepository.save(user)
 
     fun updateInfo(
         userId: ObjectId,
@@ -43,7 +44,7 @@ class UserService(
     ): User {
         val user = getByIdOrThrow(userId)
         user.updateInfo(name, purposeCalorie)
-        return update(user)
+        return userRepository.updateProfile(userId, user.name, user.purposeCalorie)
     }
 
     fun updateSetting(
@@ -51,12 +52,14 @@ class UserService(
         isAppPushOn: Boolean?,
     ): UserSetting {
         val user = getByIdOrThrow(userId)
-        user.setting =
+        val setting =
             user.setting.copy(
                 isAppPushOn = isAppPushOn ?: user.setting.isAppPushOn,
             )
-        return update(user).setting
+        return userRepository.updateSetting(userId, setting).setting
     }
+
+    fun resetPurposeStrictExcept(userIds: Collection<ObjectId>): Long = userRepository.resetPurposeStrictExcept(userIds)
 
     fun withdraw(userId: ObjectId) {
         authRepository.deleteAllByUserId(userId)
@@ -75,6 +78,14 @@ class UserService(
         val rewardedToyQuantity: Int,
     )
 
+    /**
+     * 칼로리 갱신과 보상 지급을 원자적 연산으로 나눠 처리한다.
+     * 1. DailyInfo 칼로리를 $max로 올리고 갱신 전 칼로리를 받는다. 동시 요청이 와도 각 요청이 받는 이전 값은 겹치지 않아 보상이 중복되지 않는다.
+     * 2. 목표 달성은 아직 달성 처리 전인 문서만 바꾸는 조건부 갱신이라 하루에 한 번만 인정된다.
+     * 3. 먹이·연속 달성·접속일을 한 번에 $inc/$set 한다.
+     * 3이 실패하면 1, 2를 되돌린다. 클라이언트가 같은 칼로리로 다시 요청하면 보상을 다시 계산해서 받는다.
+     * $inc는 멱등이 아니라서 서버에서 자동 재시도하지 않는다. 첫 시도가 실제로는 반영됐다면 보상이 두 번 들어간다.
+     */
     @Transactional
     fun updateCalorieAndRewardFood(
         userId: ObjectId,
@@ -82,31 +93,69 @@ class UserService(
         today: LocalDate,
     ): CalorieUpdateResult {
         val user = getByIdOrThrow(userId)
-        val calorieDailyInfo = getOrCreateDailyInfo(user, today)
-        val rewardFood = getRewardFood(calorieDailyInfo.calorie, calorie)
-        var rewardedToyQuantity = 0
-        user.foodQuantity += rewardFood
+        val dailyInfo = getOrCreateDailyInfo(user, today)
+        val previousCalorie = dailyInfoRepository.raiseCalorie(dailyInfo.id, calorie)
+        val rewardFood = getRewardFood(previousCalorie, calorie)
 
-        if (isDailyPurposeAchieve(calorieDailyInfo, user, calorie)) {
-            calorieDailyInfo.purposeAchieved = true
-            user.addPurposeStrict()
-            if (validateToyGiven(user.purposeStrict)) {
-                user.toyQuantity++
-                rewardedToyQuantity = 1
-                calorieDailyInfo.toyGiven = true
+        var purposeAchieved = false
+        val rewardedUser =
+            try {
+                purposeAchieved = isDailyPurposeAchieve(previousCalorie, user.purposeCalorie, calorie) &&
+                    dailyInfoRepository.markPurposeAchieved(dailyInfo.id)
+                userRepository.rewardDailyCalorie(userId, rewardFood, purposeAchieved, LocalDate.now())
+            } catch (e: Exception) {
+                revertDailyCalorie(dailyInfo.id, previousCalorie, calorie, purposeAchieved)
+                throw e
             }
-        }
 
-        calorieDailyInfo.update(calorie)
-        user.lastLoginAt = LocalDate.now()
+        val (resultUser, rewardedToyQuantity) =
+            if (purposeAchieved && validateToyGiven(rewardedUser.purposeStrict)) {
+                rewardToy(rewardedUser, dailyInfo.id)
+            } else {
+                rewardedUser to 0
+            }
 
         return CalorieUpdateResult(
-            update(user),
-            dailyInfoRepository.save(calorieDailyInfo),
+            resultUser,
+            dailyInfoRepository.findByIdOrNull(dailyInfo.id) ?: dailyInfo,
             rewardFood,
             rewardedToyQuantity,
         )
     }
+
+    private fun revertDailyCalorie(
+        dailyInfoId: ObjectId,
+        previousCalorie: Int,
+        calorie: Int,
+        purposeAchieved: Boolean,
+    ) {
+        runCatching {
+            if (calorie > previousCalorie) {
+                dailyInfoRepository.revertCalorie(dailyInfoId, from = calorie, to = previousCalorie)
+            }
+            if (purposeAchieved) {
+                dailyInfoRepository.unmarkPurposeAchieved(dailyInfoId)
+            }
+        }.onFailure {
+            log.error("칼로리 갱신 되돌리기 실패. dailyInfoId: $dailyInfoId, $previousCalorie -> $calorie", it)
+        }
+    }
+
+    /**
+     * 먹이 보상과 연속 달성은 이미 반영됐으므로, 장난감 지급이 실패해도 요청은 성공으로 응답한다.
+     */
+    private fun rewardToy(
+        user: User,
+        dailyInfoId: ObjectId,
+    ): Pair<User, Int> =
+        runCatching {
+            val rewardedUser = userRepository.increaseItems(user.id, toy = 1)
+            dailyInfoRepository.markToyGiven(dailyInfoId)
+            rewardedUser to 1
+        }.getOrElse {
+            log.error("연속 달성 장난감 지급 실패. userId: ${user.id}, dailyInfoId: $dailyInfoId", it)
+            user to 0
+        }
 
     private fun getOrCreateDailyInfo(
         user: User,
@@ -117,7 +166,7 @@ class UserService(
         val mainPetType = user.mainPetId?.let { petRepository.findByIdOrNull(it)?.type }
         return try {
             if (dailyInfoRepository.findByUserIdAndDate(user.id, today.minusDays(1))?.purposeAchieved == false) {
-                user.purposeStrict = 0
+                userRepository.resetPurposeStrict(user.id)
             }
             dailyInfoRepository.insert(DailyInfo.create(user.id, user.name, mainPetType, today))
         } catch (e: DuplicateKeyException) {
@@ -128,10 +177,10 @@ class UserService(
     private fun validateToyGiven(purposeStrict: Int): Boolean = purposeStrict != 0 && purposeStrict % 3 == 0
 
     private fun isDailyPurposeAchieve(
-        calorieDailyInfo: DailyInfo,
-        user: User,
+        previousCalorie: Int,
+        purposeCalorie: Int,
         currentCalorie: Int,
-    ) = calorieDailyInfo.calorie < user.purposeCalorie && currentCalorie >= user.purposeCalorie
+    ) = previousCalorie < purposeCalorie && currentCalorie >= purposeCalorie
 
     private fun getRewardFood(
         previousCalorie: Int,

@@ -17,5 +17,9 @@ class DailyInfoService(
         date: LocalDate,
     ): DailyInfo? = dailyInfoRepository.findByUserIdAndDate(userId, date)
 
-    fun update(dailyInfo: DailyInfo): DailyInfo = dailyInfoRepository.save(dailyInfo)
+    fun updateUserName(
+        userId: ObjectId,
+        date: LocalDate,
+        userName: String?,
+    ) = dailyInfoRepository.updateUserName(userId, date, userName)
 }

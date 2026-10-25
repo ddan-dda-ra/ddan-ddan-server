@@ -54,13 +54,8 @@ class UserPetService(
         val user = userRepository.findByIdOrThrow(ownerUserId)
         val pet = petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId)
 
-        user.setMainPet(pet.id)
-        val savedUser = userRepository.save(user)
-
-        dailyInfoRepository.findByUserIdAndDate(user.id, LocalDate.now())?.let {
-            it.petType = pet.type
-            dailyInfoRepository.save(it)
-        }
+        val savedUser = userRepository.updateMainPetId(user.id, pet.id)
+        dailyInfoRepository.updatePetType(user.id, LocalDate.now(), pet.type)
 
         return Pair(savedUser, pet)
     }

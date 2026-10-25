@@ -128,31 +128,33 @@ class PetTest : FunSpec({
         pet.isMaxLevel() shouldBe false
     }
 
-    test("먹이주기: 먹이를 주면 경험치가 100 증가해야 한다") {
+    test("레벨업 판정: 이전 경험치 기준 레벨과 현재 레벨을 비교해야 한다") {
         val pet = Pet(
             id = ObjectId(),
             type = "DOG",
             ownerUserId = ObjectId(),
-            exp = 0
+            exp = 4000
         )
 
-        pet.eat()
+        val result = pet.levelUpResultSince(4000 - Pet.EXP_PER_FOOD)
 
-        pet.exp shouldBe 100
-        pet.getLevel() shouldBe 1
+        result.previousLevel shouldBe 4
+        result.currentLevel shouldBe 5
+        result.shouldReceiveTicket() shouldBe true
     }
 
-    test("놀아주기: 놀아주면 경험치가 500 증가해야 한다") {
+    test("레벨업 판정: 같은 레벨 안에서 오르면 티켓 대상이 아니어야 한다") {
         val pet = Pet(
             id = ObjectId(),
             type = "DOG",
             ownerUserId = ObjectId(),
-            exp = 0
+            exp = 500
         )
 
-        pet.play()
+        val result = pet.levelUpResultSince(500 - Pet.EXP_PER_TOY)
 
-        pet.exp shouldBe 500
-        pet.getLevel() shouldBe 2
+        result.previousLevel shouldBe 1
+        result.currentLevel shouldBe 2
+        result.shouldReceiveTicket() shouldBe false
     }
 })

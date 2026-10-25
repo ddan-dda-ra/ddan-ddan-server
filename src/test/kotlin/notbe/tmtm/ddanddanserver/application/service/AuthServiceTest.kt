@@ -92,11 +92,13 @@ class AuthServiceTest : FunSpec({
         every { oauthProcessor.getOAuth(oAuthAccessToken) } returns oAuth
         every { authRepository.findByOAuthIdAndType(oAuth.id, OAuthType.KAKAO) } returns existingAuth
         every { userRepository.findById(existingUserId) } returns Optional.of(existingUser)
-        every { userRepository.save(any<User>()) } answers { firstArg() }
+        every { userRepository.updateDeviceToken(existingUserId, DeviceToken("new-device")) } returns Unit
 
         val result = authService.login(oAuthAccessToken, OAuthType.KAKAO, deviceToken = "new-device", useMock = false)
 
         result.user.id shouldBe existingUserId
+        verify(exactly = 1) { userRepository.updateDeviceToken(existingUserId, DeviceToken("new-device")) }
+        verify(exactly = 0) { userRepository.save(any<User>()) }
         verify(exactly = 0) { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }
     }
 
@@ -120,6 +122,7 @@ class AuthServiceTest : FunSpec({
         authService.login(oAuthAccessToken, OAuthType.APPLE, deviceToken = "same-token", useMock = false)
 
         verify(exactly = 0) { userRepository.save(any<User>()) }
+        verify(exactly = 0) { userRepository.updateDeviceToken(any(), any()) }
         verify(exactly = 0) { eventPublisher.publishEvent(any<UserRegisteredEvent>()) }
     }
 
