@@ -5,10 +5,12 @@ import notbe.tmtm.ddanddanserver.domain.model.user.DailyInfo
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.CheerRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.DailyInfoRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.FriendshipRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.InviteCodeRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.RankingBoardRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.deleteAllBy
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
@@ -28,6 +30,8 @@ class UserService(
     private val petRepository: PetRepository,
     private val inviteCodeRepository: InviteCodeRepository,
     private val friendshipRepository: FriendshipRepository,
+    private val cheerRepository: CheerRepository,
+    private val rankingBoardRepository: RankingBoardRepository,
 ) {
     private val log = logger()
 
@@ -67,6 +71,8 @@ class UserService(
         friendshipRepository.deleteAllBy(userId)
         inviteCodeRepository.deleteAllByInviterId(userId)
         petRepository.deleteAllByOwnerUserId(userId)
+        cheerRepository.deleteAllByCheererIdOrCheereeId(userId, userId)
+        rankingBoardRepository.removeUser(userId)
 
         userRepository.deleteById(userId)
     }

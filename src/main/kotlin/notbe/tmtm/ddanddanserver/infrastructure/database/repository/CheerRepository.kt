@@ -5,4 +5,5 @@ import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 
 interface CheerRepository : MongoRepository<Cheer, ObjectId>, CheerCustomRepository {
+    fun deleteAllByCheererIdOrCheereeId(cheererId: ObjectId, cheereeId: ObjectId)
 }
