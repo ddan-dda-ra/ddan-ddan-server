@@ -6,7 +6,7 @@ import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.data.repository.findByIdOrNull
 
-interface PetRepository : MongoRepository<Pet, ObjectId> {
+interface PetRepository : MongoRepository<Pet, ObjectId>, PetRepositoryCustom {
     fun findByIdAndOwnerUserId(petId: ObjectId, ownerUserId: ObjectId): Pet?
 
     fun findAllByOwnerUserId(ownerUserId: ObjectId): List<Pet>

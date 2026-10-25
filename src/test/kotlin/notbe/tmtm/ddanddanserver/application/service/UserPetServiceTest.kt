@@ -79,93 +79,31 @@ class UserPetServiceTest {
     }
 
     @Test
-    fun `메인 펫 설정이 성공해야 한다`() {
+    fun `메인 펫 설정은 main_pet_id와 오늘 일일 정보의 펫 타입만 갱신해야 한다`() {
         // given
         val userId = ObjectId()
         val petId = ObjectId()
-        val user = mockk<User>(relaxed = true) {
-            every { id } returns userId
-        }
-        val pet = mockk<Pet> {
-            every { id } returns petId
-            every { type } returns "DOG"
-        }
-        val savedUser = mockk<User>()
-
-        every { userRepository.findByIdOrThrow(userId) } returns user
-        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId) } returns pet
-        every { userRepository.save(user) } returns savedUser
-        every { dailyInfoRepository.findByUserIdAndDate(userId, any()) } returns null
-
-        // when
-        val result = userPetService.setMainPet(userId, petId)
-
-        // then
-        verify { user.setMainPet(petId) }
-        verify { userRepository.save(user) }
-        assertEquals(savedUser, result.first)
-        assertEquals(pet, result.second)
-    }
-
-    @Test
-    fun `메인 펫 설정시 일일 정보가 있으면 펫 타입도 업데이트해야 한다`() {
-        // given
-        val userId = ObjectId()
-        val petId = ObjectId()
-        val user = mockk<User>(relaxed = true) {
+        val user = mockk<User> {
             every { id } returns userId
         }
         val pet = mockk<Pet> {
             every { id } returns petId
             every { type } returns "CAT"
         }
-        val dailyInfo = mockk<DailyInfo>(relaxed = true)
         val savedUser = mockk<User>()
-        val savedDailyInfo = mockk<DailyInfo>()
 
         every { userRepository.findByIdOrThrow(userId) } returns user
         every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId) } returns pet
-        every { userRepository.save(user) } returns savedUser
-        every { dailyInfoRepository.findByUserIdAndDate(userId, LocalDate.now()) } returns dailyInfo
-        every { dailyInfoRepository.save(dailyInfo) } returns savedDailyInfo
+        every { userRepository.updateMainPetId(userId, petId) } returns savedUser
+        every { dailyInfoRepository.updatePetType(userId, LocalDate.now(), "CAT") } returns Unit
 
         // when
         val result = userPetService.setMainPet(userId, petId)
 
         // then
-        verify { user.setMainPet(petId) }
-        verify { userRepository.save(user) }
-        verify { dailyInfo.petType = "CAT" }
-        verify { dailyInfoRepository.save(dailyInfo) }
-        assertEquals(savedUser, result.first)
-        assertEquals(pet, result.second)
-    }
-
-    @Test
-    fun `메인 펫 설정시 일일 정보가 없으면 펫 타입 업데이트를 하지 않아야 한다`() {
-        // given
-        val userId = ObjectId()
-        val petId = ObjectId()
-        val user = mockk<User>(relaxed = true) {
-            every { id } returns userId
-        }
-        val pet = mockk<Pet> {
-            every { id } returns petId
-            every { type } returns "DOG"
-        }
-        val savedUser = mockk<User>()
-
-        every { userRepository.findByIdOrThrow(userId) } returns user
-        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, userId) } returns pet
-        every { userRepository.save(user) } returns savedUser
-        every { dailyInfoRepository.findByUserIdAndDate(userId, LocalDate.now()) } returns null
-
-        // when
-        val result = userPetService.setMainPet(userId, petId)
-
-        // then
-        verify { user.setMainPet(petId) }
-        verify { userRepository.save(user) }
+        verify { userRepository.updateMainPetId(userId, petId) }
+        verify { dailyInfoRepository.updatePetType(userId, LocalDate.now(), "CAT") }
+        verify(exactly = 0) { userRepository.save(any()) }
         verify(exactly = 0) { dailyInfoRepository.save(any()) }
         assertEquals(savedUser, result.first)
         assertEquals(pet, result.second)

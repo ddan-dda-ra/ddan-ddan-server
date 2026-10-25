@@ -11,45 +11,18 @@ class Pet(
     val ownerUserId: ObjectId,
     var exp: Int,
 ) {
-    fun eat(quantity: Int = 1): LevelUpResult {
-        val previousLevel = getLevel()
-        exp += quantity * 100
-        val currentLevel = getLevel()
-
-        return LevelUpResult(
-            previousLevel = previousLevel,
-            currentLevel = currentLevel,
+    /** 경험치가 [previousExp]였을 때와 지금 레벨을 비교한다. */
+    fun levelUpResultSince(previousExp: Int): LevelUpResult =
+        LevelUpResult(
+            previousLevel = levelOf(previousExp),
+            currentLevel = getLevel(),
         )
-    }
-
-    fun play(quantity: Int = 1): LevelUpResult {
-        val previousLevel = getLevel()
-        exp += quantity * 500
-        val currentLevel = getLevel()
-
-        return LevelUpResult(
-            previousLevel = previousLevel,
-            currentLevel = currentLevel,
-        )
-    }
 
     fun isOwner(userId: ObjectId): Boolean = ownerUserId == userId
 
     fun isMaxLevel(): Boolean = false
 
-    fun getLevel(): Int {
-        var remainingExp = exp
-        var level = 1
-        var requiredExp = BASE_EXP
-
-        while (remainingExp >= requiredExp) {
-            remainingExp -= requiredExp
-            level++
-            if (level > 2) requiredExp *= 2
-        }
-
-        return level
-    }
+    fun getLevel(): Int = levelOf(exp)
 
     fun getExpPercent(): Double {
         val currentLevel = getLevel()
@@ -77,6 +50,22 @@ class Pet(
 
     companion object {
         private const val BASE_EXP = 500
+        const val EXP_PER_FOOD = 100
+        const val EXP_PER_TOY = 500
+
+        private fun levelOf(exp: Int): Int {
+            var remainingExp = exp
+            var level = 1
+            var requiredExp = BASE_EXP
+
+            while (remainingExp >= requiredExp) {
+                remainingExp -= requiredExp
+                level++
+                if (level > 2) requiredExp *= 2
+            }
+
+            return level
+        }
 
         fun register(
             type: String,
