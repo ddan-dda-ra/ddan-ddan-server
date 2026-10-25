@@ -10,6 +10,11 @@ app:
       android: 1.5.0
       ios: 1.5.0
 
+oauth:
+  apple:
+    client-ids:
+      - inc.ddanddan.DDanDDan
+
 mock-oauth:
   enabled: false
 

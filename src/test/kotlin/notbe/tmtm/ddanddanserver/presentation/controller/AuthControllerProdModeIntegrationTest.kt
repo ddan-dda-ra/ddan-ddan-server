@@ -13,6 +13,7 @@ import notbe.tmtm.ddanddanserver.application.processor.OAuthProcessorFactory
 import notbe.tmtm.ddanddanserver.application.service.AuthService
 import notbe.tmtm.ddanddanserver.common.JWTTokenProvider
 import notbe.tmtm.ddanddanserver.common.WebExceptionHandler
+import notbe.tmtm.ddanddanserver.config.AppleOAuthProperties
 import notbe.tmtm.ddanddanserver.domain.model.auth.OAuthType
 import notbe.tmtm.ddanddanserver.infrastructure.api.KakaoAuthApi
 import notbe.tmtm.ddanddanserver.infrastructure.api.AppleAuthApi
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Bean
@@ -75,6 +77,7 @@ import org.springframework.web.client.HttpClientErrorException
 )
 class AuthControllerProdModeIntegrationTest {
     @TestConfiguration
+    @EnableConfigurationProperties(AppleOAuthProperties::class)
     class TestConfig {
         @Bean
         fun kakaoAuthApi(): KakaoAuthApi = mockk(relaxed = true)
