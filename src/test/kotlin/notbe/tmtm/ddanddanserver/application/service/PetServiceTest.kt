@@ -5,10 +5,14 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
+import io.mockk.verifyOrder
 import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
 import notbe.tmtm.ddanddanserver.domain.exception.UserNotFoundException
+import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.exception.UserTicketLackException
+import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
 import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetRepository
@@ -16,6 +20,7 @@ import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserReposito
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdAndOwnerUserIdOrThrow
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.findByIdOrThrow
 import org.bson.types.ObjectId
+import org.springframework.dao.DataAccessResourceFailureException
 
 class PetServiceTest : FunSpec({
     lateinit var petRepository: PetRepository
@@ -35,7 +40,7 @@ class PetServiceTest : FunSpec({
         val petType = "DOG"
         val savedPet = mockk<Pet>()
 
-        every { petCatalogService.requireActive(petType) } returns Unit
+        every { petCatalogService.requireActive(petType) } returns "DOG"
         every { petRepository.save(any()) } returns savedPet
 
         val result = petService.addPet(ownerUserId, petType)
@@ -43,6 +48,19 @@ class PetServiceTest : FunSpec({
         verify { petCatalogService.requireActive(petType) }
         verify { petRepository.save(any()) }
         result shouldBe savedPet
+    }
+
+    test("펫 추가: 소문자나 공백이 섞인 종류는 정규화된 종류로 저장해야 한다") {
+        val ownerUserId = ObjectId()
+        val saved = slot<Pet>()
+
+        every { petCatalogService.requireActive(" dog ") } returns "DOG"
+        every { petRepository.save(capture(saved)) } answers { saved.captured }
+
+        val result = petService.addPet(ownerUserId, " dog ")
+
+        result.type shouldBe "DOG"
+        saved.captured.ownerUserId shouldBe ownerUserId
     }
 
     test("랜덤 펫 추가: 랜덤 펫을 성공적으로 추가해야 한다") {
@@ -63,111 +81,161 @@ class PetServiceTest : FunSpec({
         result shouldBe savedPet
     }
 
-    test("펫 먹이주기: 펫에게 먹이를 성공적으로 주어야 한다") {
+    context("feedPet") {
         val ownerUserId = ObjectId()
         val petId = ObjectId()
-        val user = mockk<User>(relaxed = true)
-        val pet = mockk<Pet>(relaxed = true)
-        val savedUser = mockk<User>()
-        val savedPet = mockk<Pet>()
 
-        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
-        every { userRepository.save(user) } returns savedUser
-        every { petRepository.save(pet) } returns savedPet
-
-        val result = petService.feedPet(ownerUserId, petId)
-
-        verify { user.feed(pet) }
-        verify { userRepository.save(user) }
-        verify { petRepository.save(pet) }
-        result.user shouldBe savedUser
-        result.pet shouldBe savedPet
-    }
-
-    test("펫 먹이주기: 레벨업 시 티켓을 받아야 한다") {
-        val ownerUserId = ObjectId()
-        val petId = ObjectId()
-        val user = User.register("testToken", "testUser")
-        val pet = Pet.register("DOG", ownerUserId)
-        pet.exp = 3900 // 레벨 4, 레벨 5까지 100 경험치 필요
-        user.foodQuantity = 5
-
-        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
-        every { userRepository.save(user) } returns user
-        every { petRepository.save(pet) } returns pet
-
-        val result = petService.feedPet(ownerUserId, petId)
-
-        pet.exp shouldBe 4000 // 3900 + 100
-        pet.getLevel() shouldBe 5
-        user.tickets shouldBe 1
-        user.foodQuantity shouldBe 4
-    }
-
-    test("펫 놀아주기: 펫과 성공적으로 놀아주어야 한다") {
-        val ownerUserId = ObjectId()
-        val petId = ObjectId()
-        val user = mockk<User>(relaxed = true)
-        val pet = mockk<Pet>(relaxed = true)
-        val savedUser = mockk<User>()
-        val savedPet = mockk<Pet>()
-
-        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
-        every { userRepository.save(user) } returns savedUser
-        every { petRepository.save(pet) } returns savedPet
-
-        val result = petService.playPet(ownerUserId, petId)
-
-        verify { user.play(pet) }
-        verify { userRepository.save(user) }
-        verify { petRepository.save(pet) }
-        result.user shouldBe savedUser
-        result.pet shouldBe savedPet
-    }
-
-    test("펫 놀아주기: 레벨업 시 티켓을 받아야 한다") {
-        val ownerUserId = ObjectId()
-        val petId = ObjectId()
-        val user = User.register("testToken", "testUser")
-        val pet = Pet.register("DOG", ownerUserId)
-        pet.exp = 3600 // 레벨 4, 레벨 5까지 400 경험치 필요
-        user.toyQuantity = 3
-
-        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
-        every { userRepository.save(user) } returns user
-        every { petRepository.save(pet) } returns pet
-
-        val result = petService.playPet(ownerUserId, petId)
-
-        pet.exp shouldBe 4100 // 3600 + 500
-        pet.getLevel() shouldBe 5
-        user.tickets shouldBe 1
-        user.toyQuantity shouldBe 2
-    }
-
-    test("레벨 6 이상 펫도 먹이주기와 놀아주기를 계속할 수 있다") {
-        val ownerUserId = ObjectId()
-        val petId = ObjectId()
-        val user = User.register("testToken", "testUser").apply {
-            foodQuantity = 1
-            toyQuantity = 1
+        beforeEach {
+            every { userRepository.findByIdOrThrow(ownerUserId) } returns user(ownerUserId)
+            every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet(petId, ownerUserId, 0)
         }
-        val pet = Pet.register("DOG", ownerUserId).apply { exp = 8000 }
-        every { userRepository.findByIdOrThrow(ownerUserId) } returns user
-        every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet
-        every { userRepository.save(user) } returns user
-        every { petRepository.save(pet) } returns pet
 
-        petService.feedPet(ownerUserId, petId)
-        petService.playPet(ownerUserId, petId)
+        test("먹이를 DB에서 원자적으로 1개 차감하고 경험치를 100 올려야 한다") {
+            val consumedUser = user(ownerUserId, foodQuantity = 4)
+            val fedPet = pet(petId, ownerUserId, exp = 100)
+            every { userRepository.consumeFood(ownerUserId, 1) } returns consumedUser
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_FOOD) } returns fedPet
 
-        pet.exp shouldBe 8600
-        pet.getLevel() shouldBe 6
-        pet.isMaxLevel() shouldBe false
+            val result = petService.feedPet(ownerUserId, petId)
+
+            result.user shouldBe consumedUser
+            result.pet shouldBe fedPet
+            verify(exactly = 0) { userRepository.increaseItems(any(), any(), any(), any()) }
+            verify(exactly = 0) { userRepository.save(any()) }
+            verify(exactly = 0) { petRepository.save(any()) }
+        }
+
+        test("먹이로 레벨 5에 도달하면 티켓을 1장 지급해야 한다") {
+            val ticketUser = user(ownerUserId, tickets = 1)
+            every { userRepository.consumeFood(ownerUserId, 1) } returns user(ownerUserId)
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_FOOD) } returns pet(petId, ownerUserId, exp = 4000)
+            every { userRepository.increaseItems(ownerUserId, tickets = 1) } returns ticketUser
+
+            val result = petService.feedPet(ownerUserId, petId)
+
+            result.user shouldBe ticketUser
+            result.pet.getLevel() shouldBe 5
+        }
+
+        test("먹이가 부족하면 UserFoodQuantityLackException이 발생하고 경험치는 오르지 않아야 한다") {
+            every { userRepository.consumeFood(ownerUserId, 1) } throws UserFoodQuantityLackException()
+
+            shouldThrow<UserFoodQuantityLackException> {
+                petService.feedPet(ownerUserId, petId)
+            }
+
+            verify(exactly = 0) { petRepository.increaseExp(any(), any()) }
+        }
+
+        test("경험치 반영이 실패하면 차감한 먹이를 돌려주고 예외를 그대로 던져야 한다") {
+            every { userRepository.consumeFood(ownerUserId, 1) } returns user(ownerUserId)
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_FOOD) } throws DataAccessResourceFailureException("db down")
+            every { userRepository.increaseItems(ownerUserId, food = 1) } returns user(ownerUserId, foodQuantity = 1)
+
+            shouldThrow<DataAccessResourceFailureException> {
+                petService.feedPet(ownerUserId, petId)
+            }
+
+            verify(exactly = 1) { userRepository.increaseItems(ownerUserId, food = 1) }
+        }
+
+        test("먹이 환불까지 실패해도 원래 예외를 던져야 한다") {
+            every { userRepository.consumeFood(ownerUserId, 1) } returns user(ownerUserId)
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_FOOD) } throws DataAccessResourceFailureException("db down")
+            every { userRepository.increaseItems(ownerUserId, food = 1) } throws DataAccessResourceFailureException("still down")
+
+            shouldThrow<DataAccessResourceFailureException> {
+                petService.feedPet(ownerUserId, petId)
+            }.message shouldBe "db down"
+        }
+
+        test("레벨업 티켓 지급이 실패해도 먹이주기는 성공으로 응답해야 한다") {
+            val consumedUser = user(ownerUserId)
+            every { userRepository.consumeFood(ownerUserId, 1) } returns consumedUser
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_FOOD) } returns pet(petId, ownerUserId, exp = 4000)
+            every { userRepository.increaseItems(ownerUserId, tickets = 1) } throws DataAccessResourceFailureException("db down")
+
+            val result = petService.feedPet(ownerUserId, petId)
+
+            result.user shouldBe consumedUser
+            result.pet.exp shouldBe 4000
+        }
+
+        test("내 펫이 아니면 먹이를 차감하지 않아야 한다") {
+            every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } throws PetNotFoundException()
+
+            shouldThrow<PetNotFoundException> {
+                petService.feedPet(ownerUserId, petId)
+            }
+
+            verify(exactly = 0) { userRepository.consumeFood(any(), any()) }
+        }
+    }
+
+    context("playPet") {
+        val ownerUserId = ObjectId()
+        val petId = ObjectId()
+
+        beforeEach {
+            every { userRepository.findByIdOrThrow(ownerUserId) } returns user(ownerUserId)
+            every { petRepository.findByIdAndOwnerUserIdOrThrow(petId, ownerUserId) } returns pet(petId, ownerUserId, 0)
+        }
+
+        test("장난감을 DB에서 원자적으로 1개 차감하고 경험치를 500 올려야 한다") {
+            val consumedUser = user(ownerUserId, toyQuantity = 2)
+            val playedPet = pet(petId, ownerUserId, exp = 500)
+            every { userRepository.consumeToy(ownerUserId, 1) } returns consumedUser
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_TOY) } returns playedPet
+
+            val result = petService.playPet(ownerUserId, petId)
+
+            result.user shouldBe consumedUser
+            result.pet shouldBe playedPet
+            verify(exactly = 0) { userRepository.increaseItems(any(), any(), any(), any()) }
+        }
+
+        test("놀아주기로 레벨 5에 도달하면 티켓을 1장 지급해야 한다") {
+            val ticketUser = user(ownerUserId, tickets = 1)
+            every { userRepository.consumeToy(ownerUserId, 1) } returns user(ownerUserId)
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_TOY) } returns pet(petId, ownerUserId, exp = 4100)
+            every { userRepository.increaseItems(ownerUserId, tickets = 1) } returns ticketUser
+
+            val result = petService.playPet(ownerUserId, petId)
+
+            result.user shouldBe ticketUser
+        }
+
+        test("레벨 6 이상에서는 놀아줘도 티켓을 다시 지급하지 않아야 한다") {
+            every { userRepository.consumeToy(ownerUserId, 1) } returns user(ownerUserId)
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_TOY) } returns pet(petId, ownerUserId, exp = 8600)
+
+            val result = petService.playPet(ownerUserId, petId)
+
+            result.pet.getLevel() shouldBe 6
+            verify(exactly = 0) { userRepository.increaseItems(any(), any(), any(), any()) }
+        }
+
+        test("장난감이 부족하면 UserToyQuantityLackException이 발생해야 한다") {
+            every { userRepository.consumeToy(ownerUserId, 1) } throws UserToyQuantityLackException()
+
+            shouldThrow<UserToyQuantityLackException> {
+                petService.playPet(ownerUserId, petId)
+            }
+
+            verify(exactly = 0) { petRepository.increaseExp(any(), any()) }
+        }
+
+        test("경험치 반영이 실패하면 차감한 장난감을 돌려줘야 한다") {
+            every { userRepository.consumeToy(ownerUserId, 1) } returns user(ownerUserId)
+            every { petRepository.increaseExp(petId, Pet.EXP_PER_TOY) } throws DataAccessResourceFailureException("db down")
+            every { userRepository.increaseItems(ownerUserId, toy = 1) } returns user(ownerUserId, toyQuantity = 1)
+
+            shouldThrow<DataAccessResourceFailureException> {
+                petService.playPet(ownerUserId, petId)
+            }
+
+            verify(exactly = 1) { userRepository.increaseItems(ownerUserId, toy = 1) }
+        }
     }
 
     test("펫 조회: 내 펫을 성공적으로 조회해야 한다") {
@@ -306,9 +374,10 @@ class PetServiceTest : FunSpec({
 
             val result = petService.gachaPet(userId)
 
-            verify { petRepository.findAllByOwnerUserId(userId) }
-            verify { petRepository.save(any()) }
-            verify { userRepository.decreaseTickets(userId, 1) }
+            verifyOrder {
+                userRepository.decreaseTickets(userId, 1)
+                petRepository.save(any())
+            }
             result shouldBe savedPet
         }
 
@@ -327,9 +396,8 @@ class PetServiceTest : FunSpec({
                 petService.gachaPet(userId)
             }
 
-            verify { petRepository.findAllByOwnerUserId(userId) }
-            verify { petRepository.save(any()) }
             verify { userRepository.decreaseTickets(userId, 1) }
+            verify(exactly = 0) { petRepository.save(any()) }
         }
 
         test("가챠 펫: 티켓 차감 시 사용자가 존재하지 않을 때 UserNotFoundException을 발생시켜야 한다") {
@@ -347,9 +415,40 @@ class PetServiceTest : FunSpec({
                 petService.gachaPet(userId)
             }
 
-            verify { petRepository.findAllByOwnerUserId(userId) }
-            verify { petRepository.save(any()) }
-            verify { userRepository.decreaseTickets(userId, 1) }
+            verify(exactly = 0) { petRepository.save(any()) }
+        }
+
+        test("가챠 펫: 펫 생성이 실패하면 차감한 티켓을 돌려줘야 한다") {
+            val userId = ObjectId()
+
+            every { petRepository.findAllByOwnerUserId(userId) } returns emptyList()
+            every { petCatalogService.pickRandomActiveExcluding(emptyList()) } returns "CAT"
+            every { userRepository.decreaseTickets(userId, 1) } returns Unit
+            every { petRepository.save(any()) } throws DataAccessResourceFailureException("db down")
+            every { userRepository.increaseTickets(userId, 1) } returns Unit
+
+            shouldThrow<DataAccessResourceFailureException> {
+                petService.gachaPet(userId)
+            }
+
+            verify(exactly = 1) { userRepository.increaseTickets(userId, 1) }
         }
     }
 })
+
+private fun user(
+    id: ObjectId,
+    foodQuantity: Int = 0,
+    toyQuantity: Int = 0,
+    tickets: Int = 0,
+) = User(
+    id = id,
+    deviceToken = null,
+    name = "testUser",
+    foodQuantity = foodQuantity,
+    toyQuantity = toyQuantity,
+    tickets = tickets,
+)
+
+private fun pet(id: ObjectId, ownerUserId: ObjectId, exp: Int) =
+    Pet(id = id, type = "DOG", ownerUserId = ownerUserId, exp = exp)

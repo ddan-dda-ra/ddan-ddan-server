@@ -12,6 +12,7 @@ import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.AuthRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -64,9 +65,16 @@ class AuthService(
             userRepository.save(
                 User.register(name = oAuth.nickName, deviceToken = deviceToken),
             )
-        authRepository.save(
-            Auth.create(oAuthId = oAuth.id, type = oAuthType, userId = newUser.id),
-        )
+        try {
+            authRepository.save(
+                Auth.create(oAuthId = oAuth.id, type = oAuthType, userId = newUser.id),
+            )
+        } catch (e: DuplicateKeyException) {
+            // 같은 계정으로 동시에 들어온 다른 요청이 먼저 가입시킨 경우. 방금 만든 유저를 지우고 기존 계정으로 로그인한다.
+            userRepository.deleteById(newUser.id)
+            val auth = authRepository.findByOAuthIdAndType(oAuth.id, oAuthType) ?: throw e
+            return loginExistUser(auth, deviceToken)
+        }
         eventPublisher.publishEvent(
             UserRegisteredEvent(
                 userId = newUser.id,
@@ -107,7 +115,7 @@ class AuthService(
     ) {
         if (user.deviceToken?.value != deviceToken) {
             user.updateDeviceToken(deviceToken)
-            userRepository.save(user)
+            userRepository.updateDeviceToken(user.id, user.deviceToken)
         }
     }
 }

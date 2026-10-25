@@ -10,8 +10,18 @@ app:
       android: 1.5.0
       ios: 1.5.0
 
+oauth:
+  apple:
+    client-ids:
+      - inc.ddanddan.DDanDDan
+
 mock-oauth:
   enabled: false
+
+external-api:
+  timeout:
+    connect: 3s
+    read: 5s
 
 springdoc:
   swagger-ui:

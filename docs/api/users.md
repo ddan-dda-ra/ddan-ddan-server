@@ -36,6 +36,8 @@
 }
 ```
 
+- `calorie`는 `0..10000` 범위입니다. 벗어나면 `DE0003`(400)을 응답합니다.
+
 응답에는 갱신된 `user`, `dailyInfo`, 이번 요청으로 지급된 `rewardedFoodQuantity`, `rewardedToyQuantity`가 포함됩니다. 보상 수량은 클라이언트가 이전 재고와 비교해 계산하지 말고 응답 값을 사용합니다.
 
 ## 메인 펫

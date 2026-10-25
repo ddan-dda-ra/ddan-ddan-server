@@ -18,6 +18,7 @@
 ```
 
 - `tokenType`은 `KAKAO` 또는 `APPLE`입니다.
+- `APPLE`의 `token`은 Sign in with Apple id_token입니다. 서버는 서명과 함께 `iss`(`https://appleid.apple.com`), `aud`(앱 bundle id `inc.ddanddan.DDanDDan`)를 검증하며, 실패 시 기존과 같은 Apple 토큰 검증 에러를 반환합니다.
 - `deviceToken`은 nullable입니다.
 - 로컬·개발 환경에서만 `X-Mock-OAuth: true`를 사용할 수 있습니다. 지원하지 않는 환경에서는 `AC006`이 반환됩니다.
 - 응답에는 `accessToken`, `refreshToken`, `user`, `isOnboardingComplete`가 포함됩니다.

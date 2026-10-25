@@ -83,6 +83,12 @@ class PetCatalogServiceTest : FunSpec({
         verify { repository.findByType("CAT") }
     }
 
+    test("활성 항목이면 정규화된 type을 반환한다") {
+        every { repository.findByType("CAT") } returns entity("CAT", active = true)
+
+        service.requireActive(" cat ") shouldBe "CAT"
+    }
+
     test("활성 여부 확인 시 카탈로그 항목이 없으면 예외가 발생한다") {
         every { repository.findByType("CAT") } returns null
 

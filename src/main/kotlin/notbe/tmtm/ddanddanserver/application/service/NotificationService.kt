@@ -1,5 +1,6 @@
 package notbe.tmtm.ddanddanserver.application.service
 
+import notbe.tmtm.ddanddanserver.common.util.logger
 import notbe.tmtm.ddanddanserver.domain.model.notification.PushMessage
 import notbe.tmtm.ddanddanserver.domain.model.notification.RoutingView
 import notbe.tmtm.ddanddanserver.domain.model.ranking.PeriodType
@@ -24,9 +25,12 @@ class NotificationService(
     private val rankingService: RankingService,
     private val pushClient: PushClient,
 ) {
+    private val logger = logger()
+
     @Transactional(readOnly = true)
     fun notifyCheckCalorie() {
         val validDeviceTokens = getValidDeviceTokens(userRepository.findAll())
+        if (validDeviceTokens.isEmpty()) return
 
         pushClient.sendToMultiple(validDeviceTokens, PushMessage.CHECK_CALORIE, RoutingView.MAIN)
     }
@@ -34,6 +38,7 @@ class NotificationService(
     @Transactional(readOnly = true)
     fun notifyWeeklyRanking(totalCalories: Int) {
         val validDeviceTokens = getValidDeviceTokens(userRepository.findAll())
+        if (validDeviceTokens.isEmpty()) return
 
         pushClient.sendToMultiple(validDeviceTokens, PushMessage.weeklyRanking(totalCalories), RoutingView.MAIN)
     }
@@ -67,21 +72,23 @@ class NotificationService(
             val currentUserStat = currentRankingBoard.ranking.find { it.second.user.id == previousUserStat.user.id }
             // 현재 랭킹에 없거나 순위가 떨어진경우
             if (isRankingDown(currentUserStat, previousRank)) {
-                userRepository
-                    .findByIdOrNull(currentUserStat!!.second.user.id)
-                    ?.takeIf { it.setting.isAppPushOn }
-                    ?.deviceToken?.takeIf { it.isValid() }
-                    ?.let { pushClient.sendToUser(it, PushMessage.RANKING_DOWN, RoutingView.MAIN) }
+                // 한 유저의 실패가 전체 알림 및 랭킹보드 갱신을 막지 않도록 한다.
+                runCatching {
+                    userRepository
+                        .findByIdOrNull(previousUserStat.user.id)
+                        ?.takeIf { it.setting.isAppPushOn }
+                        ?.deviceToken?.takeIf { it.isValid() }
+                        ?.let { pushClient.sendToUser(it, PushMessage.RANKING_DOWN, RoutingView.MAIN) }
+                }.onFailure {
+                    logger.error("랭킹 하락 알림 전송 실패 userId: ${previousUserStat.user.id}", it)
+                }
             }
         }
         rankingService.updateRankingBoard(currentRankingBoard)
     }
 
-    private fun getValidDeviceTokens(users: List<User>): List<DeviceToken?> {
-        return users
-            .filter { it.setting.isAppPushOn }
-            .map { user -> user.deviceToken }
-    }
+    private fun getValidDeviceTokens(users: List<User>): List<DeviceToken> =
+        users.mapNotNull { it.pushableDeviceToken() }
 
     private fun isRankingDown(
         currentUserStat: Pair<Int, UserStat>?,

@@ -61,8 +61,10 @@ class FriendshipService(
 
         return try {
             friendshipRepository.save(friendship).also {
-                val message = "${invitee.name}님과 친구가 되었습니다!"
-                pushClient.sendToUser(inviter.deviceToken, message, RoutingView.MAIN)
+                inviter.pushableDeviceToken()?.let { deviceToken ->
+                    val message = "${invitee.name}님과 친구가 되었습니다!"
+                    pushClient.sendToUser(deviceToken, message, RoutingView.MAIN)
+                }
             }
         } catch (e: DuplicateKeyException) {
             throw FriendshipAlreadyExistsException()

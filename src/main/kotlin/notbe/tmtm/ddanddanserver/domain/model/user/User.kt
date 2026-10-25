@@ -1,9 +1,6 @@
 package notbe.tmtm.ddanddanserver.domain.model.user
 
 import notbe.tmtm.ddanddanserver.domain.exception.PetNotFoundException
-import notbe.tmtm.ddanddanserver.domain.exception.UserFoodQuantityLackException
-import notbe.tmtm.ddanddanserver.domain.exception.UserToyQuantityLackException
-import notbe.tmtm.ddanddanserver.domain.model.pet.Pet
 import org.bson.types.ObjectId
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDate
@@ -22,36 +19,6 @@ class User(
     var setting: UserSetting = UserSetting(),
     var lastLoginAt: LocalDate = LocalDate.now(),
 ) {
-    fun feed(pet: Pet, quantity: Int = 1) {
-        if (this.foodQuantity < quantity) {
-            throw UserFoodQuantityLackException()
-        }
-        this.foodQuantity -= quantity
-
-        pet.eat(quantity).also {
-            if (it.shouldReceiveTicket()) {
-                this.tickets += 1
-            }
-        }
-    }
-
-    fun play(pet: Pet, quantity: Int = 1) {
-        if (this.toyQuantity < quantity) {
-            throw UserToyQuantityLackException()
-        }
-        this.toyQuantity -= quantity
-
-        pet.play(quantity).also {
-            if (it.shouldReceiveTicket()) {
-                this.tickets += 1
-            }
-        }
-    }
-
-    fun addPurposeStrict() {
-        this.purposeStrict += 1
-    }
-
     fun updateInfo(
         name: String,
         purposeCalorie: Int,
@@ -65,13 +32,16 @@ class User(
         this.deviceToken = deviceToken.toDeviceToken()
     }
 
-    fun setMainPet(petId: ObjectId) {
-        this.mainPetId = petId
-    }
-
     fun hasMainPet(): Boolean = this.mainPetId != null
 
     fun getMainPetIdOrThrow(): ObjectId = this.mainPetId ?: throw PetNotFoundException("Main pet is not set")
+
+    /**
+     * 푸시를 받을 수 있는 디바이스 토큰을 반환한다.
+     * 앱 푸시 설정이 꺼져 있거나 토큰이 없거나 유효하지 않으면(기본 토큰 포함) null을 반환한다.
+     */
+    fun pushableDeviceToken(): DeviceToken? =
+        deviceToken?.takeIf { setting.isAppPushOn && it.isValid() }
 
     companion object {
         fun register(

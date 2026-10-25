@@ -63,10 +63,7 @@ class UserController(
         val user = userService.updateInfo(userId, request.name, request.purposeCalorie)
 
         // 데일리 데이터에 이름 갱신
-        dailyInfoService.getByUserIdAndDate(user.id, LocalDate.now())?.let {
-            it.userName = user.name
-            dailyInfoService.update(it)
-        }
+        dailyInfoService.updateUserName(user.id, LocalDate.now(), user.name)
 
         return UserResponse.fromDomain(user)
     }
