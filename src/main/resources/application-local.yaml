@@ -19,7 +19,7 @@ management:
     endpoints:
         web:
             exposure:
-                include: health, info, metrics, loggers, mappings, prometheus
+                include: health, info, metrics, prometheus
 
 slack:
     hook-url: ${SLACK_WEBHOOK_URL}
