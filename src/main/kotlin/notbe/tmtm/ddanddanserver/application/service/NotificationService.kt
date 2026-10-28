@@ -10,18 +10,22 @@ import notbe.tmtm.ddanddanserver.domain.model.ranking.UserStat
 import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.getAllRankingBy
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
+import java.time.Instant
 import java.time.LocalDateTime
 
 @Service
 class NotificationService(
     private val userRepository: UserRepository,
     private val userStatRepository: UserStatRepository,
+    private val petCatalogRepository: PetCatalogRepository,
     private val rankingService: RankingService,
     private val pushClient: PushClient,
 ) {
@@ -41,6 +45,21 @@ class NotificationService(
         if (validDeviceTokens.isEmpty()) return
 
         pushClient.sendToMultiple(validDeviceTokens, PushMessage.weeklyRanking(totalCalories), RoutingView.MAIN)
+    }
+
+    /**
+     * (until - 1일, until] 사이에 공개된 펫이 있으면 새 펫 알림을 한 번 보낸다.
+     * 여러 마리가 공개되어도 알림은 한 번만 보낸다.
+     */
+    @Transactional(readOnly = true)
+    fun notifyNewPetArrived(until: Instant) {
+        val from = until.minus(NEW_PET_WINDOW)
+        if (!petCatalogRepository.existsActivatedBetween(from, until)) return
+
+        val validDeviceTokens = getValidDeviceTokens(userRepository.findAll())
+        if (validDeviceTokens.isEmpty()) return
+
+        pushClient.sendToMultiple(validDeviceTokens, PushMessage.NEW_PET_ARRIVED, RoutingView.MAIN)
     }
 
     @Transactional(readOnly = true)
@@ -94,4 +113,8 @@ class NotificationService(
         currentUserStat: Pair<Int, UserStat>?,
         previousRank: Int,
     ) = (currentUserStat == null || currentUserStat.first > previousRank)
+
+    companion object {
+        private val NEW_PET_WINDOW = Duration.ofDays(1)
+    }
 }

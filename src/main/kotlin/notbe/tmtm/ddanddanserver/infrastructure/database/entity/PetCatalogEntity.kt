@@ -21,6 +21,8 @@ data class PetCatalogEntity(
     val isActive: Boolean = true,
     val displayOrder: Int = 0,
     val levels: Map<Int, PetCatalogLevelEntity>,
+    /** 어드민에서 공개(is_active false → true)한 시각. 새 펫 알림의 기준이 된다. */
+    val activatedAt: Instant? = null,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
 ) {

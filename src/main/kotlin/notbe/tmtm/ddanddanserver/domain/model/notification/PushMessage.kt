@@ -6,6 +6,7 @@ object PushMessage {
     const val LONG_SLEEPING_USER = "😢 펫이 기다리고 있어요!"
     const val CHECK_CALORIE = "🔥 오늘 몇 칼로리 소모했는지 확인해 볼까요?"
     const val RANKING_DOWN = "📉 순위가 떨어졌어요!"
+    const val NEW_PET_ARRIVED = "🪺 딴딴에 새 식구가 찾아왔어요! 누굴까요?"
     
     // 동적 메시지 생성 함수
     fun weeklyRanking(calories: Int): String {
