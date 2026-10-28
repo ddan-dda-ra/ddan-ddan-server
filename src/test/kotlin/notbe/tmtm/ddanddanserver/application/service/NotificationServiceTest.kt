@@ -17,10 +17,12 @@ import notbe.tmtm.ddanddanserver.domain.model.user.DeviceToken
 import notbe.tmtm.ddanddanserver.domain.model.user.User
 import notbe.tmtm.ddanddanserver.domain.model.user.UserSetting
 import notbe.tmtm.ddanddanserver.infrastructure.client.PushClient
+import notbe.tmtm.ddanddanserver.infrastructure.database.repository.PetCatalogRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.UserStatRepository
 import notbe.tmtm.ddanddanserver.infrastructure.database.repository.getAllRankingBy
 import org.bson.types.ObjectId
+import java.time.Instant
 import java.time.LocalDateTime
 import java.util.Optional
 
@@ -30,6 +32,7 @@ private const val USER_STAT_REPOSITORY_KT =
 class NotificationServiceTest : FunSpec({
     lateinit var userRepository: UserRepository
     lateinit var userStatRepository: UserStatRepository
+    lateinit var petCatalogRepository: PetCatalogRepository
     lateinit var rankingService: RankingService
     lateinit var pushClient: PushClient
     lateinit var notificationService: NotificationService
@@ -37,11 +40,13 @@ class NotificationServiceTest : FunSpec({
     beforeEach {
         userRepository = mockk()
         userStatRepository = mockk()
+        petCatalogRepository = mockk()
         rankingService = mockk()
         pushClient = mockk(relaxed = true)
         notificationService = NotificationService(
             userRepository = userRepository,
             userStatRepository = userStatRepository,
+            petCatalogRepository = petCatalogRepository,
             rankingService = rankingService,
             pushClient = pushClient,
         )
@@ -102,6 +107,44 @@ class NotificationServiceTest : FunSpec({
         notificationService.notifyWeeklyRanking(1000)
 
         verify(exactly = 0) { pushClient.sendToMultiple(any(), any(), any()) }
+    }
+
+    context("notifyNewPetArrived") {
+        val until = Instant.parse("2026-10-28T05:00:00Z") // 2026-10-28 14:00 KST
+        val from = Instant.parse("2026-10-27T05:00:00Z")
+
+        fun givenNewPetActivated(exists: Boolean) {
+            every {
+                petCatalogRepository.existsActivatedBetween(from, until)
+            } returns exists
+        }
+
+        test("직전 하루 동안 공개된 펫이 있으면 푸시가 켜진 유저에게 새 펫 알림을 한 번 보낸다") {
+            givenNewPetActivated(true)
+            every { userRepository.findAll() } returns listOf(
+                createTestUser("유저1", "valid-token-1", true),
+                createTestUser("유저2", "valid-token-2", false), // 푸시 비활성화 (제외)
+            )
+
+            notificationService.notifyNewPetArrived(until)
+
+            verify(exactly = 1) {
+                pushClient.sendToMultiple(
+                    listOf(DeviceToken("valid-token-1")),
+                    PushMessage.NEW_PET_ARRIVED,
+                    RoutingView.MAIN,
+                )
+            }
+        }
+
+        test("직전 하루 동안 공개된 펫이 없으면 알림을 보내지 않는다") {
+            givenNewPetActivated(false)
+
+            notificationService.notifyNewPetArrived(until)
+
+            verify(exactly = 0) { userRepository.findAll() }
+            verify(exactly = 0) { pushClient.sendToMultiple(any(), any(), any()) }
+        }
     }
 
     context("notifyRankingDiff") {
