@@ -199,7 +199,7 @@ EOF
 # 프로젝트 규칙 (에이전트 작업용)
 
 > `AGENTS.md`는 이 파일을 가리키는 심볼릭 링크다. 원본은 `CLAUDE.md` 하나.
-> 아래 "검증"은 2026-10-30 기준 이 worktree에서 확인한 결과다.
+> 아래 "검증"은 2026-10-30 기준 이 작업 공간에서 확인한 결과다.
 
 ## 1. 빌드·테스트·린트와 완료 기준
 
@@ -217,7 +217,7 @@ EOF
 - 리포지토리 통합 테스트(`*RepositoryIntegrationTest`, `AuthUniqueIndexInitializerIntegrationTest` 등)는 `@EnabledIfEnvironmentVariable(RUN_MONGO_IT=true)`일 때만 실행되고, 기본 접속 대상이 `${MONGO_IT_HOST:localhost}:${MONGO_IT_PORT:27017}`, DB `ddan-ddan-it-test`이며 테스트 전후로 컬렉션을 비운다. **`RUN_MONGO_IT`를 설정하지 않는다.** 필요하면 `MONGO_IT_PORT`를 운영이 아닌 별도 Mongo로 지정해야 하며, 그런 인스턴스가 없으면 실행하지 않는다.
 - `@SpringBootTest` 풀 컨텍스트 테스트(`DdanDdanServerApplicationTests`, `migration/*`, `TestUserGenerator`)는 `@Disabled`다. 이 파일들을 활성화하지 않는다(실제 DB 마이그레이션 코드 포함).
 - 임베디드 Mongo/Testcontainers 의존은 없다. 나머지 테스트는 MockK/`@WebMvcTest` 기반으로 보이나, `./gradlew test` 전체가 27017에 접속하지 않는다는 것은 실행으로 확인하지 못했다(미검증). 에이전트는 `RUN_MONGO_IT` 미설정 상태에서 대상 테스트 클래스를 하나씩 지정해 실행하고, DB가 필요한 클래스는 건너뛴다.
-- `src/main/resources/config`는 git submodule(`ddan-ddan-server-config`, 비공개 설정)이며 이 worktree에서는 비어 있다. 열거나 채우거나 출력하지 않는다.
+- `src/main/resources/config`는 비공개 설정 git submodule(`ddan-ddan-server-config`)이며 기본적으로 초기화되어 있지 않다. 에이전트는 이 submodule을 초기화하거나 열거나 출력하지 않는다. 로컬 실행이 필요하면 접근 권한이 있는 사용자가 `git submodule update --init`을 직접 실행한다.
 
 **완료로 인정하는 기준**
 - 변경한 코드에 대응하는 단위 테스트를 추가/수정하고, 영향받는 테스트 클래스가 통과(위 주의를 지켜 실행한 출력 첨부).
