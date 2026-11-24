@@ -24,6 +24,16 @@ Kotlin과 Spring Boot 기반의 다마고치 게임 백엔드 서버입니다. �
 ./gradlew jib
 ```
 
+## JDK 지정 (Gradle 실행 전 필수)
+
+Gradle(wrapper 8.8)은 JDK 17~21로 실행합니다. 이 Mac의 기본 JDK는 25라서 `JAVA_HOME`을 지정하지 않으면 실패합니다(오류 메시지가 `25` 한 줄).
+
+```bash
+/usr/libexec/java_home -V   # 설치된 JDK 확인
+mise ls java                # mise 설정/설치 상태 확인 ((missing)은 미설치)
+JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test
+```
+
 ## 코드 품질
 
 현재 ktlint Gradle 플러그인은 주석 처리되어 있습니다 (`build.gradle.kts`의 `org.jlleitschuh.gradle.ktlint`). 린트는 PR에서 GitHub Actions(`ktlint-check.yml`, ScaCap/action-ktlint)가 수행하며, 로컬 린트 명령은 없습니다(미검증). `.editorconfig`: 들여쓰기 4칸, 최대 120자, LF, 파일 끝 개행.
@@ -31,7 +41,7 @@ Kotlin과 Spring Boot 기반의 다마고치 게임 백엔드 서버입니다. �
 # 기술 스택
 
 - **언어**: Kotlin 2.2.0 (JVM 17 toolchain)
-- **프레임워크**: Spring Boot 3.5.4
+- **프레임워크**: Spring Boot 3.5.16 (3.5 OSS 지원은 2026-06 종료, Boot 4.x 이관 필요)
 - **데이터베이스**: MongoDB (Spring Data MongoDB)
 - **인증**: JWT + OAuth2 (Kakao, Apple)
 - **푸시 알림**: Firebase FCM
@@ -117,6 +127,11 @@ Jib 플러그인을 사용하여 Docker 이미지를 빌드합니다:
 - 포트: 8080
 - 타임존: Asia/Seoul
 
+배포 흐름:
+
+1. `develop`에 머지(push)되면 `docker-build-push.yml`이 `./gradlew jib`로 이미지를 빌드해 푸시합니다(태그: 커밋 해시, `latest`).
+2. 실제 배포는 `homeserver` 저장소의 `services/ddan-ddan-server/{dev,prod}/docker-compose.yml` 이미지 태그를 바꿔 적용해야 반영됩니다(사용자 확인 필수).
+
 # Git 브랜치 전략
 
 ## 이슈 기반 개발 워크플로우
@@ -199,14 +214,15 @@ EOF
 # 프로젝트 규칙 (에이전트 작업용)
 
 > `AGENTS.md`는 이 파일을 가리키는 심볼릭 링크다. 원본은 `CLAUDE.md` 하나.
-> 아래 "검증"은 2026-10-30 기준 이 작업 공간에서 확인한 결과다.
+> 아래 "검증"은 2026-10-30 기준(테스트 항목은 2026-11-25 갱신) 작업 공간에서 확인한 결과다.
+> 아래 `./gradlew` 명령은 모두 위 "JDK 지정"대로 `JAVA_HOME`을 지정해 실행한다.
 
 ## 1. 빌드·테스트·린트와 완료 기준
 
 | 용도 | 명령 | 비고 |
 |---|---|---|
 | 빌드 | `./gradlew build` | 미검증 |
-| 테스트 | `./gradlew test` | CI(`pr-test.yml`, develop 대상 PR)가 `./gradlew test --continue --info`로 실행. **로컬 실행 전 아래 주의 확인. 미검증** |
+| 테스트 | `./gradlew test` | CI(`pr-test.yml`, develop 대상 PR)가 `./gradlew test --continue --info`로 실행. **로컬 실행 전 아래 주의 확인.** 2026-11-25 확인: 370건 중 29건 스킵, 실패 0 |
 | 특정 테스트 | `./gradlew test --tests "*클래스명"` | 위 주의 동일 |
 | 린트 | (로컬 명령 없음) | PR에서 `ktlint-check.yml`이 실행 |
 | API 문서 검증 | `./scripts/validate-api-docs.sh` | ruby 필요. 이 Mac에서는 ruby가 `libgmp.10.dylib` 누락으로 실행 실패(환경 문제) → 미검증 |
@@ -216,7 +232,7 @@ EOF
 - 이 Mac은 홈서버를 겸하며 `127.0.0.1:27017`은 **운영 MongoDB**다.
 - 리포지토리 통합 테스트(`*RepositoryIntegrationTest`, `AuthUniqueIndexInitializerIntegrationTest` 등)는 `@EnabledIfEnvironmentVariable(RUN_MONGO_IT=true)`일 때만 실행되고, 기본 접속 대상이 `${MONGO_IT_HOST:localhost}:${MONGO_IT_PORT:27017}`, DB `ddan-ddan-it-test`이며 테스트 전후로 컬렉션을 비운다. **`RUN_MONGO_IT`를 설정하지 않는다.** 필요하면 `MONGO_IT_PORT`를 운영이 아닌 별도 Mongo로 지정해야 하며, 그런 인스턴스가 없으면 실행하지 않는다.
 - `@SpringBootTest` 풀 컨텍스트 테스트(`DdanDdanServerApplicationTests`, `migration/*`, `TestUserGenerator`)는 `@Disabled`다. 이 파일들을 활성화하지 않는다(실제 DB 마이그레이션 코드 포함).
-- 임베디드 Mongo/Testcontainers 의존은 없다. 나머지 테스트는 MockK/`@WebMvcTest` 기반으로 보이나, `./gradlew test` 전체가 27017에 접속하지 않는다는 것은 실행으로 확인하지 못했다(미검증). 에이전트는 `RUN_MONGO_IT` 미설정 상태에서 대상 테스트 클래스를 하나씩 지정해 실행하고, DB가 필요한 클래스는 건너뛴다.
+- 임베디드 Mongo/Testcontainers 의존은 없다. `RUN_MONGO_IT` 미설정 상태의 `./gradlew test` 전체는 운영 MongoDB(27017)에 접속하지 않는다(2026-11-25 확인, 370건 중 29건 스킵). 스킵에는 통합 테스트 외에 `@Disabled` 테스트도 포함된다.
 - `src/main/resources/config`는 비공개 설정 git submodule(`ddan-ddan-server-config`)이며 기본적으로 초기화되어 있지 않다. 에이전트는 이 submodule을 초기화하거나 열거나 출력하지 않는다. 로컬 실행이 필요하면 접근 권한이 있는 사용자가 `git submodule update --init`을 직접 실행한다.
 
 **완료로 인정하는 기준**
@@ -228,7 +244,7 @@ EOF
 ## 2. 로컬 실행·포트·setup
 
 - 실행: `./gradlew bootRun`. 기본 프로필은 `application.yaml`의 `spring.profiles.active: dev`이고 `application-{dev,local,prod}.yaml`이 존재한다. 세 프로필 모두 MongoDB 접속 정보를 환경변수(`MONGO_HOST`, `MONGO_PORT`, `MONGO_DB`, `MONGO_USER`, 비밀번호 등)로 받는다. 기본값이 없어 setup 없이는 기동하지 않는다.
-- 필요 setup: JDK 17(`mise`로 관리), `git submodule update --init`으로 `src/main/resources/config` 받기(접근 권한 필요), 위 환경변수. 외부 연동(Kakao/Apple OAuth, Firebase FCM, Slack)은 설정/자격 증명이 필요하다. `mock-oauth.enabled`로 OAuth를 mock할 수 있다(기본 `false`).
+- 필요 setup: JDK 17 toolchain(`mise`로 관리, Gradle 실행 JDK는 위 "JDK 지정" 참조), `git submodule update --init`으로 `src/main/resources/config` 받기(접근 권한 필요), 위 환경변수. 외부 연동(Kakao/Apple OAuth, Firebase FCM, Slack)은 설정/자격 증명이 필요하다. `mock-oauth.enabled`로 OAuth를 mock할 수 있다(기본 `false`).
 - 포트: 앱은 8080(Jib `ports`, Swagger UI `/swagger-ui.html`, OpenAPI `/v3/api-docs.yaml`).
 - **이 Mac에서 `bootRun` 금지 사항**: 8080은 홈서버 dev/prod 앱이 컨테이너로 쓰는 포트와 겹칠 수 있고 `127.0.0.1:27017`은 운영 MongoDB다. 운영 DB를 가리키는 환경변수로 서버를 띄우지 않는다. 로컬 실행이 필요하면 `--server.port`로 다른 포트(예: 18080)를 지정하고 운영이 아닌 Mongo를 사용한다(미검증).
 - 배포 이미지: `amazoncorretto:17-alpine-jdk`, linux/arm64, 타임존 `Asia/Seoul`, 이미지 태그는 `GITHUB_SHA`(없으면 `dev`).
@@ -247,6 +263,7 @@ EOF
 - 커밋/PR 제목은 `타입: 설명` 형식의 한국어(예: `fix: ... (#350)`). PR 본문은 `.github/pull_request_template.md`.
 - `CODEOWNERS`는 `@ddingmin` 한 명. CodeRabbit 자동 리뷰가 develop 대상 PR에 켜져 있다(한국어).
 - Orca 워커는 push·PR 생성을 하지 않고 로컬 커밋까지만 한다. 이슈/브랜치 번호가 없는 지시면 코디네이터가 준 브랜치를 그대로 쓴다.
+- Orca worktree는 브랜치명의 `/`를 `-`로 바꿀 수 있다. 이슈 브랜치(`타입/#이슈번호-간단한-설명`)가 지정된 경우에만, PR 전(첫 push 전)에 `git branch --show-current`로 확인하고 `git branch -m '지정된-브랜치명'`으로 그 이름에 맞춘다(`#`이 있으므로 따옴표로 감싼다). 그 외에는 위 줄대로 받은 브랜치를 그대로 쓴다.
 
 ## 4. 작업 분할 경계
 
