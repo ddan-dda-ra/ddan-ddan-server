@@ -263,7 +263,7 @@ EOF
 - 커밋/PR 제목은 `타입: 설명` 형식의 한국어(예: `fix: ... (#350)`). PR 본문은 `.github/pull_request_template.md`.
 - `CODEOWNERS`는 `@ddingmin` 한 명. CodeRabbit 자동 리뷰가 develop 대상 PR에 켜져 있다(한국어).
 - Orca 워커는 push·PR 생성을 하지 않고 로컬 커밋까지만 한다. 이슈/브랜치 번호가 없는 지시면 코디네이터가 준 브랜치를 그대로 쓴다.
-- Orca worktree는 브랜치명의 `/`를 `-`로 바꿀 수 있다. PR 전(첫 push 전)에 `git branch --show-current`로 확인하고 `git branch -m '타입/#이슈번호-간단한-설명'`으로 바꾼다. `#`이 있으므로 따옴표로 감싼다.
+- Orca worktree는 브랜치명의 `/`를 `-`로 바꿀 수 있다. 이슈 브랜치(`타입/#이슈번호-간단한-설명`)가 지정된 경우에만, PR 전(첫 push 전)에 `git branch --show-current`로 확인하고 `git branch -m '지정된-브랜치명'`으로 그 이름에 맞춘다(`#`이 있으므로 따옴표로 감싼다). 그 외에는 위 줄대로 받은 브랜치를 그대로 쓴다.
 
 ## 4. 작업 분할 경계
 
